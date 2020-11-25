@@ -37,13 +37,12 @@ framework, you would create your Router first, then the Conode and call
 
 ## Roster
 
-It is simply a list of Conode denoted by their public key and address. A Roster
+It is simply a list of Conode denoted by their address. A Roster
 is identified by its ID which is unique for each list.
 
 ## Tree
 
-It is a regular tree comprised of TreeNodes each of them denoted by their public
-key and address. It is constructed out of a Roster.
+It is a regular tree comprised of TreeNodes each of them denoted by their address. It is constructed out of a Roster.
 
 ## Overlay
 

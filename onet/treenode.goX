@@ -1,0 +1,328 @@
+package onet
+
+import (
+	"errors"
+	"fmt"
+	"sync"
+
+	"github.com/cypherium/cypherBFT/log"
+	"github.com/cypherium/cypherBFT/onet/network"
+)
+
+// TreeNodeInstance represents a protocol-instance in a given TreeNode. It embeds an
+// Overlay where all the tree-structures are stored.
+type TreeNodeInstance struct {
+	overlay *Overlay
+	token   *Token
+	// cache for the TreeNode this Node is representing
+	treeNode *TreeNode
+	// cached list of all TreeNodes
+	treeNodeList []*TreeNode
+	// mutex to synchronise creation of treeNodeList
+	mtx sync.Mutex
+
+	// channels holds all channels available for the different message-types
+	channels map[network.MessageTypeID]interface{}
+	// registered handler-functions for that protocol
+	handlers map[network.MessageTypeID]interface{}
+	// flags for messages - only one channel/handler possible
+	messageTypeFlags map[network.MessageTypeID]uint32
+	// The protocolInstance belonging to that node
+	instance ProtocolInstance
+	// aggregate messages in order to dispatch them at once in the protocol
+	// instance
+	msgQueue map[network.MessageTypeID][]*ProtocolMsg
+	// done callback
+	onDoneCallback func() bool
+	// queue holding msgs
+	msgDispatchQueue []*ProtocolMsg
+	// locking for msgqueue
+	msgDispatchQueueMutex sync.Mutex
+	// kicking off new message
+	msgDispatchQueueWait chan bool
+	// whether this node is closing
+	closing bool
+
+	protoIO MessageProxy
+
+	// config is to be passed down in the first message of what the protocol is
+	// sending if it is non nil. Set with `tni.SetConfig()`.
+	config    *GenericConfig
+	sentTo    map[TreeNodeID]bool
+	configMut sync.Mutex
+
+	// used for the CounterIO interface
+	tx safeAdder
+	rx safeAdder
+}
+
+type safeAdder struct {
+	sync.RWMutex
+	x uint64
+}
+
+func (a *safeAdder) add(x uint64) {
+	a.Lock()
+	a.x += x
+	a.Unlock()
+}
+
+func (a *safeAdder) get() (x uint64) {
+	a.RLock()
+	x = a.x
+	a.RUnlock()
+	return
+}
+
+const (
+	// AggregateMessages (if set) tells to aggregate messages from all children
+	// before sending to the (parent) Node
+	AggregateMessages = 1
+
+	// DefaultChannelLength is the default number of messages that can wait
+	// in a channel.
+	DefaultChannelLength = 100
+)
+
+// MsgHandler is called upon reception of a certain message-type
+type MsgHandler func([]*interface{})
+
+// TreeNode gets the treeNode of this node. If there is no TreeNode for the
+// Token of this node, the function will return nil
+func (n *TreeNodeInstance) TreeNode() *TreeNode {
+	return n.treeNode
+}
+
+// ServerIdentity returns our entity
+func (n *TreeNodeInstance) ServerIdentity() *network.ServerIdentity {
+	return n.treeNode.ServerIdentity
+}
+
+// Parent returns the parent-TreeNode of ourselves
+func (n *TreeNodeInstance) Parent() *TreeNode {
+	return n.treeNode.Parent
+}
+
+// Children returns the children of ourselves
+func (n *TreeNodeInstance) Children() []*TreeNode {
+	return n.treeNode.Children
+}
+
+// Root returns the root-node of that tree
+func (n *TreeNodeInstance) Root() *TreeNode {
+	return n.Tree().Root
+}
+
+// IsRoot returns whether whether we are at the top of the tree
+func (n *TreeNodeInstance) IsRoot() bool {
+	return n.treeNode.Parent == nil
+}
+
+// IsLeaf returns whether whether we are at the bottom of the tree
+func (n *TreeNodeInstance) IsLeaf() bool {
+	return len(n.treeNode.Children) == 0
+}
+
+// Tree returns the tree of that node
+func (n *TreeNodeInstance) Tree() *Tree {
+	return n.overlay.TreeFromToken(n.token)
+}
+
+// Roster returns the entity-list
+func (n *TreeNodeInstance) Roster() *Roster {
+	return n.Tree().Roster
+}
+
+// Suite can be used to get the current kyber.Suite (currently hardcoded into
+// the network library).
+func (n *TreeNodeInstance) Suite() network.Suite {
+	return n.overlay.suite()
+}
+
+// ProtocolInstance returns the instance of the running protocol
+func (n *TreeNodeInstance) ProtocolInstance() ProtocolInstance {
+	return n.instance
+}
+
+// Dispatch - the standard dispatching function is empty
+func (n *TreeNodeInstance) Dispatch() error {
+	return nil
+}
+
+// Shutdown - standard Shutdown implementation. Define your own
+// in your protocol (if necessary)
+func (n *TreeNodeInstance) Shutdown() error {
+	return nil
+}
+
+// closeDispatch shuts down the go-routine and calls the protocolInstance-shutdown
+func (n *TreeNodeInstance) closeDispatch() error {
+	log.Debug("Closing node", "", n.Info())
+	n.msgDispatchQueueMutex.Lock()
+	n.closing = true
+	close(n.msgDispatchQueueWait)
+	n.msgDispatchQueueMutex.Unlock()
+	log.Debug("Closed node", "", n.Info())
+	pni := n.ProtocolInstance()
+	if pni == nil {
+		return errors.New("Can't shutdown empty ProtocolInstance")
+	}
+	return pni.Shutdown()
+}
+
+// ProtocolName will return the string representing that protocol
+func (n *TreeNodeInstance) ProtocolName() string {
+	return n.overlay.server.protocols.ProtocolIDToName(n.token.ProtoID)
+}
+
+// ProcessProtocolMsg takes a message and puts it into a queue for later processing.
+// This allows a protocol to have a backlog of messages.
+func (n *TreeNodeInstance) ProcessProtocolMsg(msg *ProtocolMsg) {
+	n.msgDispatchQueueMutex.Lock()
+	defer n.msgDispatchQueueMutex.Unlock()
+	if n.closing {
+		log.Debug("Received message for closed protocol")
+		return
+	}
+	n.msgDispatchQueue = append(n.msgDispatchQueue, msg)
+	n.notifyDispatch()
+}
+
+func (n *TreeNodeInstance) notifyDispatch() {
+	select {
+	case n.msgDispatchQueueWait <- true:
+		return
+	default:
+		// Channel write would block: already been notified.
+		// So, nothing to do here.
+	}
+}
+
+// setFlag makes sure a given flag is set
+func (n *TreeNodeInstance) setFlag(mt network.MessageTypeID, f uint32) {
+	n.messageTypeFlags[mt] |= f
+}
+
+// clearFlag makes sure a given flag is removed
+func (n *TreeNodeInstance) clearFlag(mt network.MessageTypeID, f uint32) {
+	n.messageTypeFlags[mt] &^= f
+}
+
+// hasFlag returns true if the given flag is set
+func (n *TreeNodeInstance) hasFlag(mt network.MessageTypeID, f uint32) bool {
+	return n.messageTypeFlags[mt]&f != 0
+}
+
+// startProtocol calls the Start() on the underlying protocol which in turn will
+// initiate the first message to its children
+func (n *TreeNodeInstance) startProtocol() error {
+	return n.instance.Start()
+}
+
+// Done calls onDoneCallback if available and only finishes when the return-
+// value is true.
+func (n *TreeNodeInstance) Done() {
+	if n.onDoneCallback != nil {
+		ok := n.onDoneCallback()
+		if !ok {
+			return
+		}
+	}
+	log.Debug("Done", "info", n.Info(), "", "has finished. Deleting its resources")
+	n.overlay.nodeDone(n.token)
+}
+
+// OnDoneCallback should be called if we want to control the Done() of the node.
+// It is used by protocols that uses others protocols inside and that want to
+// control when the final Done() should be called.
+// the function should return true if the real Done() has to be called otherwise
+// false.
+func (n *TreeNodeInstance) OnDoneCallback(fn func() bool) {
+	n.onDoneCallback = fn
+}
+
+// CloseHost closes the underlying onet.Host (which closes the overlay
+// and sends Shutdown to all protocol instances)
+// NOTE: It is to be used VERY carefully and is likely to disappear in the next
+// releases.
+func (n *TreeNodeInstance) CloseHost() error {
+	return n.Host().Close()
+}
+
+// Name returns a human readable name of this Node (IP address).
+func (n *TreeNodeInstance) Name() string {
+	return n.ServerIdentity().Address.String()
+}
+
+// Info returns a human readable representation name of this Node
+// (IP address and TokenID).
+func (n *TreeNodeInstance) Info() string {
+	tid := n.TokenID()
+	name := protocols.ProtocolIDToName(n.token.ProtoID)
+	if name == "" {
+		name = n.overlay.server.protocols.ProtocolIDToName(n.token.ProtoID)
+	}
+	return fmt.Sprintf("%s (%s): %s", n.ServerIdentity().Address, tid.String(), name)
+}
+
+// TokenID returns the TokenID of the given node (to uniquely identify it)
+func (n *TreeNodeInstance) TokenID() TokenID {
+	return n.token.ID()
+}
+
+// Token returns a CLONE of the underlying onet.Token struct.
+// Useful for unit testing.
+func (n *TreeNodeInstance) Token() *Token {
+	return n.token.Clone()
+}
+
+// Index returns the index of the node in the Roster
+func (n *TreeNodeInstance) Index() int {
+	return n.TreeNode().RosterIndex
+}
+
+// Host returns the underlying Host of this node.
+//
+// WARNING: you should not play with that feature unless you know what you are
+// doing. This feature is meant to access the low level parts of the API. For
+// example it is used to add a new tree config / new entity list to the Server.
+func (n *TreeNodeInstance) Host() *Server {
+	return n.overlay.server
+}
+
+// TreeNodeInstance returns itself (XXX quick hack for this services2 branch
+// version for the tests)
+func (n *TreeNodeInstance) TreeNodeInstance() *TreeNodeInstance {
+	return n
+}
+
+// SetConfig sets the GenericConfig c to be passed down in the first message
+// alongside with the protocol if it is non nil. This config can later be read
+// by Services in the NewProtocol method.
+func (n *TreeNodeInstance) SetConfig(c *GenericConfig) error {
+	n.configMut.Lock()
+	defer n.configMut.Unlock()
+	if n.config != nil {
+		return errors.New("Can't set config twice")
+	}
+	n.config = c
+	return nil
+}
+
+// Rx implements the CounterIO interface
+func (n *TreeNodeInstance) Rx() uint64 {
+	return n.rx.get()
+}
+
+// Tx implements the CounterIO interface
+func (n *TreeNodeInstance) Tx() uint64 {
+	return n.tx.get()
+}
+
+func (n *TreeNodeInstance) isBound() bool {
+	return n.instance != nil
+}
+
+func (n *TreeNodeInstance) bind(pi ProtocolInstance) {
+	n.instance = pi
+}

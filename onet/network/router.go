@@ -73,7 +73,7 @@ func NewRouter(own *ServerIdentity, h Host) *Router {
 	}
 	r.address = h.Address()
 	r.sendsMap = make(map[ServerIdentityID]int)
-	log.Info("New router", "address", r.address, "public key", r.ServerIdentity.Public)
+	log.Info("New router", "address", r.address)
 	return r
 }
 
@@ -458,7 +458,7 @@ func (r *Router) receiveServerIdentity(c Conn) (*ServerIdentity, error) {
 	// Set the ServerIdentity for this connection
 	dst := nm.Msg.(*ServerIdentity)
 
-	log.Debug("receiveServerIdentity", "", r.address, "Identity received si=", dst.Public, "from", dst.Address)
+	log.Debug("receiveServerIdentity", "", r.address, "from", dst.Address)
 	return dst, nil
 }
 

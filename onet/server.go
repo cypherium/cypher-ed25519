@@ -1,7 +1,6 @@
 package onet
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -14,7 +13,6 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/onet/network"
-	"github.com/dedis/kyber/util/encoding"
 	"rsc.io/goversion/version"
 )
 
@@ -31,7 +29,7 @@ type Server struct {
 	statusReporterStruct *statusReporterStruct
 	// protocols holds a map of all available protocols and how to create an
 	// instance of it
-	protocols *protocolStorage
+	//protocols *protocolStorage
 	// when this node has been started
 	started time.Time
 	// once everything's up and running
@@ -49,17 +47,19 @@ func newServer(s network.Suite, r *network.Router) *Server {
 	c := &Server{
 		statusReporterStruct: newStatusReporterStruct(),
 		Router:               r,
-		protocols:            newProtocolStorage(),
-		suite:                s,
-		closeitChannel:       make(chan bool),
+		//protocols:            newProtocolStorage(),
+		suite:          s,
+		closeitChannel: make(chan bool),
 	}
 	c.overlay = NewOverlay(c)
 	c.serviceManager = newServiceManager(c, c.overlay)
-	c.statusReporterStruct.RegisterStatusReporter("Generic", c)
-	for name, inst := range protocols.instantiators {
-		log.Debug("Registering global protocol", "name", name)
-		c.ProtocolRegister(name, inst)
-	}
+	/*
+		c.statusReporterStruct.RegisterStatusReporter("Generic", c)
+		for name, inst := range protocols.instantiators {
+			log.Debug("Registering global protocol", "name", name)
+			c.ProtocolRegister(name, inst)
+		}
+	*/
 	return c
 }
 
@@ -134,7 +134,7 @@ func (c *Server) Close() error {
 	c.Unlock()
 
 	c.overlay.stop()
-	c.overlay.Close()
+	//??c.overlay.Close()
 	err := c.Router.Stop()
 	log.Warn("Close", "Host Close", c.ServerIdentity.Address, "listening?", c.Router.Listening())
 	return err
@@ -156,34 +156,27 @@ func (c *Server) GetService(name string) Service {
 	return c.Service(name)
 }
 
+/*
 // ProtocolRegister will sign up a new protocol to this Server.
 // It returns the ID of the protocol.
 func (c *Server) ProtocolRegister(name string, protocol NewProtocol) (ProtocolID, error) {
 	return c.protocols.Register(name, protocol)
 }
-
-// protocolInstantiate instantiate a protocol from its ID
-func (c *Server) protocolInstantiate(protoID ProtocolID, tni *TreeNodeInstance) (ProtocolInstance, error) {
-	fn, ok := c.protocols.instantiators[c.protocols.ProtocolIDToName(protoID)]
-	if !ok {
-		return nil, errors.New("No protocol constructor with this ID")
-	}
-	return fn(tni)
-}
-
+*/
 // Start makes the router listen on their respective
 // ports. It returns once all servers are started.
 func (c *Server) Start() {
-	protocols.Lock()
-	if protocols.serverStarted {
+	/*
+		protocols.Lock()
+		if protocols.serverStarted {
+			protocols.Unlock()
+			return
+		}
 		protocols.Unlock()
-		return
-	}
-	protocols.Unlock()
-
-	InformServerStarted()
+	*/
+//	InformServerStarted()
 	c.started = time.Now()
-	log.Info(fmt.Sprintf("Starting server at %s on address %s with public key %s", c.started.Format("2006-01-02 15:04:05"), c.ServerIdentity.Address, c.ServerIdentity.Public))
+	log.Info(fmt.Sprintf("Starting server at %s on address %s ", c.started.Format("2006-01-02 15:04:05"), c.ServerIdentity.Address))
 	go c.Router.Start()
 
 	// go func() {
@@ -205,9 +198,9 @@ func (c *Server) Start() {
 }
 
 func (c *Server) Start_client() {
-	InformServerStarted()
+	//InformServerStarted()
 	c.started = time.Now()
-	log.Info(fmt.Sprintf("Starting server at %s on address %s with public key %s", c.started.Format("2006-01-02 15:04:05"), c.ServerIdentity.Address, c.ServerIdentity.Public))
+	log.Info(fmt.Sprintf("Starting server at %s on address %s ", c.started.Format("2006-01-02 15:04:05"), c.ServerIdentity.Address))
 	go c.Router.Start()
 
 	// go func() {
@@ -252,12 +245,4 @@ func (c *Server) WaitStartup() {
 
 // CloseConnect close remote connection
 func (c *Server) AdjustConnect(list []*common.Cnode) {
-	mlist := make(map[network.ServerIdentityID]bool)
-	for _, node := range list {
-		point, _ := encoding.StringHexToPoint(c.suite, node.Public)
-		sid := network.NewServerIdentity(point, network.Address(node.Address))
-		mlist[sid.ID] = true
-	}
-
-	c.Router.AdjustConnect(mlist)
 }

@@ -2,7 +2,7 @@ package onet
 
 import (
 	"github.com/cypherium/cypherBFT/onet/network"
-	"gopkg.in/satori/go.uuid.v1"
+	uuid "gopkg.in/satori/go.uuid.v1"
 )
 
 // ProtocolMsgID is to be embedded in every message that is made for a

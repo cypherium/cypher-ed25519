@@ -121,11 +121,6 @@ func NewServerIdentity(public kyber.Point, address Address) *ServerIdentity {
 	return si
 }
 
-// Equal tests on same public key
-func (si *ServerIdentity) Equal(e2 *ServerIdentity) bool {
-	return si.Public.Equal(e2.Public)
-}
-
 // ServerIdentity converts an ServerIdentityToml structure back to an ServerIdentity
 func (si *ServerIdentityToml) ServerIdentity(suite Suite) *ServerIdentity {
 	pub, err := encoding.ReadHexPoint(suite, strings.NewReader(si.Public))
