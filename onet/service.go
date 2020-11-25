@@ -202,36 +202,22 @@ type serviceManager struct {
 	services map[ServiceID]Service
 	// the onet host
 	server *Server
-	// a bbolt database for all services
-	//	db     *bolt.DB
-	//dbPath string
-	// should the db be deleted on close?
-	//	delDb bool
-	// the dispatcher can take registration of Processors
 	network.Dispatcher
 }
 
 // newServiceManager will create a serviceStore out of all the registered Service
-func newServiceManager(svr *Server, o *Overlay) *serviceManager {
+func newServiceManager(svr *Server) *serviceManager {
 	services := make(map[ServiceID]Service)
 	s := &serviceManager{
-		services: services,
-		server:   svr,
-		//		dbPath:     dbPath,
-		//		delDb:      delDb,
+		services:   services,
+		server:     svr,
 		Dispatcher: network.NewRoutineDispatcher(),
 	}
 	ids := ServiceFactory.registeredServiceIDs()
 	for _, id := range ids {
 		name := ServiceFactory.Name(id)
 		log.Info("Starting service", "name", name)
-		/*
-			err = createBucketForService(s.db, name)
-			if err != nil {
-				panic(err)
-			}
-		*/
-		cont := newContext(svr, o, id, s)
+		cont := newContext(svr, id, s)
 		s, err := ServiceFactory.start(name, cont)
 		if err != nil {
 			panic("Trying to instantiate service:" + name + ":" + err.Error())

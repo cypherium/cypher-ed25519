@@ -52,7 +52,7 @@ func (p *ServiceProcessor) ProcessClientRequest(req *http.Request, path string, 
 			return nil, err
 		}
 		msg := reflect.New(mh.msgType).Interface()
-		err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors(p.Context.server.Suite()))
+		err := protobuf.DecodeWithConstructors(buf, msg, network.DefaultConstructors())
 		if err != nil {
 			return nil, err
 		}

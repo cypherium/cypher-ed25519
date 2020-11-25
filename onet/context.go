@@ -4,11 +4,8 @@ import (
 	"github.com/cypherium/cypherBFT/onet/network"
 )
 
-type Overlay int
-
 // Context represents the methods that are available to a service.
 type Context struct {
-	overlay    *Overlay
 	server     *Server
 	serviceID  ServiceID
 	manager    *serviceManager
@@ -17,9 +14,8 @@ type Context struct {
 
 // defaultContext is the implementation of the Context interface. It is
 // instantiated for each Service.
-func newContext(c *Server, o *Overlay, servID ServiceID, manager *serviceManager) *Context {
+func newContext(c *Server, servID ServiceID, manager *serviceManager) *Context {
 	return &Context{
-		overlay:    o,
 		server:     c,
 		serviceID:  servID,
 		manager:    manager,
@@ -43,11 +39,6 @@ func (c *Context) SendRaw(si *network.ServerIdentity, msg interface{}, bForeConn
 // ServerIdentity returns this server's identity.
 func (c *Context) ServerIdentity() *network.ServerIdentity {
 	return c.server.ServerIdentity
-}
-
-// Suite returns the suite for the context's associated server.
-func (c *Context) Suite() network.Suite {
-	return c.server.Suite()
 }
 
 // ServiceID returns the service-id.

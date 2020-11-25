@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/xtaci/kcp-go"
+	kcp "github.com/xtaci/kcp-go"
 )
 
 //----------------------------------------------------------------------------------------------------
@@ -44,14 +44,14 @@ func NewKCPAddress(addr string) Address {
 }
 
 // NewKCPRouter returns a new Router using KCPHost as the underlying Host.
-func NewKCPRouter(sid *ServerIdentity, suite Suite) (*Router, error) {
-	return NewKCPRouterWithListenAddr(sid, suite, "")
+func NewKCPRouter(sid *ServerIdentity) (*Router, error) {
+	return NewKCPRouterWithListenAddr(sid, "")
 }
 
 // NewKCPRouterWithListenAddr returns a new Router using KCPHost with the
 // given listen address as the underlying Host.
-func NewKCPRouterWithListenAddr(sid *ServerIdentity, suite Suite, listenAddr string) (*Router, error) {
-	h, err := NewKCPHostWithListenAddr(sid, suite, listenAddr)
+func NewKCPRouterWithListenAddr(sid *ServerIdentity, listenAddr string) (*Router, error) {
+	h, err := NewKCPHostWithListenAddr(sid, listenAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +63,7 @@ func NewKCPRouterWithListenAddr(sid *ServerIdentity, suite Suite, listenAddr str
 type KCPConn struct {
 	// The connection used
 	//conn net.Conn
-	conn *kcp.UDPSession
-
-	// the suite used to unmarshal messages
-	suite Suite
-
+	conn      *kcp.UDPSession
 	closed    bool
 	closedMut sync.Mutex
 	// So we only handle one receiving packet at a time
@@ -80,7 +76,7 @@ type KCPConn struct {
 
 // NewKCPConn will open a KCPConn to the given address.
 // In case of an error it returns a nil KCPConn and the error.
-func NewKCPConn(addr Address, suite Suite) (conn *KCPConn, err error) {
+func NewKCPConn(addr Address) (conn *KCPConn, err error) {
 	netAddr := addr.NetworkAddress()
 	for i := 1; i <= MaxRetryConnect; i++ {
 		//c, err := net.Dial("tcp", netAddr)
@@ -89,8 +85,7 @@ func NewKCPConn(addr Address, suite Suite) (conn *KCPConn, err error) {
 		c, err = kcp.DialWithOptions(netAddr, nil, 10, 3)
 		if err == nil {
 			conn = &KCPConn{
-				conn:  c,
-				suite: suite,
+				conn: c,
 			}
 			return
 		}
@@ -113,7 +108,7 @@ func (c *KCPConn) Receive() (env *Envelope, e error) {
 		return nil, err
 	}
 
-	id, body, err := Unmarshal(buff, c.suite)
+	id, body, err := Unmarshal(buff)
 	return &Envelope{
 		MsgType: id,
 		Msg:     body,
@@ -319,9 +314,6 @@ type KCPListener struct {
 
 	// Is this a KCP or a TLS listener?
 	conntype ConnType
-
-	// suite that is given to each incoming connection
-	suite Suite
 }
 
 // NewKCPListener returns a KCPListener. This function binds globally using
@@ -330,8 +322,8 @@ type KCPListener struct {
 // the binding.
 // A subsequent call to Address() gives the actual listening
 // address which is different if you gave it a ":0"-address.
-func NewKCPListener(addr Address, s Suite) (*KCPListener, error) {
-	return NewKCPListenerWithListenAddr(addr, s, "")
+func NewKCPListener(addr Address) (*KCPListener, error) {
+	return NewKCPListenerWithListenAddr(addr, "")
 }
 
 // NewKCPListenerWithListenAddr returns a KCPListener. This function binds to the
@@ -341,7 +333,7 @@ func NewKCPListener(addr Address, s Suite) (*KCPListener, error) {
 // the binding.
 // A subsequent call to Address() gives the actual listening
 // address which is different if you gave it a ":0"-address.
-func NewKCPListenerWithListenAddr(addr Address, s Suite, listenAddr string) (*KCPListener, error) {
+func NewKCPListenerWithListenAddr(addr Address, listenAddr string) (*KCPListener, error) {
 	if addr.ConnType() != PlainKCP && addr.ConnType() != TLS {
 		return nil, errors.New("KCPListener can only listen on KCP and TLS addresses")
 	}
@@ -349,7 +341,6 @@ func NewKCPListenerWithListenAddr(addr Address, s Suite, listenAddr string) (*KC
 		conntype:     addr.ConnType(),
 		quit:         make(chan bool),
 		quitListener: make(chan bool),
-		suite:        s,
 	}
 	listenOn, err := getListenAddress(addr, listenAddr)
 	if err != nil {
@@ -398,10 +389,7 @@ func (t *KCPListener) listen(fn func(Conn)) error {
 			}
 			continue
 		}
-		c := KCPConn{
-			conn:  conn,
-			suite: t.suite,
-		}
+		c := KCPConn{conn: conn}
 		fn(&c)
 	}
 }
@@ -496,25 +484,21 @@ func getListenAddress(addr Address, listenAddr string) (string, error) {
 
 // KCPHost implements the Host interface using KCP connections.
 type KCPHost struct {
-	suite Suite
-	sid   *ServerIdentity
+	sid *ServerIdentity
 	*KCPListener
 }
 
 // NewKCPHost returns a new Host using KCP connection based type.
-func NewKCPHost(sid *ServerIdentity, s Suite) (*KCPHost, error) {
-	return NewKCPHostWithListenAddr(sid, s, "")
+func NewKCPHost(sid *ServerIdentity) (*KCPHost, error) {
+	return NewKCPHostWithListenAddr(sid, "")
 }
 
 // NewKCPHostWithListenAddr returns a new Host using KCP connection based type
 // listening on the given address.
-func NewKCPHostWithListenAddr(sid *ServerIdentity, s Suite, listenAddr string) (*KCPHost, error) {
-	h := &KCPHost{
-		suite: s,
-		sid:   sid,
-	}
+func NewKCPHostWithListenAddr(sid *ServerIdentity, listenAddr string) (*KCPHost, error) {
+	h := &KCPHost{sid: sid}
 	var err error
-	h.KCPListener, err = NewKCPListenerWithListenAddr(sid.Address, s, listenAddr)
+	h.KCPListener, err = NewKCPListenerWithListenAddr(sid.Address, listenAddr)
 	return h, err
 }
 
@@ -523,7 +507,7 @@ func NewKCPHostWithListenAddr(sid *ServerIdentity, s Suite, listenAddr string) (
 func (t *KCPHost) Connect(si *ServerIdentity) (Conn, error) {
 	switch si.Address.ConnType() {
 	case PlainKCP:
-		c, err := NewKCPConn(si.Address, t.suite)
+		c, err := NewKCPConn(si.Address)
 		return c, err
 	case InvalidConnType:
 		return nil, errors.New("This address is not correctly formatted: " + si.Address.String())
