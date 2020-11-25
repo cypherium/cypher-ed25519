@@ -240,7 +240,6 @@ func newServiceManager(svr *Server, o *Overlay) *serviceManager {
 		services[id] = s
 	}
 	log.Info("instantiated all services", "address", svr.Address())
-	svr.statusReporterStruct.RegisterStatusReporter("Db", s)
 	return s
 }
 
@@ -249,11 +248,6 @@ func newServiceManager(svr *Server, o *Overlay) *serviceManager {
 func (s *serviceManager) Process(env *network.Envelope) {
 	// will launch a go routine for that message
 	s.Dispatch(env)
-}
-
-// GetStatus is a function that returns the status report of the server.
-func (s *serviceManager) GetStatus() *Status {
-	return &Status{Field: map[string]string{"Open": "false"}}
 }
 
 // registerProcessor the processor to the service manager and tells the host to dispatch

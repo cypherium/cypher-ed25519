@@ -2,11 +2,6 @@ package onet
 
 import (
 	"fmt"
-	"os"
-	"runtime"
-	"sort"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,9 +19,9 @@ type Server struct {
 	// It uses tokens to represent an unique ProtocolInstance in the system
 	overlay *Overlay
 	// lock associated to access trees
-	treesLock            sync.Mutex
-	serviceManager       *serviceManager
-	statusReporterStruct *statusReporterStruct
+	treesLock      sync.Mutex
+	serviceManager *serviceManager
+	//	statusReporterStruct *statusReporterStruct
 	// protocols holds a map of all available protocols and how to create an
 	// instance of it
 	//protocols *protocolStorage
@@ -45,21 +40,14 @@ type Server struct {
 // DB is deleted on close.
 func newServer(s network.Suite, r *network.Router) *Server {
 	c := &Server{
-		statusReporterStruct: newStatusReporterStruct(),
-		Router:               r,
+		//	statusReporterStruct: newStatusReporterStruct(),
+		Router: r,
 		//protocols:            newProtocolStorage(),
 		suite:          s,
 		closeitChannel: make(chan bool),
 	}
-	c.overlay = NewOverlay(c)
+	//??c.overlay = NewOverlay(c)
 	c.serviceManager = newServiceManager(c, c.overlay)
-	/*
-		c.statusReporterStruct.RegisterStatusReporter("Generic", c)
-		for name, inst := range protocols.instantiators {
-			log.Debug("Registering global protocol", "name", name)
-			c.ProtocolRegister(name, inst)
-		}
-	*/
 	return c
 }
 
@@ -88,42 +76,6 @@ var gover version.Version
 var goverOnce sync.Once
 var goverOk = false
 
-// GetStatus is a function that returns the status report of the server.
-func (c *Server) GetStatus() *Status {
-	v := "2.0"
-
-	a := c.serviceManager.availableServices()
-	sort.Strings(a)
-
-	st := &Status{Field: map[string]string{
-		"Available_Services": strings.Join(a, ","),
-		"TX_bytes":           strconv.FormatUint(c.Router.Tx(), 10),
-		"RX_bytes":           strconv.FormatUint(c.Router.Rx(), 10),
-		"Uptime":             time.Now().Sub(c.started).String(),
-		"System":             fmt.Sprintf("%s/%s/%s", runtime.GOOS, runtime.GOARCH, runtime.Version()),
-		"Version":            v,
-		"Host":               c.ServerIdentity.Address.Host(),
-		"Port":               c.ServerIdentity.Address.Port(),
-		"Description":        c.ServerIdentity.Description,
-		"ConnType":           string(c.ServerIdentity.Address.ConnType()),
-	}}
-
-	goverOnce.Do(func() {
-		v, err := version.ReadExe(os.Args[0])
-		if err == nil {
-			gover = v
-			goverOk = true
-		}
-	})
-
-	if goverOk {
-		st.Field["GoRelease"] = gover.Release
-		st.Field["GoModuleInfo"] = gover.ModuleInfo
-	}
-
-	return st
-}
-
 // Close closes the overlay and the Router
 func (c *Server) Close() error {
 	c.Lock()
@@ -133,7 +85,7 @@ func (c *Server) Close() error {
 	}
 	c.Unlock()
 
-	c.overlay.stop()
+	//??c.overlay.stop()
 	//??c.overlay.Close()
 	err := c.Router.Stop()
 	log.Warn("Close", "Host Close", c.ServerIdentity.Address, "listening?", c.Router.Listening())
@@ -174,7 +126,7 @@ func (c *Server) Start() {
 		}
 		protocols.Unlock()
 	*/
-//	InformServerStarted()
+	//	InformServerStarted()
 	c.started = time.Now()
 	log.Info(fmt.Sprintf("Starting server at %s on address %s ", c.started.Format("2006-01-02 15:04:05"), c.ServerIdentity.Address))
 	go c.Router.Start()

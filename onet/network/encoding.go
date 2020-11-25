@@ -10,7 +10,6 @@ import (
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/dedis/kyber"
 	"github.com/dedis/kyber/suites"
-	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/protobuf"
 	uuid "gopkg.in/satori/go.uuid.v1"
 )
@@ -211,6 +210,6 @@ func (tr *typeRegistry) put(mid MessageTypeID, typ reflect.Type) {
 }
 
 func NodeToSid(address, pubKey string) *ServerIdentity {
-	point, _ := encoding.StringHexToPoint(EncSuite, pubKey)
-	return NewServerIdentity(point, Address("kcp://"+address))
+	//point, _ := encoding.StringHexToPoint(EncSuite, pubKey)
+	return NewServerIdentity(nil /*point*/, Address("kcp://"+address))
 }

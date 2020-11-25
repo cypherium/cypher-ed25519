@@ -4,6 +4,8 @@ import (
 	"github.com/cypherium/cypherBFT/onet/network"
 )
 
+type Overlay int
+
 // Context represents the methods that are available to a service.
 type Context struct {
 	overlay    *Overlay
@@ -51,16 +53,6 @@ func (c *Context) Suite() network.Suite {
 // ServiceID returns the service-id.
 func (c *Context) ServiceID() ServiceID {
 	return c.serviceID
-}
-
-// ReportStatus returns all status of the services.
-func (c *Context) ReportStatus() map[string]*Status {
-	return c.server.statusReporterStruct.ReportStatus()
-}
-
-// RegisterStatusReporter registers a new StatusReporter.
-func (c *Context) RegisterStatusReporter(name string, s StatusReporter) {
-	c.server.statusReporterStruct.RegisterStatusReporter(name, s)
 }
 
 // RegisterProcessor overrides the RegisterProcessor methods of the Dispatcher.

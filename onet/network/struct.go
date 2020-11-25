@@ -3,13 +3,10 @@ package network
 import (
 	"errors"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/cypherium/cypherBFT/log"
 	"github.com/dedis/kyber"
-	"github.com/dedis/kyber/util/encoding"
 	"github.com/dedis/protobuf"
 	uuid "gopkg.in/satori/go.uuid.v1"
 )
@@ -100,12 +97,6 @@ func (si *ServerIdentity) String() string {
 // ServerIdentityType can be used to recognise an ServerIdentity-message
 var ServerIdentityType = RegisterMessage(ServerIdentity{})
 
-// ServerIdentityToml is the struct that can be marshalled into a toml file
-type ServerIdentityToml struct {
-	Public  string
-	Address Address
-}
-
 // NewServerIdentity creates a new ServerIdentity based on a public key and with a slice
 // of IP-addresses where to find that entity. The Id is based on a
 // version5-UUID which can include a URL that is based on it's public key.
@@ -114,23 +105,12 @@ func NewServerIdentity(public kyber.Point, address Address) *ServerIdentity {
 		Public:  public,
 		Address: address,
 	}
-	if public != nil {
-		url := NamespaceURL + "id/" + public.String()
+	//if public != nil
+	{
+		url := NamespaceURL + "id/" + address.String() //public.String()
 		si.ID = ServerIdentityID(uuid.NewV5(uuid.NamespaceURL, url))
 	}
 	return si
-}
-
-// ServerIdentity converts an ServerIdentityToml structure back to an ServerIdentity
-func (si *ServerIdentityToml) ServerIdentity(suite Suite) *ServerIdentity {
-	pub, err := encoding.ReadHexPoint(suite, strings.NewReader(si.Public))
-	if err != nil {
-		log.Error("ServerIdentity", "Error while reading public key:", err)
-	}
-	return &ServerIdentity{
-		Public:  pub,
-		Address: si.Address,
-	}
 }
 
 // GlobalBind returns the global-binding address. Given any IP:PORT combination,
