@@ -12,7 +12,6 @@ import (
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet"
 	"github.com/cypherium/cypherBFT/onet/network"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
@@ -45,15 +44,16 @@ type hotstuffMsg struct {
 	lastN uint64
 	hMsg  *hotstuff.HotstuffMessage
 }
+
 type networkMsg struct {
-	ID   int64
-	Hmsg *hotstuff.HotstuffMessage
-	Cmsg *committeeInfo
-	Bmsg *bestCandidateInfo
+	Hash   common.Hash
+	Flag   uint8
+	Number uint64
+	Hmsg   *hotstuff.HotstuffMessage
+	Cmsg   *committeeInfo
+	Bmsg   *bestCandidateInfo
 }
-type networkMsgAck struct {
-	ID int64
-}
+
 type lastAckMsg struct {
 	si    *network.ServerIdentity
 	ackTm time.Time
@@ -62,11 +62,7 @@ type lastAckMsg struct {
 
 //Service work for protcol
 type Service struct {
-	*onet.ServiceProcessor // We need to embed the ServiceProcessor, so that incoming messages are correctly handled.
-	server                 *onet.Server
-	serverID               string
-	serverAddress          string
-
+	netService *netService
 	bc         *core.BlockChain
 	txService  *txService
 	kbc        *core.KeyBlockChain
@@ -86,12 +82,7 @@ type Service struct {
 	lastProposeTime time.Time
 	pacetMakerTimer *paceMakerTimer
 
-	netErrMap    map[string]time.Time
-	muNetErr     sync.Mutex
-	netLastMsg   map[string]*lastAckMsg
-	muNetLastMsg sync.Mutex
-
-	hotstuffMsgs CDataQueue
+	hotstuffMsgQ *common.Queue
 	/*
 		feed   event.Feed
 		msgCh  chan hotstuffMsg
@@ -105,48 +96,31 @@ type Service struct {
 		muInserting sync.Mutex
 		isInserting bool
 	*/
-	goPool *GoPool
 }
 
 func newService(sName string, conf *Reconfig) *Service {
-	onet.RegisterNewService(sName, registerService)
-	server := onet.NewKcpServer(conf.cph.ExtIP().String() + ":" + conf.config.OnetPort)
+	s := new(Service)
+	s.netService = newNetService(sName, conf, s)
 
-	s := server.Service(sName).(*Service)
 	s.txService = newTxService(s, conf.cph, conf.config)
 	s.keyService = newKeyService(s, conf.cph, conf.config)
 
-	s.server = server
 	s.bc = conf.cph.BlockChain()
 	s.kbc = conf.cph.KeyBlockChain()
 	s.lastCmInfoMap = make(map[common.Hash]*cachedCommitteeInfo)
-	s.netErrMap = make(map[string]time.Time)
-	s.netLastMsg = make(map[string]*lastAckMsg)
 
 	//	s.msgCh = make(chan hotstuffMsg, 1024)
 	//	s.msgSub = s.feed.Subscribe(s.msgCh)
 	s.msgCh1 = make(chan committeeMsg, 10)
 	s.msgSub1 = s.feed1.Subscribe(s.msgCh1)
+	s.hotstuffMsgQ = common.QueueNew()
 
 	//	s.blockCh = make(chan *types.Block, 5)
-	s.goPool = NewGoPool(params.MaxGoRoutines, false).Start()
 	s.protocolMng = hotstuff.NewHotstuffProtocolManager(s, nil, nil, params.PaceMakerTimeout*2)
 
 	go s.handleHotStuffMsg()
 	go s.handleCommitteeMsg()
-	go s.ackStatusMonitor()
 	return s
-}
-
-func registerService(c *onet.Context) (onet.Service, error) {
-	s := &Service{ServiceProcessor: onet.NewServiceProcessor(c)}
-	s.RegisterProcessorFunc(network.RegisterMessage(&networkMsg{}), s.handleNetworkMsgReq)
-	s.RegisterProcessorFunc(network.RegisterMessage(&networkMsgAck{}), s.handleNetworkMsgAckReq)
-
-	//s.RegisterProcessorFunc(network.RegisterMessage(&hotstuff.HotstuffMessage{}), s.handleHotStuffReq)
-	//s.RegisterProcessorFunc(network.RegisterMessage(&committeeInfo{}), s.handleCommitteeInfoReq)
-	//s.RegisterProcessorFunc(network.RegisterMessage(&bestCandidateInfo{}), s.handleBestCandidateInfoReq)
-	return s, nil
 }
 
 //OnNewView --------------------------------------------------------------------------
@@ -220,7 +194,7 @@ func (s *Service) GetPublicKey() []*bls.PublicKey {
 
 //Self call by hotstuff
 func (s *Service) Self() string {
-	return s.serverID
+	return s.netService.serverID
 }
 
 //CheckView call by hotstuff
@@ -293,8 +267,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 				time.Sleep(2 * time.Second)
 				curView := s.getCurrentView()
 				if bftview.IamLeader(curView.LeaderIndex) {
-					s.addHotstuffMsg(&hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlock().NumberU64(), hMsg: s.protocolMng.TryProposeMessage()})
-					//s.feed.Send(hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlock().NumberU64(), hMsg: s.protocolMng.TryProposeMessage()})
+					s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlock().NumberU64(), hMsg: s.protocolMng.TryProposeMessage()})
 				}
 			}()
 		} else {
@@ -332,14 +305,14 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 			if bestCandi != nil {
 				extra = bestCandi.EncodeToBytes()
 			}
-
 			tbuf, err := s.txService.tryProposalNewBlock(types.IsKeyBlockType)
 			if err != nil {
-				log.Error("Propose keyblock+txblock", "error", err)
-			} else {
-				proposeOK = true
-				return nil, kbuf, tbuf, extra
+				log.Error("tryProposalNewBlock.1", "error", err)
+				return err, nil, nil, nil
 			}
+
+			proposeOK = true
+			return nil, kbuf, tbuf, extra
 		}
 		log.Warn("tryProposalChangeCommittee error and tryProposalNewBlock", "error", err)
 		data, err := s.txService.tryProposalNewBlock(types.IsKeyBlockSkipType)
@@ -394,8 +367,7 @@ func (s *Service) Write(id string, data *hotstuff.HotstuffMessage) error {
 	}
 
 	if id == s.Self() {
-		s.addHotstuffMsg(&hotstuffMsg{sid: nil, hMsg: data})
-		//s.feed.Send(hotstuffMsg{sid: nil, hMsg: data})
+		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
 		return nil
 	}
 
@@ -410,105 +382,38 @@ func (s *Service) Write(id string, data *hotstuff.HotstuffMessage) error {
 		return err
 	}
 
-	s.goPool.AddFunc(s.SendRawData1, network.NodeToSid(node.Address, node.Public), &networkMsg{Hmsg: data}, true)
-	//go s.SendRawData(network.NodeToSid(node.Address, node.Public), &networkMsg{Hmsg: data}, true)
+	s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
 	return nil
 }
 
 //Broadcast call by hotstuff
 func (s *Service) Broadcast(data *hotstuff.HotstuffMessage) []error {
 	log.Debug("Broadcast", "code", hotstuff.ReadableMsgType(data.Code), "ViewId", data.ViewId)
-	//var arr []error
 	mb := bftview.GetCurrentMember()
 	if mb == nil {
 		return []error{fmt.Errorf("can't find current committee")}
 	}
 	for _, node := range mb.List {
-		if node.Address == s.serverAddress {
-			s.addHotstuffMsg(&hotstuffMsg{sid: nil, hMsg: data})
-			//s.feed.Send(hotstuffMsg{sid: nil, hMsg: data})
+		if node.IsSelf() {
+			s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
 			continue
 		}
-		//go s.SendRawData(network.NodeToSid(node.Address, node.Public), &networkMsg{Hmsg: data}, true)
-		s.goPool.AddFunc(s.SendRawData1, network.NodeToSid(node.Address, node.Public), &networkMsg{Hmsg: data}, true)
-
-		//arr = append(arr, err)
+		s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
 	}
 	return nil //return arr
 }
 
-func (s *Service) addHotstuffMsg(msg *hotstuffMsg) {
-	s.hotstuffMsgs.pushBack(msg)
-}
-
-func (s *Service) handleNetworkMsgReq(env *network.Envelope) {
-	msg, ok := env.Msg.(*networkMsg)
-	if !ok {
-		log.Error("handleNetworkMsgReq failed to cast to ")
-		return
-	}
-	si := env.ServerIdentity
-	address := si.Address.String()
-	//	log.Info("handleNetworkMsgReq Recv", "from address", address )
-	s.muNetLastMsg.Lock()
-	r := s.netLastMsg[address]
-	if r != nil {
-		r.ackTm = time.Now()
-	}
-	s.muNetLastMsg.Unlock()
-
+func (s *Service) networkMsgAck(si *network.ServerIdentity, msg *networkMsg) {
 	if msg.Hmsg != nil {
-		s.addHotstuffMsg(&hotstuffMsg{sid: si, hMsg: msg.Hmsg})
+		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: si, hMsg: msg.Hmsg})
 		return
 	}
 	s.feed1.Send(committeeMsg{sid: si, cinfo: msg.Cmsg, best: msg.Bmsg})
-	s.goPool.AddFunc(s.SendRaw1, env.ServerIdentity, &networkMsgAck{ID: msg.ID}, false)
-	//go s.SendRaw(env.ServerIdentity, &networkMsgAck{ID: msg.ID}, false)
-
-}
-
-func (s *Service) sendHeartBeatMsg() {
-	if bftview.IamMember() < 0 {
-		return
-	}
-	mb := bftview.GetCurrentMember()
-	for _, node := range mb.List {
-		if node.Address != s.serverAddress {
-			s.muNetLastMsg.Lock()
-			r := s.netLastMsg[node.Address]
-			s.muNetLastMsg.Unlock()
-			if r != nil {
-				if time.Now().Sub(r.ackTm) < params.PaceMakerHeatTimeout {
-					continue
-				}
-			}
-			log.Debug("sendHeartBeatMsg", "tm", time.Now())
-			s.goPool.AddFunc(s.SendRaw1, network.NodeToSid(node.Address, node.Public), &networkMsgAck{ID: 0}, false)
-			//go s.SendRaw(network.NodeToSid(node.Address, node.Public), &networkMsgAck{ID: 0}, false)
-		}
-	}
-}
-
-func (s *Service) handleNetworkMsgAckReq(env *network.Envelope) {
-	_, ok := env.Msg.(*networkMsgAck)
-	if !ok {
-		log.Error("handleNetworkMsgAckReq failed to cast to ")
-		return
-	}
-	si := env.ServerIdentity
-	address := si.Address.String()
-	log.Debug("handleNetworkMsgAckReq Recv", "from address", address)
-	s.muNetLastMsg.Lock()
-	r := s.netLastMsg[address]
-	if r != nil {
-		r.ackTm = time.Now()
-	}
-	s.muNetLastMsg.Unlock()
 }
 
 func (s *Service) handleHotStuffMsg() {
 	for {
-		data := s.hotstuffMsgs.popFront()
+		data := s.hotstuffMsgQ.PopFront()
 		if data == nil {
 			time.Sleep(5 * time.Millisecond)
 			continue
@@ -529,10 +434,10 @@ func (s *Service) handleHotStuffMsg() {
 			curBlock := s.kbc.CurrentBlock()
 			keyNumber := curBlock.NumberU64()
 			keyHash := curBlock.Hash()
-			if bftview.LoadMember(keyNumber, keyHash, true) == nil && msg.sid.Address.String() != s.serverAddress {
-				log.Debug("request committee", "keynumber", keyNumber, "send to address", msg.sid.Address)
-				s.goPool.AddFunc(s.SendRawData1, msg.sid, &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: keyHash, KeyNumber: keyNumber}}, true)
-				//go s.SendRawData(msg.sid, &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: keyHash, KeyNumber: keyNumber}}, true)
+			msgAddress := msg.sid.Address.String()
+			if bftview.LoadMember(keyNumber, keyHash, true) == nil && msgAddress != s.netService.serverAddress {
+				log.Debug("request committee", "keynumber", keyNumber, "send to address", msgAddress)
+				s.netService.SendRawData(msgAddress, &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: keyHash, KeyNumber: keyNumber}})
 			}
 		}
 
@@ -553,20 +458,18 @@ func (s *Service) syncCommittee(mb *bftview.Committee, keyblock *types.KeyBlock)
 	}
 
 	in := mb.In()
-	s.goPool.AddFunc(s.SendRawData1, network.NodeToSid(in.Address, in.Public), &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}}, true)
-	//go s.SendRawData(network.NodeToSid(in.Address, in.Public), &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}}, true)
+	s.netService.SendRawData(in.Address, &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}})
 
 	msg := &bestCandidateInfo{Node: in, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}
 	for i, r := range mb.List {
 		if i == 0 {
 			continue
 		}
-		if r.Address == s.serverAddress {
+		if r.IsSelf() {
 			continue
 		}
 		log.Debug("syncBestCandidate", "send to", r.Address)
-		s.goPool.AddFunc(s.SendRawData1, network.NodeToSid(r.Address, r.Public), &networkMsg{Bmsg: msg}, true)
-		//go s.SendRawData(network.NodeToSid(r.Address, r.Public), &networkMsg{Bmsg: msg}, true)
+		s.netService.SendRawData(r.Address, &networkMsg{Bmsg: msg})
 	}
 }
 
@@ -632,12 +535,12 @@ func (s *Service) handleCommitteeMsg() {
 				if mb == nil {
 					continue
 				}
-				log.Debug("committeeInfo answer", "number", cInfo.KeyNumber, "adddress", msg.sid.Address)
-				r, _ := mb.Get(msg.sid.Address.String(), bftview.Address)
+				msgAddress := msg.sid.Address.String()
+				log.Debug("committeeInfo answer", "number", cInfo.KeyNumber, "adddress", msgAddress)
+				r, _ := mb.Get(msgAddress, bftview.Address)
 				if r != nil {
 					log.Debug("committeeInfo answer..ok", "number", cInfo.KeyNumber)
-					s.goPool.AddFunc(s.SendRawData1, msg.sid, &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: cInfo.KeyHash, KeyNumber: cInfo.KeyNumber}}, true)
-					//go s.SendRawData(msg.sid, &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: cInfo.KeyHash, KeyNumber: cInfo.KeyNumber}}, true)
+					s.netService.SendRawData(msgAddress, &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: cInfo.KeyHash, KeyNumber: cInfo.KeyNumber}})
 				}
 				continue
 			}
@@ -707,7 +610,7 @@ func (s *Service) updateCommittee(keyBlock *types.KeyBlock) bool {
 func (s *Service) Committee_OnStored(keyblock *types.KeyBlock, mb *bftview.Committee) {
 	log.Debug("store committee", "keyNumber", keyblock.NumberU64(), "ip0", mb.List[0].Address, "ipn", mb.List[len(mb.List)-1].Address)
 	//if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlock().NumberU64() {
-	//	s.server.AdjustConnect( mb.List )
+	//	s.netService.AdjustConnect( mb )
 	//}
 }
 
@@ -733,10 +636,10 @@ func (s *Service) Committee_Request(kNumber uint64, hash common.Hash) {
 	if parentMb == nil {
 		return
 	}
+
 	for _, node := range parentMb.List {
-		if node.Address != s.serverAddress {
-			s.goPool.AddFunc(s.SendRawData1, network.NodeToSid(node.Address, node.Public), &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: hash, KeyNumber: kNumber}}, false)
-			//go s.SendRawData(network.NodeToSid(node.Address, node.Public), &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: hash, KeyNumber: kNumber}}, false)
+		if node.Address != s.netService.serverAddress {
+			s.netService.SendRawData(node.Address, &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: hash, KeyNumber: kNumber}})
 		}
 	}
 	s.lastReqCmNumber = kNumber
@@ -780,8 +683,7 @@ func (s *Service) getBestCandidate(refresh bool) *types.Candidate {
 
 func (s *Service) sendNewViewMsg(curN uint64) {
 	if bftview.IamMember() >= 0 && curN >= s.kbc.CurrentBlock().T_Number() {
-		s.addHotstuffMsg(&hotstuffMsg{sid: nil, lastN: curN, hMsg: s.protocolMng.NewViewMessage()})
-		//s.feed.Send(hotstuffMsg{sid: nil, lastN: curN, hMsg: s.protocolMng.NewViewMessage()})
+		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: curN, hMsg: s.protocolMng.NewViewMessage()})
 	}
 }
 
@@ -801,82 +703,19 @@ func (s *Service) setNextLeader(reconfigType uint8) {
 	s.waittingView.KeyNumber = s.currentView.KeyNumber + 1
 }
 
-func (s *Service) ackStatusMonitor() {
-	emptyTm := time.Time{}
-	timeOut := network.ReadTimeout
-	for {
-		time.Sleep(100 * time.Millisecond)
-		tmNow := time.Now()
-		s.muNetLastMsg.Lock()
-		for id, r := range s.netLastMsg {
-			if !r.ackTm.Equal(emptyTm) && tmNow.Sub(r.ackTm) > timeOut {
-				if r.msg != nil {
-					log.Warn("ackStatusMonitor force connect", "address", id)
-					s.goPool.AddFunc(s.SendRaw1, r.si, r.msg, true)
-					//go s.SendRaw(r.si, r.msg, true)
-				}
-				delete(s.netLastMsg, id)
-			}
-		}
-		s.muNetLastMsg.Unlock()
-	}
-}
-
-func (s *Service) SendRawData1(ps ...interface{}) {
-	si := ps[0].(*network.ServerIdentity)
-	id := si.Address.String()
-	msg := ps[1].(*networkMsg)
-	//shouldReSend := ps[2].(bool)
-	log.Debug("SendRawData1", "address", id)
-
-	s.muNetErr.Lock()
-	tm, ok := s.netErrMap[id]
-	s.muNetErr.Unlock()
-
-	if ok {
-		if time.Now().Sub(tm) < params.SendErrReTryTime {
-			log.Debug("SendRawData1 SendErrReTryTime err", "address", id)
-			return
-		}
-		s.muNetErr.Lock()
-		delete(s.netErrMap, id)
-		s.muNetErr.Unlock()
-	}
-	msg.ID = time.Now().UnixNano()
-
-	s.muNetLastMsg.Lock()
-	r, ok := s.netLastMsg[id]
-	if ok {
-		r.msg = msg
-		r.si = si
-	} else {
-		s.netLastMsg[id] = &lastAckMsg{si: si, msg: msg}
-	}
-	s.muNetLastMsg.Unlock()
-
-	err := s.SendRaw(si, msg, false)
-	if err != nil {
-		log.Warn("SendRawData", "couldn't send to", si.Address, "msg ID", msg.ID, "error", err)
-		s.muNetErr.Lock()
-		s.netErrMap[si.String()] = time.Now()
-		s.muNetErr.Unlock()
-	}
-}
-
 func (s *Service) procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock) {
 	if keyblock == nil {
 		keyblock = s.kbc.CurrentBlock()
 	}
 	s.pacetMakerTimer.procBlockDone(txBlock, keyblock)
+	s.netService.procBlockDone(txBlock.NumberU64(), keyblock.NumberU64())
 }
 
 func (s *Service) start(config *common.NodeConfig) {
 	if !s.isRunning() {
-		s.serverAddress = config.Ip + ":" + config.Port
-		s.serverID = bftview.GetNodeID(s.serverAddress, config.Public)
 		s.protocolMng.UpdateKeyPair(bftview.StrToBlsPrivKey(config.Private))
-		bftview.SetServerInfo(s.serverAddress, config.Public)
-		s.server.Start()
+		bftview.SetServerInfo(s.netService.serverAddress, config.Public)
+		s.netService.StartStop(true, config)
 		if bftview.IamMember() >= 0 {
 			s.updateCommittee(nil)
 			s.pacetMakerTimer.start()
@@ -888,10 +727,9 @@ func (s *Service) start(config *common.NodeConfig) {
 
 func (s *Service) stop() {
 	if s.isRunning() {
-		//s.server.Close()
+		s.netService.StartStop(false, nil)
 		s.pacetMakerTimer.stop()
 		s.setRunState(0)
-		s.netErrMap = make(map[string]time.Time) //clear map
 	}
 }
 

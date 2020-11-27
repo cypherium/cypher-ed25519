@@ -48,7 +48,7 @@ func NewKcpServer(addr string) *Server {
 }
 
 // NewServerKCPWithListenAddr returns a new Server out of a private-key and
-// its related public key within the ServerIdentity. The server will use a
+// its related address within the ServerIdentity. The server will use a
 // KcpRouter listening on the given address as Router.
 func NewServerKCPWithListenAddr(e *network.ServerIdentity, listenAddr string) *Server {
 	r, _ := network.NewKCPRouterWithListenAddr(e, listenAddr)

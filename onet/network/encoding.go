@@ -46,7 +46,7 @@ func (mId MessageTypeID) IsNil() bool {
 // NamespaceURL is the basic namespace used for uuid
 // XXX should move that to external of the library as not every
 // cothority/packages should be expected to use that.
-const NamespaceURL = "https://dedis.epfl.ch/"
+const NamespaceURL = "https://cypherium.io/"
 
 // NamespaceBodyType is the namespace used for PacketTypeID
 const NamespaceBodyType = NamespaceURL + "/protocolType/"
@@ -188,8 +188,4 @@ func (tr *typeRegistry) put(mid MessageTypeID, typ reflect.Type) {
 	tr.lock.Lock()
 	defer tr.lock.Unlock()
 	tr.types[mid] = typ
-}
-
-func NodeToSid(address, pubKey string) *ServerIdentity {
-	return NewServerIdentity(nil /*point*/, Address("kcp://"+address))
 }

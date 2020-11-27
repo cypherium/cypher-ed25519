@@ -51,7 +51,6 @@ type serviceI interface {
 	syncCommittee(mb *bftview.Committee, keyblock *types.KeyBlock)
 	setNextLeader(reconfigType uint8)
 	sendNewViewMsg(curN uint64)
-	sendHeartBeatMsg()
 }
 
 //NewReconfig call by backend

@@ -40,6 +40,7 @@ var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
 )
+var Empty_Hash = Hash{}
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash [HashLength]byte
@@ -147,12 +148,19 @@ func (h UnprefixedHash) MarshalText() ([]byte, error) {
 
 // Cnode is one entry describing one server to use for
 // the cnod.
+
+var M_MyHostAddress string = ""
+
 type Cnode struct {
 	Address  string `json:"address" gencodec:"required"`
 	CoinBase string `json:"coinbase" gencodec:"required"`
 	//	Suite    string `json:"suite" gencodec:"required"`
 	Public   string `json:"public" gencodec:"required"`
 	IsMaster bool
+}
+
+func (node *Cnode) IsSelf() bool {
+	return node.Address == M_MyHostAddress
 }
 
 type NodeConfig struct {

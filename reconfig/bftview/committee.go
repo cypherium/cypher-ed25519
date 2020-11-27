@@ -88,6 +88,7 @@ func SetCommitteeConfig(db cphdb.Database, keyblockchain KeyBlockChainInterface,
 }
 
 func SetServerInfo(address, pubKey string) {
+	common.M_MyHostAddress = address
 	m_config.serverInfo.address = address
 	m_config.serverInfo.pubKey = pubKey
 }

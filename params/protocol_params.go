@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	KeyblockPerTxBlocks  = 360
-	GapTxBlocks          = KeyblockPerTxBlocks + 2
-	MaxTxCountPerBlock   = 1024
-	PaceMakerTimeout     = 2 * time.Minute
-	PaceMakerHeatTimeout = 20 * time.Second
-	SendErrReTryTime     = 60 * time.Second
+	KeyblockPerTxBlocks = 360
+	GapTxBlocks         = KeyblockPerTxBlocks + 2
+	MaxTxCountPerBlock  = 1024
+	PaceMakerTimeout    = 2 * time.Minute
+	HeatBeatTimeout     = 20 * time.Second
+	SendErrReTryTime    = 60 * time.Second
 
 	MaxGoRoutines = 400
 	MaxSendBlocks = 10
