@@ -12,19 +12,20 @@ import (
 
 type heartBeat struct {
 	conn      *net.UDPConn
+	sPort     string
 	isRunning bool
 	ackMap    map[string]time.Time
 }
 
-func Heartbeat_New() *heartBeat {
+func Heartbeat_New(sPort string) *heartBeat {
 	s := new(heartBeat)
+	s.sPort = sPort
 	s.ackMap = make(map[string]time.Time)
 	return s
 }
 
 func (s *heartBeat) Start() {
-	sPort := "9801"
-	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+sPort)
+	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+s.sPort)
 	if err != nil {
 		log.Error("Heartbeat_start", "Fatal error ", err.Error())
 	}

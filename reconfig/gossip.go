@@ -56,7 +56,8 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	onet.RegisterNewService(sName, registerService)
 	server := onet.NewKcpServer(conf.cph.ExtIP().String() + ":" + conf.config.OnetPort)
 	s := server.Service(sName).(*netService)
-	s.heartBeat = Heartbeat_New()
+	s.server = server
+	s.heartBeat = Heartbeat_New(conf.config.HeartbeatPort)
 	s.gossipMsg = make(map[common.Hash]msgHeadInfo)
 	s.goMap = make(map[string]*int32)
 	s.idDataMap = make(map[string]*common.Queue)

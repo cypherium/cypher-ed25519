@@ -535,6 +535,11 @@ var (
 		Usage: "port of listen",
 		Value: "7002",
 	}
+	HeartbeatPortFlag = cli.StringFlag{
+		Name:  "heartbeatport",
+		Usage: "port of heartbeat listen",
+		Value: "9002",
+	}
 	PublicKeyFlag = DirectoryFlag{
 		Name:  "publickeydir",
 		Usage: "Directory to store the public toml directoy",
@@ -1065,8 +1070,8 @@ func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
 	SetLocalTestTestIpSw(ctx, &cfg.LocalTestConfig)
 	setCphash(ctx, cfg)
 
-	cfg.PublicKeyDir = ctx.GlobalString(PublicKeyFlag.Name)
 	cfg.OnetPort = ctx.GlobalString(OnetPortFlag.Name)
+	cfg.HeartbeatPort = ctx.GlobalString(HeartbeatPortFlag.Name)
 
 	switch {
 	case ctx.GlobalIsSet(SyncModeFlag.Name):

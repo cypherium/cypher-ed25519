@@ -146,6 +146,7 @@ var (
 	onetFlags = []cli.Flag{
 		utils.OnetDebugFlag,
 		utils.OnetPortFlag,
+		utils.HeartbeatPortFlag,
 		utils.PublicKeyFlag,
 	}
 

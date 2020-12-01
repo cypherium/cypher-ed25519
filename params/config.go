@@ -63,16 +63,16 @@ type ChainConfig struct {
 	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
 
 	// Various consensus engines
-	Cphash                *CphashConfig    `json:"cphash,omitempty"`
-	Clique                *CliqueConfig    `json:"clique,omitempty"`
-	OnetGroupPublicKeyDir string           `json:"onetgrouppublickeydir,omitempty"`
-	OnetPort              string           `json:"onetport,omitempty"`
-	GenCommittee          GenesisCommittee `json:"committee"      gencodec:"required"`
-	EnabledTPS            bool
-	PowRangeMode          uint
-	ReconfigBlock         *big.Int `json:"reconfigBlock,omitempty"`
-	ReconfigStrategy      int      `json:"reconfigStrategy,omitempty"`
-	Master                int      `json:"master,omitempty"`
+	Cphash           *CphashConfig    `json:"cphash,omitempty"`
+	Clique           *CliqueConfig    `json:"clique,omitempty"`
+	OnetPort         string           `json:"onetport,omitempty"`
+	HeartbeatPort    string           `json:"heartbeatport,omitempty"`
+	GenCommittee     GenesisCommittee `json:"committee"      gencodec:"required"`
+	EnabledTPS       bool
+	PowRangeMode     uint
+	ReconfigBlock    *big.Int `json:"reconfigBlock,omitempty"`
+	ReconfigStrategy int      `json:"reconfigStrategy,omitempty"`
+	Master           int      `json:"master,omitempty"`
 }
 
 type GenesisCommittee map[int]common.Cnode
