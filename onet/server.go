@@ -104,42 +104,6 @@ func (c *Server) Start() {
 	//<-c.closeitChannel
 }
 
-func (c *Server) Start_client() {
-	c.started = time.Now()
-	log.Info(fmt.Sprintf("Starting server at %s on address %s ", c.started.Format("2006-01-02 15:04:05"), c.ServerIdentity.Address))
-	go c.Router.Start()
-	for !c.Router.Listening() {
-		time.Sleep(50 * time.Millisecond)
-	}
-	c.Lock()
-	c.IsStarted = true
-	c.Unlock()
-	// Wait for closing of the channel
-	<-c.closeitChannel
-}
-
-// StartInBackground starts the services and returns once everything
-// is up and running.
-func (c *Server) StartInBackground() {
-	go c.Start()
-	c.WaitStartup()
-}
-
-// WaitStartup can be called to ensure that the server is up and
-// running. It will loop and wait 50 milliseconds between each
-// test.
-func (c *Server) WaitStartup() {
-	for {
-		c.Lock()
-		s := c.IsStarted
-		c.Unlock()
-		if s {
-			return
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-}
-
 // CloseConnect close remote connection
 func (c *Server) AdjustConnect(list []*common.Cnode) {
 }

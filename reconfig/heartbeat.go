@@ -115,6 +115,7 @@ func (s *heartBeat) handleClientHeartbeats(conn *net.UDPConn) {
 	}
 }
 
-func GetIP(address string) string {
-	return address //??do more
+func GetIP(addr string) string {
+	ip := net.ParseIP(addr)
+	return ip.String()
 }

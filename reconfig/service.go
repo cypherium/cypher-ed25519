@@ -83,19 +83,9 @@ type Service struct {
 	pacetMakerTimer *paceMakerTimer
 
 	hotstuffMsgQ *common.Queue
-	/*
-		feed   event.Feed
-		msgCh  chan hotstuffMsg
-		msgSub event.Subscription // Subscription for msg event
-	*/
-	feed1   event.Feed
-	msgCh1  chan committeeMsg
-	msgSub1 event.Subscription // Subscription for msg event
-	/*
-		blockCh     chan *types.Block
-		muInserting sync.Mutex
-		isInserting bool
-	*/
+	feed1        event.Feed
+	msgCh1       chan committeeMsg
+	msgSub1      event.Subscription // Subscription for msg event
 }
 
 func newService(sName string, conf *Reconfig) *Service {
@@ -109,13 +99,10 @@ func newService(sName string, conf *Reconfig) *Service {
 	s.kbc = conf.cph.KeyBlockChain()
 	s.lastCmInfoMap = make(map[common.Hash]*cachedCommitteeInfo)
 
-	//	s.msgCh = make(chan hotstuffMsg, 1024)
-	//	s.msgSub = s.feed.Subscribe(s.msgCh)
 	s.msgCh1 = make(chan committeeMsg, 10)
 	s.msgSub1 = s.feed1.Subscribe(s.msgCh1)
 	s.hotstuffMsgQ = common.QueueNew()
 
-	//	s.blockCh = make(chan *types.Block, 5)
 	s.protocolMng = hotstuff.NewHotstuffProtocolManager(s, nil, nil, params.PaceMakerTimeout*2)
 
 	go s.handleHotStuffMsg()
@@ -389,17 +376,8 @@ func (s *Service) Write(id string, data *hotstuff.HotstuffMessage) error {
 //Broadcast call by hotstuff
 func (s *Service) Broadcast(data *hotstuff.HotstuffMessage) []error {
 	log.Debug("Broadcast", "code", hotstuff.ReadableMsgType(data.Code), "ViewId", data.ViewId)
-	mb := bftview.GetCurrentMember()
-	if mb == nil {
-		return []error{fmt.Errorf("can't find current committee")}
-	}
-	for _, node := range mb.List {
-		if node.IsSelf() {
-			s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
-			continue
-		}
-		s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
-	}
+	s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
+	s.netService.broadcast(&networkMsg{Hmsg: data})
 	return nil //return arr
 }
 
@@ -462,10 +440,7 @@ func (s *Service) syncCommittee(mb *bftview.Committee, keyblock *types.KeyBlock)
 
 	msg := &bestCandidateInfo{Node: in, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}
 	for i, r := range mb.List {
-		if i == 0 {
-			continue
-		}
-		if r.IsSelf() {
+		if i == 0 || r.IsSelf() {
 			continue
 		}
 		log.Debug("syncBestCandidate", "send to", r.Address)
@@ -638,9 +613,10 @@ func (s *Service) Committee_Request(kNumber uint64, hash common.Hash) {
 	}
 
 	for _, node := range parentMb.List {
-		if node.Address != s.netService.serverAddress {
-			s.netService.SendRawData(node.Address, &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: hash, KeyNumber: kNumber}})
+		if node.IsSelf() {
+			continue
 		}
+		s.netService.SendRawData(node.Address, &networkMsg{Cmsg: &committeeInfo{Committee: nil, KeyHash: hash, KeyNumber: kNumber}})
 	}
 	s.lastReqCmNumber = kNumber
 }

@@ -19,8 +19,7 @@ type serviceCallback interface {
 	networkMsgAck(si *network.ServerIdentity, msg *networkMsg)
 }
 
-const Gossip_MSG = 1
-const RETRY_MSG = 16
+const Gossip_MSG = 8
 
 type retryMsg struct {
 	Address string
@@ -82,6 +81,7 @@ func (s *netService) StartStop(isStart bool, conf *common.NodeConfig) {
 func (s *netService) AdjustConnect(mb *bftview.Committee) {
 	//
 }
+
 func (s *netService) procBlockDone(blockN, keyblockN uint64) {
 
 	atomic.StoreUint64(&s.curBlockN, blockN)
@@ -133,6 +133,10 @@ func (s *netService) broadcast(msg *networkMsg) {
 	msg.Flag = Gossip_MSG
 	seedIndexs := math.GetRandIntArray(n, (n*4/10)+1)
 	mb := bftview.GetCurrentMember()
+	if mb == nil {
+		log.Error("broadcast", "error", "can't find current committee")
+		return
+	}
 	mblist := mb.List
 	for i, _ := range seedIndexs {
 		if mblist[i].IsSelf() {
@@ -147,6 +151,15 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 		return nil
 	}
 	if msg.Hash == common.Empty_Hash {
+		if msg.Hmsg != nil {
+			msg.Number = atomic.LoadUint64(&s.curBlockN)
+		} else if msg.Cmsg != nil {
+			msg.Number = msg.Cmsg.KeyNumber
+		} else if msg.Bmsg != nil {
+			msg.Number = msg.Bmsg.KeyNumber
+		} else {
+			log.Warn("SendRawData msg=nil", "to address", address)
+		}
 		msg.Hash = rlpHash([]interface{}{msg.Flag, msg.Number, msg.Hmsg, msg.Cmsg, msg.Bmsg})
 		s.muGossip.Lock()
 		if msg.Cmsg != nil {
