@@ -46,12 +46,12 @@ type hotstuffMsg struct {
 }
 
 type networkMsg struct {
-	Hash   common.Hash
-	Flag   uint8
-	Number uint64
-	Hmsg   *hotstuff.HotstuffMessage
-	Cmsg   *committeeInfo
-	Bmsg   *bestCandidateInfo
+	Hash    common.Hash
+	Number  uint64
+	MsgFlag uint32
+	Hmsg    *hotstuff.HotstuffMessage
+	Cmsg    *committeeInfo
+	Bmsg    *bestCandidateInfo
 }
 
 type lastAckMsg struct {
@@ -377,7 +377,18 @@ func (s *Service) Write(id string, data *hotstuff.HotstuffMessage) error {
 func (s *Service) Broadcast(data *hotstuff.HotstuffMessage) []error {
 	log.Debug("Broadcast", "code", hotstuff.ReadableMsgType(data.Code), "ViewId", data.ViewId)
 	s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
-	s.netService.broadcast(&networkMsg{Hmsg: data})
+	mb := bftview.GetCurrentMember()
+	if mb == nil {
+		return []error{fmt.Errorf("can't find current committee")}
+	}
+	for _, node := range mb.List {
+		if node.IsSelf() {
+			continue
+		}
+		s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
+	}
+
+	//s.netService.broadcast(&networkMsg{Hmsg: data})
 	return nil //return arr
 }
 
@@ -408,7 +419,7 @@ func (s *Service) handleHotStuffMsg() {
 				log.Debug("handleHotStuffMsg", "code", hotstuff.ReadableMsgType(msgCode), "lastN", msg.lastN, "curN", curN)
 				continue
 			}
-		} else if msgCode == hotstuff.MsgPrepare {
+		} else if msgCode == hotstuff.MsgPrepare && msg.sid != nil {
 			curBlock := s.kbc.CurrentBlock()
 			keyNumber := curBlock.NumberU64()
 			keyHash := curBlock.Hash()
@@ -684,14 +695,21 @@ func (s *Service) procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock) 
 		keyblock = s.kbc.CurrentBlock()
 	}
 	s.pacetMakerTimer.procBlockDone(txBlock, keyblock)
-	s.netService.procBlockDone(txBlock.NumberU64(), keyblock.NumberU64())
+	keyblockN := keyblock.NumberU64()
+	var blockN uint64
+	if txBlock == nil {
+		blockN = s.bc.CurrentBlock().NumberU64()
+	} else {
+		blockN = txBlock.NumberU64()
+	}
+	s.netService.procBlockDone(blockN, keyblockN)
 }
 
 func (s *Service) start(config *common.NodeConfig) {
 	if !s.isRunning() {
 		s.protocolMng.UpdateKeyPair(bftview.StrToBlsPrivKey(config.Private))
 		bftview.SetServerInfo(s.netService.serverAddress, config.Public)
-		s.netService.StartStop(true, config)
+		s.netService.StartStop(true)
 		if bftview.IamMember() >= 0 {
 			s.updateCommittee(nil)
 			s.pacetMakerTimer.start()
@@ -703,7 +721,7 @@ func (s *Service) start(config *common.NodeConfig) {
 
 func (s *Service) stop() {
 	if s.isRunning() {
-		s.netService.StartStop(false, nil)
+		s.netService.StartStop(false)
 		s.pacetMakerTimer.stop()
 		s.setRunState(0)
 	}

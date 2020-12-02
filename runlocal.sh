@@ -116,13 +116,13 @@ append_node()
     log "Append $NODES_NUM nodes...."
     for m in $( seq $NODES_NUM ); do
         n=$(($1 + m))
-        #log "Node $n -onetport@$((7100 + 2 * $n)) - port@$((16000 + 2 * $n)) - rpcport@$((18000 + 2 * $n)) - rpc path: $NODE_DIR/$n/cypher.ipc"
+        #log "Node $n -onetport@$((7100 + 2 * $n))   -port@$((16000 + 2 * $n)) - rpcport@$((18000 + 2 * $n)) - rpc path: $NODE_DIR/$n/cypher.ipc"
         log "./build/bin/cypher attach $NODE_DIR/$n/cypher.ipc"
         # --ws  -wsaddr="0.0.0.0" --wsorigins "*"
         if [[ "$n" -eq 1 ]]; then
-	$CYPHER  --onetport $((7100 + 2 * $n)) --nat=extip:$LOCALIP  --ws $EnableFlags  --powrangemode $PRMV --localtest $LOCALIP  -wsaddr="0.0.0.0" --wsorigins "*" --tps --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
+	$CYPHER  --onetport $((7100 + 2 * $n)) --heartbeatport $((1100 + 2 * $n))   --nat=extip:$LOCALIP  --ws $EnableFlags  --powrangemode $PRMV --localtest $LOCALIP  -wsaddr="0.0.0.0" --wsorigins "*" --tps --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
         else
-            $CYPHER  --onetport $((7100 + 2 * $n)) --tps $EnableFlags  --nat=extip:$LOCALIP --powrangemode $PRMV --localtest $LOCALIP  --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
+            $CYPHER  --onetport $((7100 + 2 * $n)) --heartbeatport $((1100 + 2 * $n)) --tps $EnableFlags  --nat=extip:$LOCALIP --powrangemode $PRMV --localtest $LOCALIP  --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
         fi
     done
 

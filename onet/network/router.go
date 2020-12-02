@@ -244,7 +244,7 @@ func (r *Router) Send(e *ServerIdentity, msg Message, bForeConnect bool) (uint64
 // connect starts a new connection and launches the listener for incoming
 // messages.
 func (r *Router) connect(si *ServerIdentity) (Conn, uint64, error) {
-	log.Debug("Connect", r.address, "Connecting to", si.Address)
+	log.Debug("Connect", "Connecting to", si.Address)
 	c, err := r.host.Connect(si)
 	if err != nil {
 		log.Error("Connect", "Could not connect to", si.Address, "error", err)

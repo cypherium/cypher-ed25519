@@ -54,9 +54,12 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 		return s, nil
 	}
 	onet.RegisterNewService(sName, registerService)
-	server := onet.NewKcpServer(conf.cph.ExtIP().String() + ":" + conf.config.OnetPort)
+	address := conf.cph.ExtIP().String() + ":" + conf.config.OnetPort
+	server := onet.NewKcpServer(address)
 	s := server.Service(sName).(*netService)
 	s.server = server
+	s.serverID = address
+	s.serverAddress = address
 	s.heartBeat = Heartbeat_New(conf.config.HeartbeatPort)
 	s.gossipMsg = make(map[common.Hash]msgHeadInfo)
 	s.goMap = make(map[string]*int32)
@@ -66,11 +69,8 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	return s
 }
 
-func (s *netService) StartStop(isStart bool, conf *common.NodeConfig) {
+func (s *netService) StartStop(isStart bool) {
 	if isStart {
-		if conf != nil {
-			s.serverAddress = conf.Ip + ":" + conf.Port
-		}
 		s.server.Start()
 		s.heartBeat.Start()
 	} else { //stop
@@ -106,7 +106,7 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Info("handleNetworkMsgReq Recv", "from address", address)
+	log.Info("handleNetworkMsgReq Recv", "from address", address, "msg number", msg.Number, "curBlockN", atomic.LoadUint64(&s.curBlockN), "keyblockN", atomic.LoadUint64(&s.curKeyBlockN))
 
 	if msg.Cmsg != nil {
 		if msg.Number < atomic.LoadUint64(&s.curKeyBlockN) {
@@ -118,12 +118,14 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 		}
 	}
 
-	if (msg.Flag & Gossip_MSG) > 0 {
+	if (msg.MsgFlag & Gossip_MSG) > 0 {
 		s.muGossip.Lock()
 		_, ok := s.gossipMsg[msg.Hash]
 		s.muGossip.Unlock()
 		if !ok {
 			s.broadcast(msg)
+		} else {
+			return
 		}
 	}
 	s.backend.networkMsgAck(si, msg)
@@ -131,7 +133,7 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 
 func (s *netService) broadcast(msg *networkMsg) {
 	n := bftview.GetServerCommitteeLen()
-	msg.Flag = Gossip_MSG
+	msg.MsgFlag = Gossip_MSG
 	seedIndexs := math.GetRandIntArray(n, (n*4/10)+1)
 	mb := bftview.GetCurrentMember()
 	if mb == nil {
@@ -148,12 +150,13 @@ func (s *netService) broadcast(msg *networkMsg) {
 }
 
 func (s *netService) SendRawData(address string, msg *networkMsg) error {
+	//	log.Info("SendRawData", "to address", address)
 	if address == s.serverAddress {
 		return nil
 	}
 	if msg.Hash == common.Empty_Hash {
 		if msg.Hmsg != nil {
-			msg.Number = atomic.LoadUint64(&s.curBlockN)
+			msg.Number = atomic.LoadUint64(&s.curBlockN) + 1
 		} else if msg.Cmsg != nil {
 			msg.Number = msg.Cmsg.KeyNumber
 		} else if msg.Bmsg != nil {
@@ -161,19 +164,22 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 		} else {
 			log.Warn("SendRawData msg=nil", "to address", address)
 		}
-		msg.Hash = rlpHash([]interface{}{msg.Flag, msg.Number, msg.Hmsg, msg.Cmsg, msg.Bmsg})
-		s.muGossip.Lock()
-		if msg.Cmsg != nil {
-			s.gossipMsg[msg.Hash] = msgHeadInfo{keyblockN: msg.Number}
-		} else {
-			s.gossipMsg[msg.Hash] = msgHeadInfo{blockN: msg.Number}
-		}
-		s.muGossip.Unlock()
+		msg.Hash = rlpHash([]interface{}{msg.Number, msg.Hmsg, msg.Cmsg, msg.Bmsg})
+		/*
+			s.muGossip.Lock()
+			if msg.Cmsg != nil {
+				s.gossipMsg[msg.Hash] = msgHeadInfo{keyblockN: msg.Number}
+			} else {
+				s.gossipMsg[msg.Hash] = msgHeadInfo{blockN: msg.Number}
+			}
+			s.muGossip.Unlock()
+		*/
 	}
 
 	s.setIsRunning(address, true)
 	q, _ := s.idDataMap[address]
 	q.PushBack(msg)
+	//	log.Info("SendRawData", "to address", address, "msg", msg)
 	return nil
 }
 
@@ -186,7 +192,8 @@ func (s *netService) loop_iddata(address string, q *common.Queue) {
 		if msg != nil {
 			m := msg.(*networkMsg)
 			curN := atomic.LoadUint64(&s.curBlockN)
-			if m.Number <= curN {
+			log.Info("loop_iddata", "m.Number", m.Number, "curN", curN)
+			if m.Number < curN {
 				continue
 			}
 
@@ -219,6 +226,7 @@ func (s *netService) setIsRunning(id string, isStart bool) {
 	}
 	i := atomic.LoadInt32(isRunning)
 	if isStart {
+		atomic.StoreInt32(isRunning, 1)
 		if i == 0 {
 			q, ok := s.idDataMap[id]
 			if !ok {
@@ -227,8 +235,6 @@ func (s *netService) setIsRunning(id string, isStart bool) {
 			}
 			go s.loop_iddata(id, q)
 		}
-		atomic.StoreInt32(isRunning, 1)
-
 	} else {
 		if i == 1 {
 			atomic.StoreInt32(isRunning, 2)
