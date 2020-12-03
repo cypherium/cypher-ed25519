@@ -140,7 +140,7 @@ func (s *Service) OnNewView(data []byte, extraes [][]byte) error { //buf is snap
 }
 
 //CurrentState call by hotstuff
-func (s *Service) CurrentState() ([]byte, string) { //recv by onnewview
+func (s *Service) CurrentState() ([]byte, string, uint64) { //recv by onnewview
 	curView := s.getCurrentView()
 	leaderID := ""
 	mb := bftview.GetCurrentMember()
@@ -156,7 +156,7 @@ func (s *Service) CurrentState() ([]byte, string) { //recv by onnewview
 
 	log.Info("CurrentState", "TxNumber", curView.TxNumber, "KeyNumber", curView.KeyNumber, "LeaderIndex", curView.LeaderIndex, "ReconfigType", curView.ReconfigType)
 
-	return curView.EncodeToBytes(), leaderID
+	return curView.EncodeToBytes(), leaderID, curView.TxNumber + 1
 }
 
 //GetExtra call by hotstuff

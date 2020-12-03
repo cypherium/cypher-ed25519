@@ -134,7 +134,7 @@ type HotStuffApplication interface {
 
 	CheckView(currentState []byte) error
 	Propose() (e error, kState []byte, tState []byte, extra []byte)
-	CurrentState() ([]byte, string)
+	CurrentState() ([]byte, string, uint64)
 	GetExtra() []byte // only for new-view procedure
 }
 
@@ -155,6 +155,7 @@ type QC struct {
 
 type HotstuffMessage struct {
 	Code   uint64
+	Number uint64
 	ViewId common.Hash
 	Id     string
 	PubKey []byte
@@ -178,6 +179,7 @@ func (m *HotstuffMessage) touch() {
 type View struct {
 	hash           common.Hash // hash on "currentState + leaderId", hence should be unique and equal for the same view and leader
 	createdAt      time.Time
+	number         uint64
 	leaderId       string
 	phaseAsLeader  uint64
 	phaseAsReplica uint64
@@ -313,9 +315,10 @@ func (v *View) msgToQuorum(m *HotstuffMessage) (error, *Quorum) {
 	return nil, &qrum
 }
 
-func (hsm *HotstuffProtocolManager) newMsg(code uint64, viewId common.Hash, a []byte, b []byte, c []byte) *HotstuffMessage {
+func (hsm *HotstuffProtocolManager) newMsg(code uint64, number uint64, viewId common.Hash, a []byte, b []byte, c []byte) *HotstuffMessage {
 	msg := &HotstuffMessage{
 		Code:   code,
+		Number: number,
 		ViewId: viewId,
 		Id:     hsm.app.Self(),
 	}
@@ -345,13 +348,14 @@ func (hsm *HotstuffProtocolManager) newMsg(code uint64, viewId common.Hash, a []
 }
 
 func (hsm *HotstuffProtocolManager) newView() (*View, []byte) {
-	currentState, leaderId := hsm.app.CurrentState()
+	currentState, leaderId, number := hsm.app.CurrentState()
 	if leaderId == "" {
 		return nil, nil
 	}
 
 	v := &View{
 		phaseAsReplica:   PhasePrepare,
+		number:           number,
 		leaderId:         leaderId,
 		highQuorum:       make([]*Quorum, 0),
 		prepareQuorum:    make([]*Quorum, 0),
@@ -381,8 +385,9 @@ func (hsm *HotstuffProtocolManager) newView() (*View, []byte) {
 	return v, hsm.app.GetExtra()
 }
 
-func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint64, leaderId string, currentState []byte) *View {
+func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint64, leaderId string, currentState []byte, number uint64) *View {
 	v := &View{
+		number:           number,
 		leaderId:         leaderId,
 		highQuorum:       make([]*Quorum, 0),
 		prepareQuorum:    make([]*Quorum, 0),
@@ -539,7 +544,7 @@ func (hsm *HotstuffProtocolManager) NewView() error {
 	}
 
 	sig := hsm.secretKey.SignHash(crypto.Keccak256(v.currentState)).Serialize()
-	msg := hsm.newMsg(MsgNewView, v.hash, v.currentState, sig, extra)
+	msg := hsm.newMsg(MsgNewView, v.number, v.hash, v.currentState, sig, extra)
 
 	log.Debug("New View", "leader", v.leaderId, "ViewID", common.HexString(v.hash[:]))
 	err := hsm.app.Write(v.leaderId, msg)
@@ -631,7 +636,7 @@ func (hsm *HotstuffProtocolManager) handleNewViewMsg(msg *HotstuffMessage) error
 
 	v, exist := hsm.lookupView(msg.ViewId)
 	if !exist {
-		v = hsm.createView(true, PhasePrepare, hsm.app.Self(), msg.DataA)
+		v = hsm.createView(true, PhasePrepare, hsm.app.Self(), msg.DataA, msg.Number)
 		log.Debug("create new view", "leader", v.leaderId, "viewID", v.hash)
 		hsm.addView(v)
 	}
@@ -763,7 +768,7 @@ func (hsm *HotstuffProtocolManager) TryPropose() error {
 		return err
 	}
 
-	msg := hsm.newMsg(MsgPrepare, v.hash, kProposal, tProposal, v.qc["high"].kSign.Serialize())
+	msg := hsm.newMsg(MsgPrepare, v.number, v.hash, kProposal, tProposal, v.qc["high"].kSign.Serialize())
 	msg.DataD = make([]byte, len(v.qc["high"].mask))
 	copy(msg.DataD, v.qc["high"].mask)
 
@@ -867,7 +872,7 @@ loop:
 func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 	v, exist := hsm.lookupView(m.ViewId)
 	if !exist {
-		v = hsm.createView(false, PhasePrepare, hsm.app.Self(), m.DataE)
+		v = hsm.createView(false, PhasePrepare, hsm.app.Self(), m.DataE, m.Number)
 		hsm.addView(v)
 		log.Debug("handlePrepareMsg create view", "viewId", m.ViewId)
 	}
@@ -921,7 +926,7 @@ func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 		tSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedTState)).Serialize()
 	}
 
-	msg := hsm.newMsg(MsgVotePrepare, v.hash, nil, kSign, tSign)
+	msg := hsm.newMsg(MsgVotePrepare, v.number, v.hash, nil, kSign, tSign)
 
 	log.Debug("handlePrepareMsg send VotePrepare msg", "viewID", v.hash)
 	hsm.app.Write(m.Id, msg)
@@ -941,7 +946,7 @@ func (hsm *HotstuffProtocolManager) createSignatureMsg(v *View, code uint64, pha
 	}
 
 	// DataA: kSign, DataB: tSign, DataC: mask
-	return hsm.newMsg(code, v.hash, bKSign, bTSign, v.qc[phase].mask)
+	return hsm.newMsg(code, v.number, v.hash, bKSign, bTSign, v.qc[phase].mask)
 }
 
 // for leader
@@ -1071,7 +1076,7 @@ func (hsm *HotstuffProtocolManager) handlePreCommitMsg(m *HotstuffMessage) error
 		tSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedTState)).Serialize()
 	}
 
-	msg := hsm.newMsg(MsgVotePreCommit, v.hash, nil, kSign, tSign)
+	msg := hsm.newMsg(MsgVotePreCommit, v.number, v.hash, nil, kSign, tSign)
 
 	log.Debug("handlePreCommitMsg send PhaseCommit msg", "viewId", v.hash)
 	hsm.app.Write(m.Id, msg)
@@ -1205,7 +1210,7 @@ func (hsm *HotstuffProtocolManager) handleCommitMsg(m *HotstuffMessage) error {
 		tSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedTState)).Serialize()
 	}
 
-	msg := hsm.newMsg(MsgVoteCommit, v.hash, nil, kSign, tSign)
+	msg := hsm.newMsg(MsgVoteCommit, v.number, v.hash, nil, kSign, tSign)
 
 	log.Debug("handleCommitMsg send VoteCommit msg", "viewId", v.hash)
 	hsm.app.Write(m.Id, msg)
@@ -1340,11 +1345,11 @@ func (hsm *HotstuffProtocolManager) handleDecideMsg(m *HotstuffMessage) error {
 }
 
 func (hsm *HotstuffProtocolManager) NewViewMessage() *HotstuffMessage {
-	return hsm.newMsg(MsgStartNewView, common.Hash{}, nil, nil, nil)
+	return hsm.newMsg(MsgStartNewView, 0, common.Hash{}, nil, nil, nil)
 }
 
 func (hsm *HotstuffProtocolManager) TryProposeMessage() *HotstuffMessage {
-	return hsm.newMsg(MsgTryPropose, common.Hash{}, nil, nil, nil)
+	return hsm.newMsg(MsgTryPropose, 0, common.Hash{}, nil, nil, nil)
 }
 
 func (hsm *HotstuffProtocolManager) handleStartNewView() error {
@@ -1408,7 +1413,7 @@ func (hsm *HotstuffProtocolManager) collectTimeoutView() {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			hsm.app.Write(hsm.app.Self(), hsm.newMsg(MsgCollectTimeoutView, common.Hash{}, nil, nil, nil))
+			hsm.app.Write(hsm.app.Self(), hsm.newMsg(MsgCollectTimeoutView, 0, common.Hash{}, nil, nil, nil))
 		}
 	}
 }

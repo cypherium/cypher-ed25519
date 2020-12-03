@@ -40,8 +40,10 @@ type netService struct {
 	gossipMsg              map[common.Hash]msgHeadInfo
 	muGossip               sync.Mutex
 
-	goMap        map[string]*int32 //atomic int
-	idDataMap    map[string]*common.Queue
+	goMap     map[string]*int32 //atomic int
+	idDataMap map[string]*common.Queue
+	muIdMap   sync.Mutex
+
 	backend      serviceCallback
 	curBlockN    uint64
 	curKeyBlockN uint64
@@ -156,7 +158,7 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 	}
 	if msg.Hash == common.Empty_Hash {
 		if msg.Hmsg != nil {
-			msg.Number = atomic.LoadUint64(&s.curBlockN) + 1
+			msg.Number = msg.Hmsg.Number
 		} else if msg.Cmsg != nil {
 			msg.Number = msg.Cmsg.KeyNumber
 		} else if msg.Bmsg != nil {
@@ -177,7 +179,9 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 	}
 
 	s.setIsRunning(address, true)
+	s.muIdMap.Lock()
 	q, _ := s.idDataMap[address]
+	s.muIdMap.Unlock()
 	q.PushBack(msg)
 	//	log.Info("SendRawData", "to address", address, "msg", msg)
 	return nil
@@ -186,7 +190,9 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 func (s *netService) loop_iddata(address string, q *common.Queue) {
 	log.Debug("loop_iddata start", "address", address)
 	si := network.NewServerIdentity(address)
+	s.muIdMap.Lock()
 	isRunning, _ := s.goMap[address]
+	s.muIdMap.Unlock()
 	for atomic.LoadInt32(isRunning) == 1 {
 		msg := q.PopFront()
 		if msg != nil {
@@ -211,7 +217,9 @@ func (s *netService) loop_iddata(address string, q *common.Queue) {
 
 //------------------------------------------------------------------------------------------
 func (s *netService) isRunning(id string) int32 {
+	s.muIdMap.Lock()
 	isRunning, ok := s.goMap[id]
+	s.muIdMap.Unlock()
 	if ok {
 		return atomic.LoadInt32(isRunning)
 	}
@@ -219,20 +227,24 @@ func (s *netService) isRunning(id string) int32 {
 }
 
 func (s *netService) setIsRunning(id string, isStart bool) {
+	s.muIdMap.Lock()
 	isRunning, ok := s.goMap[id]
 	if !ok {
 		isRunning = new(int32)
 		s.goMap[id] = isRunning
 	}
+	s.muIdMap.Unlock()
 	i := atomic.LoadInt32(isRunning)
 	if isStart {
 		atomic.StoreInt32(isRunning, 1)
 		if i == 0 {
+			s.muIdMap.Lock()
 			q, ok := s.idDataMap[id]
 			if !ok {
 				q = common.QueueNew()
 				s.idDataMap[id] = q
 			}
+			s.muIdMap.Unlock()
 			go s.loop_iddata(id, q)
 		}
 	} else {
