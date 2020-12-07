@@ -162,6 +162,13 @@ func (r *Router) Stop() error {
 	return nil
 }
 
+func (r *Router) GetBlocks(e *ServerIdentity) int {
+	r.sendMu.Lock()
+	blocksLen := r.sendsMap[e.ID]
+	r.sendMu.Unlock()
+	return blocksLen
+}
+
 // Send sends to an ServerIdentity without wrapping the msg into a ProtocolMsg
 func (r *Router) Send(e *ServerIdentity, msg Message, bForeConnect bool) (uint64, error) {
 	if msg == nil {
@@ -170,10 +177,10 @@ func (r *Router) Send(e *ServerIdentity, msg Message, bForeConnect bool) (uint64
 
 	r.sendMu.Lock()
 	blocksLen := r.sendsMap[e.ID]
-	if blocksLen > params.MaxSendBlocks { //max queue is 20
+	if blocksLen > params.MaxSendBlocks { //max queue is 5
 		r.sendMu.Unlock()
 		log.Info("Router.Send", "busy address", e.Address.String())
-		return 0, errors.New("the address:" + e.Address.String() + " maybe busy or not online!")
+		return 0, params.SendOverFlowErr
 	}
 	r.sendsMap[e.ID]++
 	r.sendMu.Unlock()

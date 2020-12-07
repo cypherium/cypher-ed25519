@@ -23,17 +23,14 @@ func newContext(c *Server, servID ServiceID, manager *serviceManager) *Context {
 	}
 }
 
-func (c *Context) SendRaw1(ps ...interface{}) {
-	si := ps[0].(*network.ServerIdentity)
-	msg := ps[1]
-	bForeConnect := ps[2].(bool)
-	c.server.Send(si, msg, bForeConnect)
-}
-
 // SendRaw sends a message to the ServerIdentity.
 func (c *Context) SendRaw(si *network.ServerIdentity, msg interface{}, bForeConnect bool) error {
 	_, err := c.server.Send(si, msg, bForeConnect)
 	return err
+}
+
+func (c *Context) GetNetBlocks(si *network.ServerIdentity) int {
+	return c.server.GetBlocks(si)
 }
 
 // ServerIdentity returns this server's identity.

@@ -11,6 +11,7 @@ import (
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/onet"
 	"github.com/cypherium/cypherBFT/onet/network"
+	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 	"github.com/cypherium/cypherBFT/rlp"
 )
@@ -26,6 +27,14 @@ type retryMsg struct {
 	Msg     *networkMsg
 }
 
+type heartBeatMsg struct {
+	blockN uint64
+}
+type ackInfo struct {
+	tm        time.Time
+	isSending *int32 //atomic int
+}
+
 type msgHeadInfo struct {
 	blockN    uint64
 	keyblockN uint64
@@ -36,23 +45,25 @@ type netService struct {
 	server                 *onet.Server
 	serverAddress          string
 	serverID               string
-	heartBeat              *heartBeat
-	gossipMsg              map[common.Hash]msgHeadInfo
+	gossipMsg              map[common.Hash]*msgHeadInfo
 	muGossip               sync.Mutex
 
 	goMap     map[string]*int32 //atomic int
 	idDataMap map[string]*common.Queue
+	ackMap    map[string]*ackInfo
 	muIdMap   sync.Mutex
 
 	backend      serviceCallback
 	curBlockN    uint64
 	curKeyBlockN uint64
+	isStoping    bool
 }
 
 func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netService {
 	registerService := func(c *onet.Context) (onet.Service, error) {
 		s := &netService{ServiceProcessor: onet.NewServiceProcessor(c)}
 		s.RegisterProcessorFunc(network.RegisterMessage(&networkMsg{}), s.handleNetworkMsgAck)
+		s.RegisterProcessorFunc(network.RegisterMessage(&heartBeatMsg{}), s.handleHeartBeatMsgAck)
 		return s, nil
 	}
 	onet.RegisterNewService(sName, registerService)
@@ -62,10 +73,11 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	s.server = server
 	s.serverID = address
 	s.serverAddress = address
-	s.heartBeat = Heartbeat_New(conf.config.HeartbeatPort)
-	s.gossipMsg = make(map[common.Hash]msgHeadInfo)
+
+	s.gossipMsg = make(map[common.Hash]*msgHeadInfo)
 	s.goMap = make(map[string]*int32)
 	s.idDataMap = make(map[string]*common.Queue)
+	s.ackMap = make(map[string]*ackInfo)
 	s.backend = callback
 
 	return s
@@ -74,10 +86,10 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 func (s *netService) StartStop(isStart bool) {
 	if isStart {
 		s.server.Start()
-		s.heartBeat.Start()
+		go s.heartBeat_Loop()
 	} else { //stop
+		s.isStoping = true
 		//..............................
-		s.heartBeat.Stop()
 	}
 }
 
@@ -108,25 +120,20 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Info("handleNetworkMsgReq Recv", "from address", address, "msg number", msg.Number, "curBlockN", atomic.LoadUint64(&s.curBlockN), "keyblockN", atomic.LoadUint64(&s.curKeyBlockN))
-
-	if msg.Cmsg != nil {
-		if msg.Number < atomic.LoadUint64(&s.curKeyBlockN) {
-			return
-		}
-	} else {
-		if msg.Number < atomic.LoadUint64(&s.curBlockN) {
-			return
-		}
+	log.Info("handleNetworkMsgReq Recv", "from address", address)
+	if s.IgnoreMsg(msg) {
+		return
 	}
 
 	if (msg.MsgFlag & Gossip_MSG) > 0 {
+		hash := rlpHash(msg)
 		s.muGossip.Lock()
-		_, ok := s.gossipMsg[msg.Hash]
+		m, ok := s.gossipMsg[hash]
 		s.muGossip.Unlock()
 		if !ok {
 			s.broadcast(msg)
 		} else {
+			log.Info("Gossip_MSG Recv Same", "hash", hash, "keyblockN", m.keyblockN, "blockN", m.blockN)
 			return
 		}
 	}
@@ -142,6 +149,15 @@ func (s *netService) broadcast(msg *networkMsg) {
 		log.Error("broadcast", "error", "can't find current committee")
 		return
 	}
+
+	hash := rlpHash(msg)
+	hInfo := s.getMsgHeadInfo(msg)
+	log.Info("Gossip_MSG broadcast", "hash", hash, "keyblockN", hInfo.keyblockN, "blockN", hInfo.blockN)
+
+	s.muGossip.Lock()
+	s.gossipMsg[hash] = hInfo
+	s.muGossip.Unlock()
+
 	mblist := mb.List
 	for i, _ := range seedIndexs {
 		if mblist[i].IsSelf() {
@@ -155,27 +171,6 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 	//	log.Info("SendRawData", "to address", address)
 	if address == s.serverAddress {
 		return nil
-	}
-	if msg.Hash == common.Empty_Hash {
-		if msg.Hmsg != nil {
-			msg.Number = msg.Hmsg.Number
-		} else if msg.Cmsg != nil {
-			msg.Number = msg.Cmsg.KeyNumber
-		} else if msg.Bmsg != nil {
-			msg.Number = msg.Bmsg.KeyNumber
-		} else {
-			log.Warn("SendRawData msg=nil", "to address", address)
-		}
-		msg.Hash = rlpHash([]interface{}{msg.Number, msg.Hmsg, msg.Cmsg, msg.Bmsg})
-		/*
-			s.muGossip.Lock()
-			if msg.Cmsg != nil {
-				s.gossipMsg[msg.Hash] = msgHeadInfo{keyblockN: msg.Number}
-			} else {
-				s.gossipMsg[msg.Hash] = msgHeadInfo{blockN: msg.Number}
-			}
-			s.muGossip.Unlock()
-		*/
 	}
 
 	s.setIsRunning(address, true)
@@ -194,25 +189,59 @@ func (s *netService) loop_iddata(address string, q *common.Queue) {
 	isRunning, _ := s.goMap[address]
 	s.muIdMap.Unlock()
 	for atomic.LoadInt32(isRunning) == 1 {
+		if s.GetNetBlocks(si) > 1 {
+			time.Sleep(5 * time.Millisecond)
+			continue
+		}
 		msg := q.PopFront()
 		if msg != nil {
-			m := msg.(*networkMsg)
-			curN := atomic.LoadUint64(&s.curBlockN)
-			log.Info("loop_iddata", "m.Number", m.Number, "curN", curN)
-			if m.Number < curN {
+			m, ok := msg.(*networkMsg)
+			if ok && s.IgnoreMsg(m) {
 				continue
 			}
-
 			err := s.SendRaw(si, msg, false)
 			if err != nil {
+				//if err == SendOverFlowErr {}
 				log.Warn("SendRawData", "couldn't send to", address, "error", err)
 			}
 		}
-		time.Sleep(10)
+		time.Sleep(5 * time.Millisecond)
 	}
 	atomic.StoreInt32(isRunning, 0)
 
 	log.Debug("loop_iddata exit", "id", address)
+}
+
+func (s *netService) getMsgHeadInfo(msg *networkMsg) *msgHeadInfo {
+	hInfo := new(msgHeadInfo)
+	if msg.Cmsg != nil {
+		hInfo.keyblockN = msg.Cmsg.KeyNumber
+		hInfo.blockN = 0
+	} else if msg.Bmsg != nil {
+		hInfo.keyblockN = msg.Bmsg.KeyNumber
+		hInfo.blockN = 0
+	} else if msg.Hmsg != nil {
+		hInfo.keyblockN = 0
+		hInfo.blockN = msg.Hmsg.Number
+	}
+	return hInfo
+}
+
+func (s *netService) IgnoreMsg(m *networkMsg) bool {
+	if m.Cmsg != nil {
+		if m.Cmsg.KeyNumber < atomic.LoadUint64(&s.curKeyBlockN) {
+			return true
+		}
+	} else if m.Bmsg != nil {
+		if m.Bmsg.KeyNumber < atomic.LoadUint64(&s.curKeyBlockN) {
+			return true
+		}
+	} else if m.Hmsg != nil {
+		if m.Hmsg.Number < atomic.LoadUint64(&s.curBlockN) {
+			return true
+		}
+	}
+	return false
 }
 
 //------------------------------------------------------------------------------------------
@@ -254,6 +283,68 @@ func (s *netService) setIsRunning(id string, isStart bool) {
 	}
 }
 
+//-------------------------------------------------------------------------------------------------------------------------------------------
+func (s *netService) handleHeartBeatMsgAck(env *network.Envelope) {
+	msg, ok := env.Msg.(*heartBeatMsg)
+	if !ok {
+		log.Error("handleNetworkMsgReq failed to cast to ")
+		return
+	}
+	si := env.ServerIdentity
+	address := si.Address.String()
+	log.Info("handleHeartBeatMsgAck Recv", "from address", address, "blockN", msg.blockN)
+	a := s.getAckInfo(address)
+	a.tm = time.Now()
+}
+
+func (s *netService) getAckInfo(addr string) *ackInfo {
+	s.muIdMap.Lock()
+	a := s.ackMap[addr]
+	if a == nil {
+		a = new(ackInfo)
+		a.isSending = new(int32)
+		s.ackMap[addr] = a
+	}
+	s.muIdMap.Unlock()
+	return a
+}
+
+func (s *netService) heartBeat_Loop() {
+	heatBeatTimeout := params.HeatBeatTimeout
+	for !s.isStoping {
+		mb := bftview.GetCurrentMember()
+		if mb == nil {
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+		now := time.Now()
+		msg := &heartBeatMsg{blockN: atomic.LoadUint64(&s.curBlockN)}
+		for _, node := range mb.List {
+			if node.IsSelf() {
+				continue
+			}
+			addr := node.Address
+			a := s.getAckInfo(addr)
+			if a != nil && now.Sub(a.tm) > heatBeatTimeout {
+				if atomic.LoadInt32(a.isSending) == 0 {
+					si := network.NewServerIdentity(addr)
+					if s.GetNetBlocks(si) == 0 {
+						go func(si *network.ServerIdentity, msg interface{}, isRunning *int32) {
+							atomic.StoreInt32(isRunning, 1)
+							err := s.SendRaw(si, msg, false)
+							log.Debug("sendHeartBeatMsg", "address", si.Address, "tm", time.Now(), "error", err)
+							atomic.StoreInt32(isRunning, 0)
+						}(si, msg, a.isSending)
+					}
+				}
+				continue
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+	} //end for  !s.isStoping
+}
+
+//--------------------------------------------------------------------------------------------------------------------------
 func rlpHash(x interface{}) (h common.Hash) {
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, x)

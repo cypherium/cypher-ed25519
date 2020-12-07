@@ -16,6 +16,11 @@
 
 package params
 
+import (
+	"errors"
+	"time"
+)
+
 // These are network parameters that need to be constant between clients, but
 // aren't necesarilly consensus related.
 
@@ -39,4 +44,11 @@ var (
 	DiscoveryV5Bootnodes = []string{
 		"cnode://06051a5573c81934c9554ef2898eb13b33a34b94cf36b202b69fde139ca17a85051979867720d4bdae4323d4943ddf9aeeb6643633aa656e0be843659795007a@35.177.226.168:30303",
 	}
+)
+
+var SendOverFlowErr = errors.New("Network send queue overflow!")
+
+const (
+	MaxSendBlocks    = 5
+	SendErrReTryTime = 60 * time.Second
 )

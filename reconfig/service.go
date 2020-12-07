@@ -46,8 +46,6 @@ type hotstuffMsg struct {
 }
 
 type networkMsg struct {
-	Hash    common.Hash
-	Number  uint64
 	MsgFlag uint32
 	Hmsg    *hotstuff.HotstuffMessage
 	Cmsg    *committeeInfo

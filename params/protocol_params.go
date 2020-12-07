@@ -29,10 +29,6 @@ const (
 	MaxTxCountPerBlock  = 1024
 	PaceMakerTimeout    = 2 * time.Minute
 	HeatBeatTimeout     = 20 * time.Second
-	SendErrReTryTime    = 60 * time.Second
-
-	MaxGoRoutines = 400
-	MaxSendBlocks = 10
 
 	KeyBlock_Reward = 1e+18 // Block reward in wei for successfully mining a block
 	TxBlock_Reward  = 2e+17 // Block reward in wei for successfully mining a block
