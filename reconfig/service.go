@@ -13,7 +13,6 @@ import (
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/onet/network"
-	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 	"github.com/cypherium/cypherBFT/reconfig/hotstuff"
 )
@@ -50,12 +49,6 @@ type networkMsg struct {
 	Hmsg    *hotstuff.HotstuffMessage
 	Cmsg    *committeeInfo
 	Bmsg    *bestCandidateInfo
-}
-
-type lastAckMsg struct {
-	si    *network.ServerIdentity
-	ackTm time.Time
-	msg   *networkMsg
 }
 
 //Service work for protcol
@@ -101,7 +94,7 @@ func newService(sName string, conf *Reconfig) *Service {
 	s.msgSub1 = s.feed1.Subscribe(s.msgCh1)
 	s.hotstuffMsgQ = common.QueueNew()
 
-	s.protocolMng = hotstuff.NewHotstuffProtocolManager(s, nil, nil, params.PaceMakerTimeout*2)
+	s.protocolMng = hotstuff.NewHotstuffProtocolManager(s, nil, nil)
 
 	go s.handleHotStuffMsg()
 	go s.handleCommitteeMsg()
@@ -252,7 +245,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 				time.Sleep(2 * time.Second)
 				curView := s.getCurrentView()
 				if bftview.IamLeader(curView.LeaderIndex) {
-					s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlock().NumberU64(), hMsg: s.protocolMng.TryProposeMessage()})
+					s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlock().NumberU64(), hMsg: &hotstuff.HotstuffMessage{Code: hotstuff.MsgTryPropose}})
 				}
 			}()
 		} else {
@@ -347,9 +340,7 @@ func (s *Service) OnViewDone(e error, phase uint64, kSign *hotstuff.SignedState,
 
 //Write call by hotstuff------------------------------------------------------------------------------------------------
 func (s *Service) Write(id string, data *hotstuff.HotstuffMessage) error {
-	if data.Code != hotstuff.MsgCollectTimeoutView {
-		log.Info("Write", "to id", id, "code", hotstuff.ReadableMsgType(data.Code), "ViewId", data.ViewId)
-	}
+	log.Info("Write", "to id", id, "code", hotstuff.ReadableMsgType(data.Code), "ViewId", data.ViewId)
 
 	if id == s.Self() {
 		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
@@ -407,9 +398,8 @@ func (s *Service) handleHotStuffMsg() {
 		}
 		msg := data.(*hotstuffMsg)
 		msgCode := msg.hMsg.Code
-		if msgCode != hotstuff.MsgCollectTimeoutView {
-			log.Debug("handleHotStuffMsg", "id", msg.hMsg.Id, "code", hotstuff.ReadableMsgType(msgCode), "ViewId", msg.hMsg.ViewId)
-		}
+		log.Debug("handleHotStuffMsg", "id", msg.hMsg.Id, "code", hotstuff.ReadableMsgType(msgCode), "ViewId", msg.hMsg.ViewId)
+
 		var curN uint64
 		if msgCode == hotstuff.MsgTryPropose || msgCode == hotstuff.MsgStartNewView {
 			curN = s.bc.CurrentBlock().NumberU64()
@@ -593,9 +583,9 @@ func (s *Service) updateCommittee(keyBlock *types.KeyBlock) bool {
 
 func (s *Service) Committee_OnStored(keyblock *types.KeyBlock, mb *bftview.Committee) {
 	log.Debug("store committee", "keyNumber", keyblock.NumberU64(), "ip0", mb.List[0].Address, "ipn", mb.List[len(mb.List)-1].Address)
-	//if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlock().NumberU64() {
-	//	s.netService.AdjustConnect( mb )
-	//}
+	if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlock().NumberU64() {
+		s.netService.AdjustConnect(keyblock.OutAddress())
+	}
 }
 
 func (s *Service) Committee_Request(kNumber uint64, hash common.Hash) {
@@ -668,7 +658,7 @@ func (s *Service) getBestCandidate(refresh bool) *types.Candidate {
 
 func (s *Service) sendNewViewMsg(curN uint64) {
 	if bftview.IamMember() >= 0 && curN >= s.kbc.CurrentBlock().T_Number() {
-		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: curN, hMsg: s.protocolMng.NewViewMessage()})
+		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: curN, hMsg: &hotstuff.HotstuffMessage{Code: hotstuff.MsgStartNewView}})
 	}
 }
 
@@ -730,4 +720,14 @@ func (s *Service) isRunning() bool {
 }
 func (s *Service) setRunState(state int32) {
 	atomic.StoreInt32(&s.runningState, state)
+}
+
+func (s *Service) LeaderAckTime() time.Time {
+	mb := bftview.GetCurrentMember()
+	return s.netService.GetAckTime(mb.Leader().Address)
+}
+
+func (s *Service) ResetLeaderAckTime() {
+	mb := bftview.GetCurrentMember()
+	return s.netService.ResetAckTime(mb.Leader().Address)
 }

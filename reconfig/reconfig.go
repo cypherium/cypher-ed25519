@@ -27,9 +27,9 @@ type Reconfig struct {
 	mux *event.TypeMux
 	mu  sync.Mutex
 
-	reconfigSub *event.TypeMuxSubscription
-	txsCh       chan core.NewTxsEvent
-	txsSub      event.Subscription
+	//	reconfigSub *event.TypeMuxSubscription
+	txsCh  chan core.NewTxsEvent
+	txsSub event.Subscription
 }
 
 // Backend wraps all methods required for mining.
@@ -64,8 +64,8 @@ func NewReconfig(db cphdb.Database, cph Backend, config *params.ChainConfig, mux
 	reconfig.service.pacetMakerTimer = newPaceMakerTimer(config, reconfig.service, cph)
 	go reconfig.service.pacetMakerTimer.loopTimer()
 
-	reconfig.reconfigSub = mux.Subscribe(core.NewCandidateEvent{}, core.KeyChainHeadEvent{})
-	go reconfig.update()
+	//reconfig.reconfigSub = mux.Subscribe(core.NewCandidateEvent{}, core.KeyChainHeadEvent{})
+	//go reconfig.update()
 
 	reconfig.txsCh = make(chan core.NewTxsEvent, 1024)
 	reconfig.txsSub = cph.TxPool().SubscribeNewTxsEvent(reconfig.txsCh)
@@ -74,6 +74,7 @@ func NewReconfig(db cphdb.Database, cph Backend, config *params.ChainConfig, mux
 	return reconfig
 }
 
+/*
 func (reconf *Reconfig) update() {
 	for ev := range reconf.reconfigSub.Chan() {
 		if !reconf.service.isRunning() {
@@ -96,6 +97,7 @@ func (reconf *Reconfig) update() {
 	}
 	log.Info("quit Reconfig.update")
 }
+*/
 
 func (reconf *Reconfig) txsEventLoop() {
 	for {

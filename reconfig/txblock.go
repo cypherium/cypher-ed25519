@@ -66,13 +66,14 @@ func (txS *txService) tryProposalNewBlock(blockType uint8) ([]byte, error) {
 
 func (txS *txService) verifyTxBlock(txblock *types.Block) error {
 	var retErr error
-	defer func() {
-		if retErr == nil {
-			//insert chain
-			//??	go s.bc.InsertBlockWithNoSignature(txblock)
-		}
-	}()
-
+	/*
+		defer func() {
+			if retErr == nil {
+				//insert chain
+				//??	go s.bc.InsertBlockWithNoSignature(txblock)
+			}
+		}()
+	*/
 	bc := txS.bc
 	kbc := txS.kbc
 	blockNum := txblock.NumberU64()

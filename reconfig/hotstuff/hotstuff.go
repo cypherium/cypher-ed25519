@@ -51,8 +51,7 @@ const (
 	MsgDecide
 
 	// pseudo messages
-	MsgCollectTimeoutView // for handling timeout
-	MsgStartNewView       // for handling new view from app
+	MsgStartNewView // for handling new view from app
 	MsgTryPropose
 )
 
@@ -74,8 +73,6 @@ func ReadableMsgType(m uint64) string {
 		return "MsgVoteCommit"
 	case m == MsgDecide:
 		return "MsgDecide"
-	case m == MsgCollectTimeoutView:
-		return "MsgCollectTimeoutView"
 	case m == MsgStartNewView:
 		return "MsgStartNewView"
 	case m == MsgTryPropose:
@@ -154,7 +151,7 @@ type QC struct {
 }
 
 type HotstuffMessage struct {
-	Code   uint64
+	Code   uint32
 	Number uint64
 	ViewId common.Hash
 	Id     string
@@ -170,10 +167,6 @@ type HotstuffMessage struct {
 	DataF []byte
 
 	ReceivedAt time.Time
-}
-
-func (m *HotstuffMessage) touch() {
-	m.ReceivedAt = time.Now()
 }
 
 type View struct {
@@ -218,33 +211,20 @@ func (v *View) hasTState() bool {
 type HotstuffProtocolManager struct {
 	secretKey    *bls.SecretKey
 	publicKey    *bls.PublicKey
-	timeout      time.Duration
-	tickerPeriod time.Duration
 	views        map[common.Hash]*View
 	leaderView   *View
 	app          HotStuffApplication
-	exit         chan bool
 	unhandledMsg map[common.Hash]*HotstuffMessage // messages which is not handled(which phase is ahead of local's)
 }
 
-func NewHotstuffProtocolManager(a HotStuffApplication, secretKey *bls.SecretKey, publicKey *bls.PublicKey, t time.Duration) *HotstuffProtocolManager {
+func NewHotstuffProtocolManager(a HotStuffApplication, secretKey *bls.SecretKey, publicKey *bls.PublicKey) *HotstuffProtocolManager {
 	manager := &HotstuffProtocolManager{
 		secretKey:    secretKey,
 		publicKey:    publicKey,
 		app:          a,
-		timeout:      t,
-		tickerPeriod: 60 * time.Second,
 		views:        make(map[common.Hash]*View),
-		exit:         make(chan bool),
 		unhandledMsg: make(map[common.Hash]*HotstuffMessage),
 	}
-
-	if int64(t) > 0 {
-		manager.timeout = t
-	}
-
-	go manager.collectTimeoutView()
-
 	return manager
 }
 
@@ -315,7 +295,7 @@ func (v *View) msgToQuorum(m *HotstuffMessage) (error, *Quorum) {
 	return nil, &qrum
 }
 
-func (hsm *HotstuffProtocolManager) newMsg(code uint64, number uint64, viewId common.Hash, a []byte, b []byte, c []byte) *HotstuffMessage {
+func (hsm *HotstuffProtocolManager) newMsg(code uint32, number uint64, viewId common.Hash, a []byte, b []byte, c []byte) *HotstuffMessage {
 	msg := &HotstuffMessage{
 		Code:   code,
 		Number: number,
@@ -367,6 +347,7 @@ func (hsm *HotstuffProtocolManager) newView() (*View, []byte) {
 		stopTReplicaCh:   make(chan bool),
 		extra:            make([][]byte, 0),
 		futureNewViewMsg: make([]*HotstuffMessage, 0),
+		createdAt:        time.Now(),
 	}
 
 	v.currentState = make([]byte, len(currentState))
@@ -397,6 +378,7 @@ func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint64, lead
 		leaderMsg:        make(map[uint64]*HotstuffMessage),
 		extra:            make([][]byte, 0),
 		futureNewViewMsg: make([]*HotstuffMessage, 0),
+		createdAt:        time.Now(),
 	}
 
 	if asLeader {
@@ -447,20 +429,6 @@ func (hsm *HotstuffProtocolManager) DumpView(v *View, asLeader bool) {
 
 		log.Debug("Dump View End ================>>")
 	*/
-}
-
-func (hsm *HotstuffProtocolManager) addView(v *View) {
-	v.createdAt = time.Now()
-	hsm.views[v.hash] = v
-}
-
-func (hsm *HotstuffProtocolManager) removeView(v *View) {
-	delete(hsm.views, v.hash)
-}
-
-func (hsm *HotstuffProtocolManager) lookupView(hash common.Hash) (*View, bool) {
-	v, e := hsm.views[hash]
-	return v, e
 }
 
 func (hsm *HotstuffProtocolManager) lockView(v *View) {
@@ -532,6 +500,28 @@ func (hsm *HotstuffProtocolManager) viewDone(v *View, kSign []byte, tSign []byte
 	}
 }
 
+func (hsm *HotstuffProtocolManager) clearTimeoutView(curN uint64) error {
+	now := time.Now()
+	for _, v := range hsm.views {
+		if v.number < curN {
+			log.Debug("Remove timeout view", "viewId", v.hash, "phase", readablePhase(v.phaseAsReplica), "pas time", now.Sub(v.createdAt).Seconds())
+			if v.phaseAsReplica < PhaseFinal {
+				hsm.viewDone(v, nil, nil, nil, ErrViewTimeout)
+			}
+			delete(hsm.views, v.hash)
+		}
+	}
+
+	for k, m := range hsm.unhandledMsg {
+		if m.Number < curN {
+			log.Debug("Remove unhandled hotstuff message", "viewId", m.ViewId, "code", m.Code, "from", m.Id, "past time", now.Sub(m.ReceivedAt).Seconds())
+			delete(hsm.unhandledMsg, k)
+		}
+	}
+
+	return nil
+}
+
 // for replica
 func (hsm *HotstuffProtocolManager) NewView() error {
 	v, extra := hsm.newView()
@@ -539,8 +529,8 @@ func (hsm *HotstuffProtocolManager) NewView() error {
 		return ErrNewViewFail
 	}
 
-	if _, exist := hsm.lookupView(v.hash); !exist {
-		hsm.addView(v)
+	if _, exist := hsm.views[v.hash]; !exist {
+		hsm.views[v.hash] = v
 	}
 
 	sig := hsm.secretKey.SignHash(crypto.Keccak256(v.currentState)).Serialize()
@@ -548,6 +538,9 @@ func (hsm *HotstuffProtocolManager) NewView() error {
 
 	log.Debug("New View", "leader", v.leaderId, "ViewID", common.HexString(v.hash[:]))
 	err := hsm.app.Write(v.leaderId, msg)
+	if err != nil {
+		hsm.clearTimeoutView(v.number) //clear old view
+	}
 
 	return err
 }
@@ -621,11 +614,12 @@ func (hsm *HotstuffProtocolManager) lookupQuorum(pubKey *bls.PublicKey, quorum [
 
 // for leader
 func (hsm *HotstuffProtocolManager) handleNewViewMsg(msg *HotstuffMessage) error {
+
 	//start := time.Now()
-	defer func() {
-		//	handleTime := time.Now().Sub(start).Nanoseconds() / 1000000
-		//	log.Debug("handleNewViewMsg handle time", "ellpased", handleTime)
-	}()
+	//defer func() {
+	//	handleTime := time.Now().Sub(start).Nanoseconds() / 1000000
+	//	log.Debug("handleNewViewMsg handle time", "ellpased", handleTime)
+	//}()
 
 	log.Info("handleNewViewMsg got new view message", "from", msg.Id, "viewId", msg.ViewId)
 	err := hsm.app.CheckView(msg.DataA)
@@ -634,11 +628,11 @@ func (hsm *HotstuffProtocolManager) handleNewViewMsg(msg *HotstuffMessage) error
 		return err
 	}
 
-	v, exist := hsm.lookupView(msg.ViewId)
+	v, exist := hsm.views[msg.ViewId]
 	if !exist {
 		v = hsm.createView(true, PhasePrepare, hsm.app.Self(), msg.DataA, msg.Number)
 		log.Debug("create new view", "leader", v.leaderId, "viewID", v.hash)
-		hsm.addView(v)
+		hsm.views[v.hash] = v
 	}
 
 	v.futureNewViewMsg = append(v.futureNewViewMsg, msg)
@@ -870,10 +864,10 @@ loop:
 
 // for replica
 func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		v = hsm.createView(false, PhasePrepare, hsm.app.Self(), m.DataE, m.Number)
-		hsm.addView(v)
+		hsm.views[v.hash] = v
 		log.Debug("handlePrepareMsg create view", "viewId", m.ViewId)
 	}
 
@@ -951,7 +945,7 @@ func (hsm *HotstuffProtocolManager) createSignatureMsg(v *View, code uint64, pha
 
 // for leader
 func (hsm *HotstuffProtocolManager) handlePrepareVoteMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		log.Debug("handlePrepareVoteMsg found no matched view", "viewId", m.ViewId)
 		return ErrMissingView
@@ -1032,7 +1026,7 @@ func (hsm *HotstuffProtocolManager) handlePrepareVoteMsg(m *HotstuffMessage) err
 
 // for replica
 func (hsm *HotstuffProtocolManager) handlePreCommitMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		log.Trace("handlePreCommitMsg found no match view", "viewId", m.ViewId)
 		return ErrUnhandledMsg
@@ -1087,7 +1081,7 @@ func (hsm *HotstuffProtocolManager) handlePreCommitMsg(m *HotstuffMessage) error
 
 // for leader
 func (hsm *HotstuffProtocolManager) handlePreCommitVoteMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		log.Trace("handlePreCommitVoteMsg found no match view", "viewId", m.ViewId)
 		return ErrMissingView
@@ -1166,7 +1160,7 @@ func (hsm *HotstuffProtocolManager) handlePreCommitVoteMsg(m *HotstuffMessage) e
 
 // for replica
 func (hsm *HotstuffProtocolManager) handleCommitMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		log.Trace("handleCommitMsg found no match view", "viewId", m.ViewId)
 		return ErrUnhandledMsg
@@ -1221,7 +1215,7 @@ func (hsm *HotstuffProtocolManager) handleCommitMsg(m *HotstuffMessage) error {
 
 // for leader
 func (hsm *HotstuffProtocolManager) handleCommitVoteMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		log.Trace("handleCommitVoteMsg found no match view", "viewId", m.ViewId)
 		return ErrMissingView
@@ -1300,7 +1294,7 @@ func (hsm *HotstuffProtocolManager) handleCommitVoteMsg(m *HotstuffMessage) erro
 
 // for replica
 func (hsm *HotstuffProtocolManager) handleDecideMsg(m *HotstuffMessage) error {
-	v, exist := hsm.lookupView(m.ViewId)
+	v, exist := hsm.views[m.ViewId]
 	if !exist {
 		log.Trace("handleDecideMsg found no match view", "viewId", m.ViewId)
 		return ErrUnhandledMsg
@@ -1344,80 +1338,6 @@ func (hsm *HotstuffProtocolManager) handleDecideMsg(m *HotstuffMessage) error {
 	return nil
 }
 
-func (hsm *HotstuffProtocolManager) NewViewMessage() *HotstuffMessage {
-	return hsm.newMsg(MsgStartNewView, 0, common.Hash{}, nil, nil, nil)
-}
-
-func (hsm *HotstuffProtocolManager) TryProposeMessage() *HotstuffMessage {
-	return hsm.newMsg(MsgTryPropose, 0, common.Hash{}, nil, nil, nil)
-}
-
-func (hsm *HotstuffProtocolManager) handleStartNewView() error {
-	log.Debug("handler handleStartNewView")
-	return hsm.NewView()
-}
-
-func (hsm *HotstuffProtocolManager) handlerTryPropose() error {
-	//log.Debug("handler MsgTryPropose")
-	return hsm.TryPropose()
-}
-
-func (hsm *HotstuffProtocolManager) Stop() {
-	select {
-	case hsm.exit <- true:
-	default:
-	}
-}
-
-func (hsm *HotstuffProtocolManager) handleViewTimeout() error {
-	now := time.Now()
-	if len(hsm.views) > 1 {
-		for _, v := range hsm.views {
-			duration := now.Sub(v.createdAt).Seconds()
-
-			if duration > hsm.timeout.Seconds() {
-				log.Debug("Remove timeout view", "viewId", v.hash, "phase", readablePhase(v.phaseAsReplica))
-				if v.phaseAsReplica < PhaseFinal {
-					hsm.viewDone(v, nil, nil, nil, ErrViewTimeout)
-				}
-
-				hsm.removeView(v)
-				if len(hsm.views) == 1 {
-					break
-				}
-			}
-		}
-	}
-
-	for k, m := range hsm.unhandledMsg {
-		duration := now.Sub(m.ReceivedAt).Seconds()
-
-		if duration > hsm.timeout.Seconds() {
-			log.Debug("Remove unhandled hotstuff message", "viewId", m.ViewId, "code", m.Code, "from", m.Id)
-			hsm.removeFromUnhandled(k)
-		}
-	}
-
-	return nil
-}
-
-func (hsm *HotstuffProtocolManager) setTimeoutTicker(d time.Duration) {
-	hsm.tickerPeriod = d
-}
-
-func (hsm *HotstuffProtocolManager) collectTimeoutView() {
-	ticker := time.NewTicker(hsm.tickerPeriod)
-	for {
-		select {
-		case <-hsm.exit:
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			hsm.app.Write(hsm.app.Self(), hsm.newMsg(MsgCollectTimeoutView, 0, common.Hash{}, nil, nil, nil))
-		}
-	}
-}
-
 func (hsm *HotstuffProtocolManager) handleMessage(m *HotstuffMessage) error {
 	switch {
 	case m.Code == MsgNewView:
@@ -1440,13 +1360,13 @@ func (hsm *HotstuffProtocolManager) handleMessage(m *HotstuffMessage) error {
 
 	case m.Code == MsgDecide:
 		return hsm.handleDecideMsg(m)
-
-	case m.Code == MsgCollectTimeoutView:
-		return hsm.handleViewTimeout()
+	//empty message
 	case m.Code == MsgStartNewView:
-		return hsm.handleStartNewView()
+		log.Debug("handler handleStartNewView")
+		return hsm.NewView()
 	case m.Code == MsgTryPropose:
-		return hsm.handlerTryPropose()
+		log.Debug("handler MsgTryPropose")
+		return hsm.TryPropose()
 
 	default:
 		log.Warn("unknown hotstuff message", "code", m.Code)
@@ -1460,14 +1380,10 @@ func (hsm *HotstuffProtocolManager) addToUnhandled(m *HotstuffMessage) {
 		log.Warn("failed to encode hotstuff message to bytes, discarded")
 		return
 	}
-	m.touch()
+	m.ReceivedAt = time.Now() //??
 
 	k := crypto.Keccak256Hash(bs)
 	hsm.unhandledMsg[k] = m
-}
-
-func (hsm *HotstuffProtocolManager) removeFromUnhandled(k common.Hash) {
-	delete(hsm.unhandledMsg, k)
 }
 
 func (hsm *HotstuffProtocolManager) HandleMessage(msg *HotstuffMessage) error {
@@ -1482,7 +1398,7 @@ func (hsm *HotstuffProtocolManager) HandleMessage(msg *HotstuffMessage) error {
 	for k, m := range hsm.unhandledMsg {
 		if e := hsm.handleMessage(m); e != ErrUnhandledMsg {
 			log.Debug("Remove unhandled hotstuff message", "viewId", msg.ViewId, "code", msg.Code, "from", msg.Id)
-			hsm.removeFromUnhandled(k)
+			delete(hsm.unhandledMsg, k)
 		}
 	}
 

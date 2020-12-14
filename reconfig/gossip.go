@@ -31,7 +31,8 @@ type heartBeatMsg struct {
 	blockN uint64
 }
 type ackInfo struct {
-	tm        time.Time
+	ackTm     time.Time
+	sendTm    time.Time
 	isSending *int32 //atomic int
 }
 
@@ -93,8 +94,8 @@ func (s *netService) StartStop(isStart bool) {
 	}
 }
 
-func (s *netService) AdjustConnect(mb *bftview.Committee) {
-	//
+func (s *netService) AdjustConnect(outAddress string) {
+	s.setIsRunning(outAddress, false)
 }
 
 func (s *netService) procBlockDone(blockN, keyblockN uint64) {
@@ -110,6 +111,14 @@ func (s *netService) procBlockDone(blockN, keyblockN uint64) {
 		}
 	}
 	s.muGossip.Unlock()
+
+	now := time.Now()
+
+	s.muIdMap.Lock()
+	for addr, a := range s.ackMap {
+		a.ackTm = now
+	}
+	s.muIdMap.Unlock()
 }
 
 func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
@@ -121,6 +130,8 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 	si := env.ServerIdentity
 	address := si.Address.String()
 	log.Info("handleNetworkMsgReq Recv", "from address", address)
+	s.getAckInfo(address).ackTm = time.Now()
+
 	if s.IgnoreMsg(msg) {
 		return
 	}
@@ -185,10 +196,12 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 func (s *netService) loop_iddata(address string, q *common.Queue) {
 	log.Debug("loop_iddata start", "address", address)
 	si := network.NewServerIdentity(address)
+
 	s.muIdMap.Lock()
 	isRunning, _ := s.goMap[address]
 	s.muIdMap.Unlock()
-	for atomic.LoadInt32(isRunning) == 1 {
+
+	for !s.isStoping && atomic.LoadInt32(isRunning) == 1 {
 		if s.GetNetBlocks(si) > 1 {
 			time.Sleep(5 * time.Millisecond)
 			continue
@@ -208,6 +221,12 @@ func (s *netService) loop_iddata(address string, q *common.Queue) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	atomic.StoreInt32(isRunning, 0)
+
+	s.muIdMap.Lock()
+	delete(s.goMap, address)
+	delete(s.idDataMap, address)
+	delete(s.ackMap, address)
+	s.muIdMap.Unlock()
 
 	log.Debug("loop_iddata exit", "id", address)
 }
@@ -259,6 +278,10 @@ func (s *netService) setIsRunning(id string, isStart bool) {
 	s.muIdMap.Lock()
 	isRunning, ok := s.goMap[id]
 	if !ok {
+		if isStart == false {
+			s.muIdMap.Unlock()
+			return
+		}
 		isRunning = new(int32)
 		s.goMap[id] = isRunning
 	}
@@ -293,8 +316,7 @@ func (s *netService) handleHeartBeatMsgAck(env *network.Envelope) {
 	si := env.ServerIdentity
 	address := si.Address.String()
 	log.Info("handleHeartBeatMsgAck Recv", "from address", address, "blockN", msg.blockN)
-	a := s.getAckInfo(address)
-	a.tm = time.Now()
+	s.getAckInfo(address).ackTm = time.Now()
 }
 
 func (s *netService) getAckInfo(addr string) *ackInfo {
@@ -303,6 +325,7 @@ func (s *netService) getAckInfo(addr string) *ackInfo {
 	if a == nil {
 		a = new(ackInfo)
 		a.isSending = new(int32)
+		a.ackTm = time.Now()
 		s.ackMap[addr] = a
 	}
 	s.muIdMap.Unlock()
@@ -325,10 +348,11 @@ func (s *netService) heartBeat_Loop() {
 			}
 			addr := node.Address
 			a := s.getAckInfo(addr)
-			if a != nil && now.Sub(a.tm) > heatBeatTimeout {
+			if a != nil && now.Sub(a.sendTm) > heatBeatTimeout {
 				if atomic.LoadInt32(a.isSending) == 0 {
 					si := network.NewServerIdentity(addr)
 					if s.GetNetBlocks(si) == 0 {
+						a.sendTm = time.Now()
 						go func(si *network.ServerIdentity, msg interface{}, isRunning *int32) {
 							atomic.StoreInt32(isRunning, 1)
 							err := s.SendRaw(si, msg, false)
@@ -339,9 +363,17 @@ func (s *netService) heartBeat_Loop() {
 				}
 				continue
 			}
-			time.Sleep(200 * time.Millisecond)
 		}
+		time.Sleep(500 * time.Millisecond)
 	} //end for  !s.isStoping
+}
+
+func (s *netService) GetAckTime(addr string) time.Time {
+	return s.getAckInfo(addr).ackTm
+}
+
+func (s *netService) ResetAckTime(addr string) {
+	s.getAckInfo(addr).ackTm = time.Now()
 }
 
 //--------------------------------------------------------------------------------------------------------------------------
