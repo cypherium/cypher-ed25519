@@ -55,7 +55,7 @@ const (
 	MsgTryPropose
 )
 
-func ReadableMsgType(m uint64) string {
+func ReadableMsgType(m uint32) string {
 	switch {
 	case m == MsgNewView:
 		return "MsgNewView"
@@ -92,7 +92,7 @@ const (
 	PhaseFinal
 )
 
-func readablePhase(code uint64) string {
+func readablePhase(code uint32) string {
 	switch {
 	case code == PhasePrepare:
 		return "PhasePrepare"
@@ -127,7 +127,7 @@ type HotStuffApplication interface {
 
 	OnNewView(currentState []byte, extra [][]byte) error
 	OnPropose(kState []byte, tState []byte, extra []byte) error
-	OnViewDone(e error, phase uint64, kSign *SignedState, tSign *SignedState) error
+	OnViewDone(e error, phase uint32, kSign *SignedState, tSign *SignedState) error
 
 	CheckView(currentState []byte) error
 	Propose() (e error, kState []byte, tState []byte, extra []byte)
@@ -174,8 +174,8 @@ type View struct {
 	createdAt      time.Time
 	number         uint64
 	leaderId       string
-	phaseAsLeader  uint64
-	phaseAsReplica uint64
+	phaseAsLeader  uint32
+	phaseAsReplica uint32
 	currentState   []byte
 	proposedKState []byte
 	proposedTState []byte
@@ -366,7 +366,7 @@ func (hsm *HotstuffProtocolManager) newView() (*View, []byte) {
 	return v, hsm.app.GetExtra()
 }
 
-func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint64, leaderId string, currentState []byte, number uint64) *View {
+func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint32, leaderId string, currentState []byte, number uint64) *View {
 	v := &View{
 		number:           number,
 		leaderId:         leaderId,
@@ -929,7 +929,7 @@ func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 	return nil
 }
 
-func (hsm *HotstuffProtocolManager) createSignatureMsg(v *View, code uint64, phase string) *HotstuffMessage {
+func (hsm *HotstuffProtocolManager) createSignatureMsg(v *View, code uint32, phase string) *HotstuffMessage {
 	bKSign := []byte(nil)
 	bTSign := []byte(nil)
 	if v.qc[phase].kSign != nil {

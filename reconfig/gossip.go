@@ -111,14 +111,7 @@ func (s *netService) procBlockDone(blockN, keyblockN uint64) {
 		}
 	}
 	s.muGossip.Unlock()
-
-	now := time.Now()
-
-	s.muIdMap.Lock()
-	for addr, a := range s.ackMap {
-		a.ackTm = now
-	}
-	s.muIdMap.Unlock()
+	s.ResetAckTime("")
 }
 
 func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
@@ -373,7 +366,20 @@ func (s *netService) GetAckTime(addr string) time.Time {
 }
 
 func (s *netService) ResetAckTime(addr string) {
-	s.getAckInfo(addr).ackTm = time.Now()
+	now := time.Now()
+
+	s.muIdMap.Lock()
+	if addr != "" {
+		a, ok := s.ackMap[addr]
+		if ok {
+			a.ackTm = now
+		}
+	} else {
+		for _, a := range s.ackMap {
+			a.ackTm = now
+		}
+	}
+	s.muIdMap.Unlock()
 }
 
 //--------------------------------------------------------------------------------------------------------------------------

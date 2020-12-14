@@ -3,6 +3,7 @@ package reconfig
 import (
 	"net"
 	"sync"
+	"time"
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core"
@@ -51,6 +52,8 @@ type serviceI interface {
 	syncCommittee(mb *bftview.Committee, keyblock *types.KeyBlock)
 	setNextLeader(reconfigType uint8)
 	sendNewViewMsg(curN uint64)
+	LeaderAckTime() time.Time
+	ResetLeaderAckTime()
 }
 
 //NewReconfig call by backend

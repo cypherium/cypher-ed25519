@@ -311,7 +311,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 }
 
 //OnViewDone call by hotstuff
-func (s *Service) OnViewDone(e error, phase uint64, kSign *hotstuff.SignedState, tSign *hotstuff.SignedState) error {
+func (s *Service) OnViewDone(e error, phase uint32, kSign *hotstuff.SignedState, tSign *hotstuff.SignedState) error {
 	log.Info("OnViewDone", "phase", phase)
 	if !s.isRunning() {
 		return types.ErrNotRunning
@@ -724,10 +724,19 @@ func (s *Service) setRunState(state int32) {
 
 func (s *Service) LeaderAckTime() time.Time {
 	mb := bftview.GetCurrentMember()
-	return s.netService.GetAckTime(mb.Leader().Address)
+	if mb != nil {
+		curView := s.getCurrentView()
+		leader := mb.List[curView.LeaderIndex]
+		return s.netService.GetAckTime(leader.Address)
+	}
+	return time.Now()
 }
 
 func (s *Service) ResetLeaderAckTime() {
 	mb := bftview.GetCurrentMember()
-	return s.netService.ResetAckTime(mb.Leader().Address)
+	if mb != nil {
+		curView := s.getCurrentView()
+		leader := mb.List[curView.LeaderIndex]
+		s.netService.ResetAckTime(leader.Address)
+	}
 }
