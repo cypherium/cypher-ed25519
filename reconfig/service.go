@@ -726,8 +726,10 @@ func (s *Service) isRunning(flag int) bool {
 func (s *Service) printAllStatus() {
 	s.netService.GetNetBlocks(nil)
 	for addr, a := range s.netService.ackMap {
+		si := network.NewServerIdentity(addr)
+		log.Info("ackInfo", "addr", addr, "id", si.ID)
 		if a != nil {
-			log.Info("ackInfo", "addr", addr, "ackTm", a.ackTm, "sendTm", a.sendTm, "isSending", *a.isSending)
+			log.Info("ackInfo", "ackTm", a.ackTm, "sendTm", a.sendTm, "isSending", *a.isSending)
 		}
 	}
 
