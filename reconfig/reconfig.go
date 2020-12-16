@@ -130,5 +130,5 @@ func (reconf *Reconfig) Stop() {
 
 //ReconfigIsRunning call by backend
 func (reconf *Reconfig) ReconfigIsRunning() bool {
-	return reconf.service.isRunning()
+	return reconf.service.isRunning(1)
 }

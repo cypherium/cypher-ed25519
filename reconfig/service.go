@@ -177,7 +177,7 @@ func (s *Service) Self() string {
 
 //CheckView call by hotstuff
 func (s *Service) CheckView(data []byte) error {
-	if !s.isRunning() {
+	if !s.isRunning(0) {
 		return types.ErrNotRunning
 	}
 	view := bftview.DecodeToView(data)
@@ -201,7 +201,7 @@ func (s *Service) CheckView(data []byte) error {
 //OnPropose call by hotstuff
 func (s *Service) OnPropose(kState []byte, tState []byte, extra []byte) error { //verify new block
 	log.Debug("OnPropose..")
-	if !s.isRunning() {
+	if !s.isRunning(0) {
 		return types.ErrNotRunning
 	}
 
@@ -253,7 +253,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 		}
 	}()
 
-	if !s.isRunning() {
+	if !s.isRunning(0) {
 		err := fmt.Errorf("not running for propose")
 		return err, nil, nil, nil
 	}
@@ -313,7 +313,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 //OnViewDone call by hotstuff
 func (s *Service) OnViewDone(e error, phase uint32, kSign *hotstuff.SignedState, tSign *hotstuff.SignedState) error {
 	log.Info("OnViewDone", "phase", phase)
-	if !s.isRunning() {
+	if !s.isRunning(0) {
 		return types.ErrNotRunning
 	}
 	if e != nil {
@@ -694,7 +694,7 @@ func (s *Service) procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock) 
 }
 
 func (s *Service) start(config *common.NodeConfig) {
-	if !s.isRunning() {
+	if !s.isRunning(0) {
 		s.protocolMng.UpdateKeyPair(bftview.StrToBlsPrivKey(config.Private))
 		bftview.SetServerInfo(s.netService.serverAddress, config.Public)
 		s.netService.StartStop(true)
@@ -708,16 +708,18 @@ func (s *Service) start(config *common.NodeConfig) {
 }
 
 func (s *Service) stop() {
-	if s.isRunning() {
+	if s.isRunning(0) {
 		s.netService.StartStop(false)
 		s.pacetMakerTimer.stop()
 		s.setRunState(0)
 	}
 }
 
-func (s *Service) isRunning() bool {
+func (s *Service) isRunning(flag int) bool {
 	//log all status
-	go s.printAllStatus()
+	if flag == 1 {
+		go s.printAllStatus()
+	}
 	return atomic.LoadInt32(&s.runningState) == 1
 }
 
