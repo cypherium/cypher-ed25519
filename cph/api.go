@@ -219,14 +219,18 @@ func (api *PrivateMinerAPI) Status() string {
 		}
 	} else {
 		s += "I'm common node."
-
 	}
-	running := api.e.IsMining() || api.e.reconfigIsRunning()
-	if running {
+	if api.e.IsMining() {
 		s += "is Running."
 	} else {
 		s += "Stopped."
 	}
+	if api.e.reconfigIsRunning() {
+		s += "&& in service."
+	} else {
+		s += "&& not in service."
+	}
+
 	return s
 }
 
@@ -260,14 +264,19 @@ func (api *PublicCphereumAPI) Status() string {
 		s += "I'm common node."
 
 	}
-	running := api.e.IsMining() || api.e.reconfigIsRunning()
-	if running {
+	if api.e.IsMining() {
 		s += "is Running."
 	} else {
 		s += "Stopped."
 	}
+	if api.e.reconfigIsRunning() {
+		s += "&& in service."
+	} else {
+		s += "&& not in service."
+	}
 	return s
 }
+
 // PrivateAdminAPI is the collection of Cypherium full node-related APIs
 // exposed over the private admin endpoint.
 type PrivateAdminAPI struct {
