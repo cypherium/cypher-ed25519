@@ -108,9 +108,9 @@ type BlockChain struct {
 	chainmu sync.RWMutex // blockchain insertion lock
 	procmu  sync.RWMutex // block processor lock
 
-	checkpoint       int          // checkpoint counts towards the new checkpoint
 	currentBlock     atomic.Value // Current head of the block chain
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
+	currentBlockN    uint64
 
 	stateCache   state.Database // State database to reuse between imports (contains state cache)
 	bodyCache    *lru.Cache     // Cache for the most recent block bodies
@@ -242,6 +242,7 @@ func (bc *BlockChain) loadLastState() error {
 	}
 	// Everything seems to be fine, set as the head block
 	bc.currentBlock.Store(currentBlock)
+	atomic.StoreUint64(&bc.currentBlockN, currentBlock.NumberU64())
 
 	// Restore the last known head header
 	currentHeader := currentBlock.Header()
@@ -300,11 +301,13 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	// Rewind the block chain, ensuring we don't end up with a stateless head block
 	if currentBlock := bc.CurrentBlock(); currentBlock != nil && currentHeader.Number.Uint64() < currentBlock.NumberU64() {
 		bc.currentBlock.Store(bc.GetBlock(currentHeader.Hash(), currentHeader.Number.Uint64()))
+		atomic.StoreUint64(&bc.currentBlockN, currentHeader.Number.Uint64())
 	}
 	if currentBlock := bc.CurrentBlock(); currentBlock != nil {
 		if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
 			// Rewound state missing, rolled back to before pivot, reset to genesis
 			bc.currentBlock.Store(bc.genesisBlock)
+			atomic.StoreUint64(&bc.currentBlockN, 0)
 		}
 	}
 	// Rewind the fast block in a simpleton way to the target head
@@ -314,6 +317,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	// If either blocks reached nil, reset to the genesis state
 	if currentBlock := bc.CurrentBlock(); currentBlock == nil {
 		bc.currentBlock.Store(bc.genesisBlock)
+		atomic.StoreUint64(&bc.currentBlockN, 0)
 	}
 	if currentFastBlock := bc.CurrentFastBlock(); currentFastBlock == nil {
 		bc.currentFastBlock.Store(bc.genesisBlock)
@@ -341,6 +345,7 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	// If all checks out, manually set the head block
 	bc.mu.Lock()
 	bc.currentBlock.Store(block)
+	atomic.StoreUint64(&bc.currentBlockN, block.NumberU64())
 	bc.mu.Unlock()
 
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
@@ -356,6 +361,9 @@ func (bc *BlockChain) GasLimit() uint64 {
 // block is retrieved from the blockchain's internal cache.
 func (bc *BlockChain) CurrentBlock() *types.Block {
 	return bc.currentBlock.Load().(*types.Block)
+}
+func (bc *BlockChain) CurrentBlockN() uint64 {
+	return atomic.LoadUint64(&bc.currentBlockN)
 }
 
 // CurrentFastBlock retrieves the current fast-sync head block of the canonical
@@ -398,6 +406,7 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	bc.genesisBlock = genesis
 	bc.insert(bc.genesisBlock)
 	bc.currentBlock.Store(bc.genesisBlock)
+	atomic.StoreUint64(&bc.currentBlockN, 0)
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
 	bc.currentFastBlock.Store(bc.genesisBlock)
@@ -425,7 +434,7 @@ func (bc *BlockChain) repair(head **types.Block) error {
 
 // Export writes the active chain to the given writer.
 func (bc *BlockChain) Export(w io.Writer) error {
-	return bc.ExportN(w, uint64(0), bc.CurrentBlock().NumberU64())
+	return bc.ExportN(w, uint64(0), bc.CurrentBlockN())
 }
 
 // ExportN writes a subset of the active chain to the given writer.
@@ -467,6 +476,7 @@ func (bc *BlockChain) insert(block *types.Block) {
 	rawdb.WriteHeadBlockHash(bc.db, block.Hash())
 
 	bc.currentBlock.Store(block)
+	atomic.StoreUint64(&bc.currentBlockN, block.NumberU64())
 
 	// If the block is better than our head or is on a different chain, force update heads
 	//log.Info("updateHeads", "updateHeads", updateHeads)
@@ -642,7 +652,7 @@ func (bc *BlockChain) Stop() {
 		triedb := bc.stateCache.TrieDB()
 
 		for _, offset := range []uint64{0, 1, triesInMemory - 1} {
-			if number := bc.CurrentBlock().NumberU64(); number > offset {
+			if number := bc.CurrentBlockN(); number > offset {
 				recent := bc.GetBlockByNumber(number - offset)
 
 				log.Info("Writing cached state to disk", "block", recent.Number(), "hash", recent.Hash(), "root", recent.Root())
@@ -708,6 +718,7 @@ func (bc *BlockChain) Rollback(chain []common.Hash) {
 		if currentBlock := bc.CurrentBlock(); currentBlock.Hash() == hash {
 			newBlock := bc.GetBlock(currentBlock.ParentHash(), currentBlock.NumberU64()-1)
 			bc.currentBlock.Store(newBlock)
+			atomic.StoreUint64(&bc.currentBlockN, newBlock.NumberU64())
 			rawdb.WriteHeadBlockHash(bc.db, newBlock.Hash())
 		}
 	}
@@ -1175,7 +1186,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, skipSig bool) (int, []inte
 		case err == types.ErrKnownBlock:
 			// Block and state both already known. However if the current block is below
 			// this number we did a rollback and we should reimport it nonetheless.
-			if bc.CurrentBlock().NumberU64() >= block.NumberU64() {
+			if bc.CurrentBlockN() >= block.NumberU64() {
 				stats.ignored++
 				log.Info("err == types.ErrKnownBlock")
 				continue
@@ -1723,6 +1734,7 @@ func (bc *BlockChain) RollbackTxChainFrom(hash common.Hash) error {
 
 	bc.hc.SetCurrentHeader(block.Header())
 	bc.currentBlock.Store(block)
+	atomic.StoreUint64(&bc.currentBlockN, block.NumberU64())
 	rawdb.WriteHeadBlockHash(bc.db, block.Hash())
 
 	bcState, _ := bc.StateAt(bc.GetBlockByNumber(block.NumberU64() - 1).Root())

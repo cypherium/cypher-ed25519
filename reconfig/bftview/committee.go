@@ -23,6 +23,7 @@ type ServerInfo struct {
 }
 type KeyBlockChainInterface interface {
 	CurrentBlock() *types.KeyBlock
+	CurrentBlockN() uint64
 	GetBlockByHash(hash common.Hash) *types.KeyBlock
 	CurrentCommittee() []*common.Cnode
 }
@@ -199,7 +200,7 @@ func IamMember() int {
 		log.Error("Committee.IamMember", "keyblockchain is nil", "")
 		return -1
 	}
-	kNumber := m_config.keyblockchain.CurrentBlock().NumberU64()
+	kNumber := m_config.keyblockchain.CurrentBlockN()
 	m := m_config.currentMember.Load().(*currentMemberInfo)
 	if m != nil && m.kNumber == kNumber {
 		return m.mIndex

@@ -113,7 +113,7 @@ func (b *CphAPIBackend) AnnounceBlock(blockNr rpc.BlockNumber) {
 }
 
 func (b *CphAPIBackend) KeyBlockNumber() uint64 {
-	return b.cph.keyBlockChain.CurrentBlock().NumberU64()
+	return b.cph.keyBlockChain.CurrentBlockN()
 }
 
 func (b *CphAPIBackend) CommitteeMembers(ctx context.Context, blockNr rpc.BlockNumber) ([]*common.Cnode, error) {

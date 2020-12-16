@@ -43,7 +43,8 @@ type KeyBlockChain struct {
 	chainmu sync.RWMutex // insertion lock
 	procmu  sync.RWMutex // block processor lock
 
-	currentBlock atomic.Value // Current head of the block chain
+	currentBlock  atomic.Value // Current head of the block chain
+	currentBlockN uint64
 
 	blockCache    *lru.Cache // Cache for the most recent entire blocks
 	futureBlocks  *lru.Cache // future blocks are blocks added for later processing
@@ -175,9 +176,12 @@ func (kbc *KeyBlockChain) GetTd(hash common.Hash, number uint64) *big.Int {
 func (kbc *KeyBlockChain) CurrentBlock() *types.KeyBlock {
 	return kbc.currentBlock.Load().(*types.KeyBlock)
 }
-
+func (kbc *KeyBlockChain) CurrentBlockN() uint64 {
+	return atomic.LoadUint64(&kbc.currentBlockN)
+}
 func (kbc *KeyBlockChain) CurrentBlockStore(block *types.KeyBlock) {
 	kbc.currentBlock.Store(block)
+	atomic.StoreUint64(&kbc.currentBlockN, block.NumberU64())
 }
 
 // GetKeyHeaderByHash retrieves a block header from the database by hash, caching it if
@@ -223,10 +227,12 @@ func (kbc *KeyBlockChain) SetHead(head uint64) error {
 	// Rewind the block chain, ensuring we don't end up with a stateless head block
 	if currentBlock := kbc.CurrentBlock(); currentBlock != nil && currentHeader.Number.Uint64() < currentBlock.NumberU64() {
 		kbc.currentBlock.Store(kbc.GetBlock(currentHeader.Hash(), currentHeader.Number.Uint64()))
+		atomic.StoreUint64(&kbc.currentBlockN, currentHeader.Number.Uint64())
 	}
 	// If either blocks reached nil, reset to the genesis state
 	if currentBlock := kbc.CurrentBlock(); currentBlock == nil {
 		kbc.currentBlock.Store(kbc.genesisBlock)
+		atomic.StoreUint64(&kbc.currentBlockN, 0)
 	}
 
 	currentBlock := kbc.CurrentBlock()
@@ -245,6 +251,7 @@ func (kbc *KeyBlockChain) SetCurrent(hash common.Hash) error {
 
 	kbc.khc.SetCurrentHeader(block.Header())
 	kbc.currentBlock.Store(block)
+	atomic.StoreUint64(&kbc.currentBlockN, block.NumberU64())
 	rawdb.WriteHeadBlockHash(kbc.db, block.Hash())
 	return nil
 }
@@ -308,7 +315,7 @@ func (kbc *KeyBlockChain) loadLastState() error {
 
 	// Everything seems to be fine, set as the head block
 	kbc.currentBlock.Store(currentBlock)
-
+	atomic.StoreUint64(&kbc.currentBlockN, currentBlock.NumberU64())
 	// Restore the last known head header
 	currentHeader := currentBlock.Header()
 	if head := rawdb.ReadHeadHeaderHash(kbc.db); head != (common.Hash{}) {
@@ -338,6 +345,7 @@ func (kbc *KeyBlockChain) insert(block *types.KeyBlock) error {
 	rawdb.WriteHeadKeyBlockHash(kbc.db, block.Hash())
 
 	kbc.currentBlock.Store(block)
+	atomic.StoreUint64(&kbc.currentBlockN, block.NumberU64())
 	kbc.khc.SetCurrentHeader(block.Header())
 
 	return nil
@@ -402,7 +410,7 @@ func (kbc *KeyBlockChain) insert_Chain(chain types.KeyBlocks) (int, error) {
 		case err == types.ErrKnownBlock:
 			// Block and state both already known. However if the current block is below
 			// this number we did a rollback and we should reimport it nonetheless.
-			if kbc.CurrentBlock().NumberU64() >= block.NumberU64() {
+			if kbc.CurrentBlockN() >= block.NumberU64() {
 				continue
 			}
 		case err == types.ErrFutureBlock:

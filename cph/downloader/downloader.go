@@ -198,7 +198,7 @@ type BlockChain interface {
 
 	// CurrentBlock retrieves the head block from the local chain.
 	CurrentBlock() *types.Block
-
+	CurrentBlockN() uint64
 	// CurrentFastBlock retrieves the head fast block from the local chain.
 	CurrentFastBlock() *types.Block
 
@@ -222,6 +222,7 @@ type KeyBlockChain interface {
 
 	// CurrentBlock retrieves the head block from the local chain.
 	CurrentBlock() *types.KeyBlock
+	CurrentBlockN() uint64
 
 	// InsertChain inserts a batch of blocks into the local chain.
 	InsertChain(types.KeyBlocks) (int, error)
@@ -285,7 +286,7 @@ func (d *Downloader) Progress() cypherI.SyncProgress {
 	current := uint64(0)
 	switch d.mode {
 	case FullSync:
-		current = d.blockchain.CurrentBlock().NumberU64()
+		current = d.blockchain.CurrentBlockN()
 	case FastSync:
 		current = d.blockchain.CurrentFastBlock().NumberU64()
 	case LightSync:
@@ -293,7 +294,7 @@ func (d *Downloader) Progress() cypherI.SyncProgress {
 	}
 	return cypherI.SyncProgress{
 		StartingKeyBlock: d.syncStatsKeyChainOrigin,
-		CurrentKeyBlock:  d.keyBlockChain.CurrentBlock().NumberU64(),
+		CurrentKeyBlock:  d.keyBlockChain.CurrentBlockN(),
 		HighestKeyBlock:  d.syncStatsKeyChainHeight,
 
 		StartingTxBlock: d.syncStatsChainOrigin,
@@ -534,7 +535,7 @@ func (d *Downloader) syncKeyBlockWithPeer(p *peerConnection, hash common.Hash) (
 		return err
 	}
 	pKeyHeight := latest.NumberU64()
-	origin := d.keyBlockChain.CurrentBlock().NumberU64()
+	origin := d.keyBlockChain.CurrentBlockN()
 	if origin >= pKeyHeight {
 		return nil
 	}
@@ -590,7 +591,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash) (err erro
 		return err
 	}
 	pTxHeight := latest.Number.Uint64()
-	origin := d.blockchain.CurrentBlock().NumberU64()
+	origin := d.blockchain.CurrentBlockN()
 
 	log.Debug("Sync txblock start", "peerHeight", pTxHeight, "localHeight", origin, "peer", p.id)
 

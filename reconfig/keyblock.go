@@ -118,8 +118,8 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 		//log.Error("verifyKeyBlock", "Non contiguous consensus prevhash", keyblock.ParentHash(), "currenthash", curKeyblock.Hash())
 		return fmt.Errorf("verifyKeyBlock,Non contiguous key block's hash")
 	}
-	if keyblock.T_Number() != keyS.bc.CurrentBlock().NumberU64()+1 {
-		return fmt.Errorf("verifyKeyBlock, T_Number is not current, cur tx number:%d, k_t_number:%d", keyS.bc.CurrentBlock().NumberU64(), keyblock.T_Number())
+	if keyblock.T_Number() != keyS.bc.CurrentBlockN()+1 {
+		return fmt.Errorf("verifyKeyBlock, T_Number is not current, cur tx number:%d, k_t_number:%d", keyS.bc.CurrentBlockN(), keyblock.T_Number())
 	}
 	viewleaderIndex := keyS.s.getCurrentView().LeaderIndex
 	index := bftview.GetMemberIndex(keyblock.LeaderPubKey())
@@ -131,7 +131,7 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 	}
 
 	if !keyblock.TypeCheck(kbc.CurrentBlock().T_Number()) {
-		return fmt.Errorf("verifyKeyBlock, check failed, current T_number:%d,keyblock T_Number:%d", kbc.CurrentBlock().NumberU64(), keyblock.T_Number())
+		return fmt.Errorf("verifyKeyBlock, check failed, current T_number:%d,keyblock T_Number:%d", kbc.CurrentBlockN(), keyblock.T_Number())
 	}
 
 	keyType := keyblock.BlockType()
@@ -304,7 +304,7 @@ func (keyS *keyService) getBestCandidate(refresh bool) *types.Candidate {
 	defer keyS.muBestCandidate.Unlock()
 
 	if refresh {
-		kNumber := keyS.kbc.CurrentBlock().NumberU64() + 1
+		kNumber := keyS.kbc.CurrentBlockN() + 1
 		if keyS.bestCandidate != nil && keyS.bestCandidate.KeyCandidate.Number.Uint64() != kNumber {
 			keyS.bestCandidate = nil
 		}
@@ -318,7 +318,7 @@ func (keyS *keyService) getBestCandidate(refresh bool) *types.Candidate {
 					keyS.bestCandidate = best
 				}
 			} else {
-				log.Warn("getBestCandidate", "have not get the candidate keyNumber", keyS.kbc.CurrentBlock().NumberU64(), "KeyCandidate number", best.KeyCandidate.Number.Uint64())
+				log.Warn("getBestCandidate", "have not get the candidate keyNumber", keyS.kbc.CurrentBlockN(), "KeyCandidate number", best.KeyCandidate.Number.Uint64())
 			}
 		}
 	} //end if refresh
@@ -332,7 +332,7 @@ func (keyS *keyService) setBestCandidateAndBadAddress(bestCandidates []*types.Ca
 	if best != nil {
 		bestNonce = best.KeyCandidate.Nonce.Uint64()
 	}
-	keyNumber := keyS.kbc.CurrentBlock().NumberU64() + 1
+	keyNumber := keyS.kbc.CurrentBlockN() + 1
 	for _, cand := range bestCandidates {
 		ck := cand.KeyCandidate
 		if ck.Number.Uint64() == keyNumber && ck.Nonce.Uint64() < bestNonce {

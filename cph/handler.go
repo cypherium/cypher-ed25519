@@ -125,7 +125,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		quitSync:      make(chan struct{}),
 	}
 	// Figure out whether to allow fast sync or not
-	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
+	if mode == downloader.FastSync && blockchain.CurrentBlockN() > 0 {
 		log.Warn("Blockchain not empty, fast sync disabled")
 		mode = downloader.FullSync
 	}
@@ -193,7 +193,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil
 	}
 	heighter := func() uint64 {
-		return blockchain.CurrentBlock().NumberU64()
+		return blockchain.CurrentBlockN()
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -217,7 +217,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 
 	keyHeighter := func() uint64 {
-		return keyBlockChain.CurrentBlock().NumberU64()
+		return keyBlockChain.CurrentBlockN()
 	}
 
 	keyBlockInserter := func(blocks types.KeyBlocks) (int, error) {
@@ -909,7 +909,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			/*
 				log.Warn("Discard bad candidate",
 					"candidate.number", candidate.KeyCandidate.Number.Uint64(),
-					"keyBlockNumber", pm.keyBlockChain.CurrentBlock().Number().Uint64(),
+					"keyBlockNumber", pm.keyBlockChain.CurrentBlockN(),
 					"peer", p.String(), "err", err)
 			*/
 		} else {

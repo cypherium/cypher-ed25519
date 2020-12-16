@@ -181,8 +181,8 @@ func (s *Service) CheckView(data []byte) error {
 		return types.ErrNotRunning
 	}
 	view := bftview.DecodeToView(data)
-	knumber := s.kbc.CurrentBlock().NumberU64()
-	txnumber := s.bc.CurrentBlock().NumberU64()
+	knumber := s.kbc.CurrentBlockN()
+	txnumber := s.bc.CurrentBlockN()
 	log.Debug("CheckView..", "txNumber", view.TxNumber, "keyNumber", view.KeyNumber, "local key number", knumber, "tx number", txnumber)
 	if view.KeyNumber < knumber {
 		return hotstuff.ErrOldState
@@ -245,7 +245,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 				time.Sleep(2 * time.Second)
 				curView := s.getCurrentView()
 				if bftview.IamLeader(curView.LeaderIndex) {
-					s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlock().NumberU64(), hMsg: &hotstuff.HotstuffMessage{Code: hotstuff.MsgTryPropose}})
+					s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: s.bc.CurrentBlockN(), hMsg: &hotstuff.HotstuffMessage{Code: hotstuff.MsgTryPropose}})
 				}
 			}()
 		} else {
@@ -402,7 +402,7 @@ func (s *Service) handleHotStuffMsg() {
 
 		var curN uint64
 		if msgCode == hotstuff.MsgTryPropose || msgCode == hotstuff.MsgStartNewView {
-			curN = s.bc.CurrentBlock().NumberU64()
+			curN = s.bc.CurrentBlockN()
 			if msg.lastN < curN {
 				log.Debug("handleHotStuffMsg", "code", hotstuff.ReadableMsgType(msgCode), "lastN", msg.lastN, "curN", curN)
 				continue
@@ -477,7 +477,7 @@ func (s *Service) storeCommitteeInCache(cmInfo *committeeInfo, best *bestCandida
 		return
 	}
 	//clear prev map
-	maxNumber := s.kbc.CurrentBlock().NumberU64()
+	maxNumber := s.kbc.CurrentBlockN()
 	for hash, ac := range s.lastCmInfoMap {
 		if ac.keyNumber < maxNumber-9 {
 			delete(s.lastCmInfoMap, hash)
@@ -574,16 +574,16 @@ func (s *Service) updateCommittee(keyBlock *types.KeyBlock) bool {
 		}
 		mb.Store(curKeyBlock)
 		bStore = true
-		log.Info("updateCommittee from cache", "txNumber", s.bc.CurrentBlock().NumberU64(), "keyNumber", curKeyBlock.NumberU64(), "m0", mb.List[0].Address, "m1", mb.List[1].Address)
+		log.Info("updateCommittee from cache", "txNumber", s.bc.CurrentBlockN(), "keyNumber", curKeyBlock.NumberU64(), "m0", mb.List[0].Address, "m1", mb.List[1].Address)
 	} else {
-		log.Info("updateCommittee can't found committee", "txNumber", s.bc.CurrentBlock().NumberU64(), "keyNumber", curKeyBlock.NumberU64())
+		log.Info("updateCommittee can't found committee", "txNumber", s.bc.CurrentBlockN(), "keyNumber", curKeyBlock.NumberU64())
 	}
 	return bStore
 }
 
 func (s *Service) Committee_OnStored(keyblock *types.KeyBlock, mb *bftview.Committee) {
 	log.Debug("store committee", "keyNumber", keyblock.NumberU64(), "ip0", mb.List[0].Address, "ipn", mb.List[len(mb.List)-1].Address)
-	if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlock().NumberU64() {
+	if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlockN() {
 		s.netService.AdjustConnect(keyblock.OutAddress())
 	}
 }
@@ -686,7 +686,7 @@ func (s *Service) procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock) 
 	keyblockN := keyblock.NumberU64()
 	var blockN uint64
 	if txBlock == nil {
-		blockN = s.bc.CurrentBlock().NumberU64()
+		blockN = s.bc.CurrentBlockN()
 	} else {
 		blockN = txBlock.NumberU64()
 	}
@@ -716,8 +716,21 @@ func (s *Service) stop() {
 }
 
 func (s *Service) isRunning() bool {
+	//log all status
+	go s.printAllStatus()
 	return atomic.LoadInt32(&s.runningState) == 1
 }
+
+func (s *Service) printAllStatus() {
+	s.netService.GetNetBlocks(nil)
+	for addr, a := range s.netService.ackMap {
+		if a != nil {
+			log.Info("ackInfo", "addr", addr, "ackTm", a.ackTm, "sendTm", a.sendTm, "isSending", *a.isSending)
+		}
+	}
+
+}
+
 func (s *Service) setRunState(state int32) {
 	atomic.StoreInt32(&s.runningState, state)
 }

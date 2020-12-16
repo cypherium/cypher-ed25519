@@ -430,7 +430,7 @@ func (s *Cypherium) Protocols() []p2p.Protocol {
 }
 
 func (s *Cypherium) LatestTPSMeter() {
-	oldTxHeight := s.BlockChain().CurrentBlock().NumberU64()
+	oldTxHeight := s.BlockChain().CurrentBlockN()
 	for {
 		time.Sleep(time.Second)
 
@@ -440,7 +440,7 @@ func (s *Cypherium) LatestTPSMeter() {
 		default:
 		}
 
-		currentTxHeight := s.BlockChain().CurrentBlock().NumberU64()
+		currentTxHeight := s.BlockChain().CurrentBlockN()
 		//log.Info("TPS Meter", "old", oldTxHeight, "current", currentTxHeight)
 		txN := 0
 		for old := oldTxHeight + 1; old <= currentTxHeight; old += 1 {

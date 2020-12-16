@@ -163,10 +163,17 @@ func (r *Router) Stop() error {
 }
 
 func (r *Router) GetBlocks(e *ServerIdentity) int {
-	r.sendMu.Lock()
-	blocksLen := r.sendsMap[e.ID]
-	r.sendMu.Unlock()
-	return blocksLen
+	if e != nil {
+		r.sendMu.Lock()
+		blocksLen := r.sendsMap[e.ID]
+		r.sendMu.Unlock()
+		return blocksLen
+	} else {
+		for id, _ := range r.connections {
+			log.Info("NetBlocks", "id", id, "num", r.sendsMap[id])
+		}
+	}
+	return 0
 }
 
 // Send sends to an ServerIdentity without wrapping the msg into a ProtocolMsg

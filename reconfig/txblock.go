@@ -80,8 +80,8 @@ func (txS *txService) verifyTxBlock(txblock *types.Block) error {
 	header := txblock.Header()
 	log.Info("verifyTxBlock", "txblock num", blockNum)
 
-	if blockNum <= bc.CurrentBlock().NumberU64() {
-		retErr = fmt.Errorf("invalid header, number:%d, current block number:%d", blockNum, bc.CurrentBlock().NumberU64())
+	if blockNum <= bc.CurrentBlockN() {
+		retErr = fmt.Errorf("invalid header, number:%d, current block number:%d", blockNum, bc.CurrentBlockN())
 		return retErr
 	}
 	if header.KeyHash != kbc.CurrentBlock().Hash() {
