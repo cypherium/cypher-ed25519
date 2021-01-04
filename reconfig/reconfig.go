@@ -43,11 +43,12 @@ type Backend interface {
 	TxPool() *core.TxPool
 }
 
+// Public interface of service class
 type serviceI interface {
 	updateCommittee(keyBlock *types.KeyBlock) bool
 	updateCurrentView(fromKeyBlock bool)
 	procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock)
-	getCurrentView() *bftview.View
+	GetCurrentView() *bftview.View
 	getBestCandidate(refresh bool) *types.Candidate
 	syncCommittee(mb *bftview.Committee, keyblock *types.KeyBlock)
 	setNextLeader(reconfigType uint8)
@@ -101,7 +102,7 @@ func (reconf *Reconfig) update() {
 	log.Info("quit Reconfig.update")
 }
 */
-
+// Monitoring new txs Event
 func (reconf *Reconfig) txsEventLoop() {
 	for {
 		select {
@@ -116,7 +117,7 @@ func (reconf *Reconfig) txsEventLoop() {
 	}
 }
 
-//Start call by miner---interface for muti service----------------------------------------------------------------------------------
+//Start call by miner
 func (reconf *Reconfig) Start(config *common.NodeConfig) {
 	reconf.service.start(config)
 	log.Info("reconfig start")

@@ -35,8 +35,8 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCphashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", "", nil, false, 0, big.NewInt(0), 0, 0}
-	TestChainConfig          = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", "", nil, false, 0, big.NewInt(0), 0, 0}
+	AllCphashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", nil, false, 0, big.NewInt(0), 0, 0}
+	TestChainConfig          = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", nil, false, 0, big.NewInt(0), 0, 0}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -66,7 +66,6 @@ type ChainConfig struct {
 	Cphash           *CphashConfig    `json:"cphash,omitempty"`
 	Clique           *CliqueConfig    `json:"clique,omitempty"`
 	OnetPort         string           `json:"onetport,omitempty"`
-	HeartbeatPort    string           `json:"heartbeatport,omitempty"`
 	GenCommittee     GenesisCommittee `json:"committee"      gencodec:"required"`
 	EnabledTPS       bool
 	PowRangeMode     uint

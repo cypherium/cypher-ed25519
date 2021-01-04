@@ -115,9 +115,8 @@ type Config struct {
 	EnablePreimageRecording bool
 
 	// Miscellaneous options
-	DocRoot       string `toml:"-"`
-	OnetPort      string
-	HeartbeatPort string
+	DocRoot  string `toml:"-"`
+	OnetPort string
 }
 
 type configMarshaling struct {

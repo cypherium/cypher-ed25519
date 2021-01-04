@@ -44,6 +44,7 @@ func newPaceMakerTimer(config *params.ChainConfig, s serviceI, cph Backend) *pac
 
 }
 
+// Start for time counting of pacemake
 func (t *paceMakerTimer) start() error {
 	t.Lock()
 	defer t.Unlock()
@@ -61,6 +62,7 @@ func (t *paceMakerTimer) start() error {
 	return nil
 }
 
+// Stop for time counting of pacemake
 func (t *paceMakerTimer) stop() error {
 	t.Lock()
 	defer t.Unlock()
@@ -70,6 +72,7 @@ func (t *paceMakerTimer) stop() error {
 	return nil
 }
 
+// Close pacemake loop
 func (t *paceMakerTimer) close() {
 	t.Lock()
 	defer t.Unlock()
@@ -81,6 +84,7 @@ func (t *paceMakerTimer) get() (time.Time, bool, bool, int) {
 	return t.startTime, t.beStop, t.beClose, t.retryNumber
 }
 
+// Loop for status action
 func (t *paceMakerTimer) loopTimer() {
 	for {
 		time.Sleep(50 * time.Millisecond)
@@ -112,7 +116,7 @@ func (t *paceMakerTimer) loopTimer() {
 }
 
 func (t *paceMakerTimer) setNextLeader() {
-	curView := t.service.getCurrentView()
+	curView := t.service.GetCurrentView()
 	if curView.ReconfigType == types.PowReconfig || curView.ReconfigType == types.PacePowReconfig {
 		t.service.setNextLeader(types.PacePowReconfig)
 	} else {
@@ -129,6 +133,7 @@ func (t *paceMakerTimer) setNextLeader() {
 var m_totalTxs int
 var m_tps10StartTm time.Time
 
+// Event for new block done
 func (t *paceMakerTimer) procBlockDone(curBlock *types.Block, curKeyBlock *types.KeyBlock) {
 	if curBlock != nil {
 		if t.config.EnabledTPS {
@@ -172,6 +177,7 @@ func (t *paceMakerTimer) procBlockDone(curBlock *types.Block, curKeyBlock *types
 
 }
 
+// Event for New TXS coming
 func (t *paceMakerTimer) onNewTx() {
 	t.Lock()
 	defer t.Unlock()

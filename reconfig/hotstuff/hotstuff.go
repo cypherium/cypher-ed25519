@@ -795,7 +795,7 @@ func (hsm *HotstuffProtocolManager) TryPropose() error {
 	return nil
 }
 
-func VerifySignature(bSign []byte, bMask []byte, data []byte, groupPublicKey []*bls.PublicKey) bool {
+func VerifySignature(bSign []byte, bMask []byte, data []byte, groupPublicKey []*bls.PublicKey, threshold int) bool {
 	var sign bls.Sign
 	if err := sign.Deserialize(bSign); err != nil {
 		return false
@@ -826,9 +826,9 @@ loop:
 		}
 	}
 
-	if (signer < CalcThreshold(len(groupPublicKey))) || !sign.VerifyHash(&pub, crypto.Keccak256(data)) {
+	if signer < threshold || !sign.VerifyHash(&pub, crypto.Keccak256(data)) {
 		log.Debug("Dump failed signature ================")
-		log.Debug("signer", "is", signer, "threshold", CalcThreshold(len(groupPublicKey)))
+		log.Debug("signer", "is", signer, "threshold", threshold)
 		log.Debug("Signature", "is ", hex.EncodeToString(bSign))
 		log.Debug("Mask     ", "is ", hex.EncodeToString(bMask))
 		log.Debug("Data     ", "is ", hex.EncodeToString(data))

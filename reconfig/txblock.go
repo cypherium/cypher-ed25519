@@ -35,6 +35,7 @@ func newTxService(s serviceI, cph Backend, config *params.ChainConfig) *txServic
 	return txS
 }
 
+// new Txblock done
 func (txS *txService) procBlockDone(block *types.Block) { //callback by tx insertchain)
 	log.Info("procBlockDone", "number", block.NumberU64())
 	s := txS.s
@@ -46,6 +47,7 @@ func (txS *txService) procBlockDone(block *types.Block) { //callback by tx inser
 	//log.Trace("procBlockDone.end")
 }
 
+// Try proposal new txBlock for current txs
 func (txS *txService) tryProposalNewBlock(blockType uint8) ([]byte, error) {
 	txsCount := txS.txPool.PendingCount()
 	if txsCount < 1 {
@@ -64,6 +66,7 @@ func (txS *txService) tryProposalNewBlock(blockType uint8) ([]byte, error) {
 	return block.EncodeToBytes(), nil
 }
 
+// Verify txBlock
 func (txS *txService) verifyTxBlock(txblock *types.Block) error {
 	var retErr error
 	/*
@@ -88,7 +91,7 @@ func (txS *txService) verifyTxBlock(txblock *types.Block) error {
 		retErr = fmt.Errorf("keyhash:%x does not match current keyhash: %x", header.KeyHash, kbc.CurrentBlock().Hash())
 		return retErr
 	}
-	if bftview.IamLeader(txS.s.getCurrentView().LeaderIndex) {
+	if bftview.IamLeader(txS.s.GetCurrentView().LeaderIndex) {
 		return nil
 	}
 	err := bc.Validator.VerifyHeader(header)
@@ -124,6 +127,7 @@ func (txS *txService) verifyTxBlock(txblock *types.Block) error {
 	return nil
 }
 
+// New txBlock done, when consensus agreement completed
 func (txS *txService) decideNewBlock(block *types.Block, sig []byte, mask []byte) error {
 	log.Info("decideNewBlock", "TxBlock Number", block.NumberU64(), "txs", len(block.Transactions()))
 	bc := txS.bc
@@ -140,9 +144,7 @@ func (txS *txService) decideNewBlock(block *types.Block, sig []byte, mask []byte
 	return nil
 }
 
-//---------------------------------------------------------------------------------------------
-//TODO Clarify what exactly happens when committee nodes find
-//a PoW at roughly the same configuration. How to update reconfigSnapshot?
+// Package txs
 func (txS *txService) packageTxs(blockType uint8) *types.Block {
 	bc := txS.bc
 	parent := bc.CurrentBlock()
@@ -180,6 +182,7 @@ func (txS *txService) packageTxs(blockType uint8) *types.Block {
 	return block
 }
 
+// Package header of block
 func packageHeader(keyHash common.Hash, parent *types.Block, state *state.StateDB, blockType uint8) *types.Header {
 	now := time.Now()
 	log.Info("packageHeader", "parent number=", parent.NumberU64())
@@ -205,6 +208,7 @@ func packageHeader(keyHash common.Hash, parent *types.Block, state *state.StateD
 	return header
 }
 
+// Apply transactions
 func (txS *txService) commitTransactions(signer types.Signer, txs *types.TransactionsByPriceAndNonce, header *types.Header, state *state.StateDB) (types.Transactions, []*types.Receipt, uint64) {
 	var (
 		useGas uint64

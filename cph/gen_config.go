@@ -41,7 +41,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		EnablePreimageRecording bool
 		DocRoot                 string `toml:"-"`
 		OnetPort                string
-		HeartbeatPort           string
 	}
 	var enc Config
 	enc.GenesisKey = c.GenesisKey
@@ -66,7 +65,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.DocRoot = c.DocRoot
 	enc.OnetPort = c.OnetPort
-	enc.HeartbeatPort = c.HeartbeatPort
 	return &enc, nil
 }
 
@@ -95,7 +93,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		EnablePreimageRecording *bool
 		DocRoot                 *string `toml:"-"`
 		OnetPort                *string
-		HeartbeatPort           *string
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -166,9 +163,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.OnetPort != nil {
 		c.OnetPort = *dec.OnetPort
-	}
-	if dec.HeartbeatPort != nil {
-		c.HeartbeatPort = *dec.HeartbeatPort
 	}
 
 	return nil

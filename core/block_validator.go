@@ -145,20 +145,14 @@ func (v *BlockValidator) VerifySignature(block *types.Block) error {
 	}
 	keychain := v.bc.GetKeyChainReader()
 	KeyHash := block.GetKeyHash()
-	keyh := keychain.GetHeaderByHash(KeyHash)
-	if keyh == nil {
-		log.Error("VerifySignature", "not found keyhash", KeyHash)
-		return errors.New("not found the belongs keyblock by keyhash!")
-	}
-	pubs := bftview.ToBlsPublicKeys(keyh.NumberU64())
+	pubs := bftview.ToBlsPublicKeys(KeyHash)
 	if pubs == nil {
 		mycommittee := &bftview.Committee{List: keychain.GetCommitteeByHash(KeyHash)}
 		nb := len(mycommittee.List)
 		if nb < 2 {
 			return types.ErrInvalidCommittee
 		}
-		//log.Trace("TxSignatureValidator", "total validators:", nb, "keyNumber", keyh.NumberU64())
-		pubs = mycommittee.ToBlsPublicKeys(keyh.NumberU64())
+		pubs = mycommittee.ToBlsPublicKeys(KeyHash)
 	}
 	tmpBlock := block.WithSeal(block.Header(), false)
 	m := make([]byte, 0)
@@ -167,7 +161,7 @@ func (v *BlockValidator) VerifySignature(block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	if !hotstuff.VerifySignature(block.Signature(), block.Exceptions(), buff.Bytes(), pubs) {
+	if !hotstuff.VerifySignature(block.Signature(), block.Exceptions(), buff.Bytes(), pubs, (len(pubs)+1)*2/3) {
 		return types.ErrInvalidSignature
 	}
 

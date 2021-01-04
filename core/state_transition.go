@@ -288,7 +288,7 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 		}
 	} else {
 		mycommittee := &bftview.Committee{List: cnodes}
-		pubs := mycommittee.ToBlsPublicKeys(kNumber)
+		pubs := mycommittee.ToBlsPublicKeys(keyHash)
 		exceptions := hotstuff.MaskToException(pBlock.Exceptions(), pubs)
 		for i, pub := range pubs {
 			isException := false

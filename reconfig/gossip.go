@@ -145,15 +145,22 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 }
 
 func (s *netService) broadcast(msg *networkMsg) {
-	n := bftview.GetServerCommitteeLen()
-	msg.MsgFlag = Gossip_MSG
-	seedIndexs := math.GetRandIntArray(n, (n*4/10)+1)
-	mb := bftview.GetCurrentMember()
+	var mb *bftview.Committee
+	if msg.Cmsg != nil {
+		mb = bftview.LoadMember(msg.Cmsg.KeyNumber, msg.Cmsg.KeyHash, true)
+	} else if msg.Bmsg != nil {
+		mb = bftview.LoadMember(msg.Bmsg.KeyNumber, msg.Bmsg.KeyHash, true)
+	} else if msg.Hmsg != nil {
+		mb = bftview.GetCurrentMember()
+		if msg.Hmsg.Number < atomic.LoadUint64(&s.curBlockN) {
+		}
+	}
+
 	if mb == nil {
 		log.Error("broadcast", "error", "can't find current committee")
 		return
 	}
-
+	msg.MsgFlag = Gossip_MSG
 	hash := rlpHash(msg)
 	hInfo := s.getMsgHeadInfo(msg)
 	log.Info("Gossip_MSG broadcast", "hash", hash, "keyblockN", hInfo.keyblockN, "blockN", hInfo.blockN)
@@ -163,7 +170,12 @@ func (s *netService) broadcast(msg *networkMsg) {
 	s.muGossip.Unlock()
 
 	mblist := mb.List
+	n := len(mblist)
+	seedIndexs := math.GetRandIntArray(n, (n*4/10)+1)
 	for i, _ := range seedIndexs {
+		if mblist[i].Address == "" {
+			continue
+		}
 		if mblist[i].IsSelf() {
 			continue
 		}

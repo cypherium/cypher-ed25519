@@ -132,7 +132,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	}
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisKeyBlock(chainDb, config.GenesisKey)
 	chainConfig.OnetPort = config.OnetPort
-	chainConfig.HeartbeatPort = config.HeartbeatPort
 	chainConfig.EnabledTPS = config.TxPool.EnableTPS
 	chainConfig.PowRangeMode = config.PowRangeMode
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {

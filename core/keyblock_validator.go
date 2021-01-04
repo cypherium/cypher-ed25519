@@ -46,7 +46,7 @@ func (kbv *KeyBlockValidator) ValidateKeyBlock(block *types.KeyBlock) error {
 	if mycommittee == nil || len(mycommittee.List) < 2 {
 		return types.ErrInvalidCommittee
 	}
-	pubs := mycommittee.ToBlsPublicKeys(blockNumber - 1)
+	pubs := mycommittee.ToBlsPublicKeys(block.ParentHash())
 
 	tmpBlock := block.WithSignatrue(nil, nil)
 	m := make([]byte, 0)
@@ -56,7 +56,7 @@ func (kbv *KeyBlockValidator) ValidateKeyBlock(block *types.KeyBlock) error {
 		return err
 	}
 
-	if !hotstuff.VerifySignature(block.Signatrue(), block.Exceptions(), buff.Bytes(), pubs) {
+	if !hotstuff.VerifySignature(block.Signatrue(), block.Exceptions(), buff.Bytes(), pubs, (len(pubs)+1)*2/3) {
 		return types.ErrInvalidSignature
 	}
 
