@@ -137,7 +137,6 @@ func (s *Service) CurrentState() ([]byte, string, uint64) { //recv by onnewview
 	mb := bftview.GetCurrentMember()
 	if mb != nil {
 		leader := mb.List[curView.LeaderIndex]
-		//leader := mb.List[0]
 		log.Info("CurrentState.NextLeader", "index", curView.LeaderIndex, "ip", leader.Address)
 		leaderID = bftview.GetNodeID(leader.Address, leader.Public)
 	} else {
@@ -356,18 +355,19 @@ func (s *Service) Write(id string, data *hotstuff.HotstuffMessage) error {
 func (s *Service) Broadcast(data *hotstuff.HotstuffMessage) []error {
 	log.Debug("Broadcast", "code", hotstuff.ReadableMsgType(data.Code), "ViewId", data.ViewId)
 	s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, hMsg: data})
-	mb := bftview.GetCurrentMember()
-	if mb == nil {
-		return []error{fmt.Errorf("can't find current committee")}
-	}
-	for _, node := range mb.List {
-		if node.IsSelf() {
-			continue
+	/*
+		mb := bftview.GetCurrentMember()
+		if mb == nil {
+			return []error{fmt.Errorf("can't find current committee")}
 		}
-		s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
-	}
-
-	//s.netService.broadcast(&networkMsg{Hmsg: data})
+		for _, node := range mb.List {
+			if node.IsSelf() {
+				continue
+			}
+			s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
+		}
+	*/
+	s.netService.broadcast(&networkMsg{Hmsg: data})
 	return nil //return arr
 }
 

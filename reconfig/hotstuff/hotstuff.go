@@ -127,7 +127,7 @@ type HotStuffApplication interface {
 
 	OnNewView(currentState []byte, extra [][]byte) error
 	OnPropose(kState []byte, tState []byte, extra []byte) error
-	OnViewDone(e error, phase uint32, kSign *SignedState, tSign *SignedState) error
+	OnViewDone(kSign *SignedState, tSign *SignedState) error
 
 	CheckView(currentState []byte) error
 	Propose() (e error, kState []byte, tState []byte, extra []byte)
@@ -448,10 +448,9 @@ func (hsm *HotstuffProtocolManager) lockView(v *View) {
 }
 
 func (hsm *HotstuffProtocolManager) viewDone(v *View, kSign []byte, tSign []byte, mask []byte, e error) {
-	phase := v.phaseAsReplica
 	if e != nil {
 		log.Warn("view finished with error", "error", e, "ViewId", v.hash)
-		hsm.app.OnViewDone(e, phase, nil, nil)
+		hsm.app.OnViewDone(nil, nil)
 	} else {
 		elapsed := time.Now().Sub(v.createdAt).Nanoseconds() / 1000000
 
@@ -496,7 +495,7 @@ func (hsm *HotstuffProtocolManager) viewDone(v *View, kSign []byte, tSign []byte
 			*/
 		}
 
-		hsm.app.OnViewDone(nil, phase, kSignedState, tSignedState)
+		hsm.app.OnViewDone(kSignedState, tSignedState)
 	}
 }
 
@@ -891,7 +890,7 @@ func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 	}
 
 	// verify highQC in the prepare msg
-	if !VerifySignature(m.DataC, m.DataD, m.DataE, v.groupPublicKey) {
+	if !VerifySignature(m.DataC, m.DataD, m.DataE, v.groupPublicKey, v.threshold) {
 		log.Debug("handlePrepareMsg failed to verify highQC", "viewId", m.ViewId)
 		return ErrInvalidHighQC
 	}
@@ -1044,14 +1043,14 @@ func (hsm *HotstuffProtocolManager) handlePreCommitMsg(m *HotstuffMessage) error
 
 	// verify prepareQC in the prepare msg
 	if v.hasKState() {
-		if !VerifySignature(m.DataA, m.DataC, v.proposedKState, v.groupPublicKey) {
+		if !VerifySignature(m.DataA, m.DataC, v.proposedKState, v.groupPublicKey, v.threshold) {
 			log.Debug("handlePreCommitMsg failed to verify aggregated k-state signature", "viewId", m.ViewId)
 			return ErrInvalidPrepareQC
 		}
 	}
 
 	if v.hasTState() {
-		if !VerifySignature(m.DataB, m.DataC, v.proposedTState, v.groupPublicKey) {
+		if !VerifySignature(m.DataB, m.DataC, v.proposedTState, v.groupPublicKey, v.threshold) {
 			log.Debug("handlePreCommitMsg failed to verify aggregated t-state signature", "viewId", m.ViewId)
 			hsm.DumpView(v, false)
 			return ErrInvalidPrepareQC
@@ -1179,14 +1178,14 @@ func (hsm *HotstuffProtocolManager) handleCommitMsg(m *HotstuffMessage) error {
 
 	// verify pre-commitQC in the commit msg
 	if v.hasKState() {
-		if !VerifySignature(m.DataA, m.DataC, v.proposedKState, v.groupPublicKey) {
+		if !VerifySignature(m.DataA, m.DataC, v.proposedKState, v.groupPublicKey, v.threshold) {
 			log.Debug("handleCommitMsg failed to verify aggregated k-state signature", "viewId", m.ViewId)
 			return ErrInvalidPrepareQC
 		}
 	}
 
 	if v.hasTState() {
-		if !VerifySignature(m.DataB, m.DataC, v.proposedTState, v.groupPublicKey) {
+		if !VerifySignature(m.DataB, m.DataC, v.proposedTState, v.groupPublicKey, v.threshold) {
 			log.Debug("handleCommitMsg failed to verify aggregated t-state signature", "viewId", m.ViewId)
 			hsm.DumpView(v, false)
 			return ErrInvalidPrepareQC
@@ -1312,14 +1311,14 @@ func (hsm *HotstuffProtocolManager) handleDecideMsg(m *HotstuffMessage) error {
 
 	// verify commitQC in the decide phase
 	if v.hasKState() {
-		if !VerifySignature(m.DataA, m.DataC, v.proposedKState, v.groupPublicKey) {
+		if !VerifySignature(m.DataA, m.DataC, v.proposedKState, v.groupPublicKey, v.threshold) {
 			log.Debug("handleDecideMsg failed to verify aggregated k-state signature", "viewId", m.ViewId)
 			return ErrInvalidPrepareQC
 		}
 	}
 
 	if v.hasTState() {
-		if !VerifySignature(m.DataB, m.DataC, v.proposedTState, v.groupPublicKey) {
+		if !VerifySignature(m.DataB, m.DataC, v.proposedTState, v.groupPublicKey, v.threshold) {
 			log.Debug("handleDecideMsg failed to verify aggregated t-state signature", "viewId", m.ViewId)
 			hsm.DumpView(v, false)
 			return ErrInvalidPrepareQC
