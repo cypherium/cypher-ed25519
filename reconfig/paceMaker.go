@@ -154,7 +154,7 @@ func (t *paceMakerTimer) procBlockDone(curBlock *types.Block, curKeyBlock *types
 			}
 		}
 
-		n := (curBlock.NumberU64() - curKeyBlock.T_Number() + 1)
+		n := curBlock.NumberU64() - curKeyBlock.T_Number()
 		if n > 0 {
 			if n%params.KeyblockPerTxBlocks == 0 {
 				t.service.setNextLeader(types.PowReconfig)

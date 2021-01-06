@@ -243,7 +243,7 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 	keyBlock := cp.backend.KeyBlockChain().CurrentBlock()
-	if candidate.KeyCandidate.T_Number < keyBlock.T_Number() {
+	if candidate.KeyCandidate.T_Number <= keyBlock.T_Number() {
 		return errors.New("candidate's txBlockNumber is too low")
 	}
 	if exists := cp.candidates.Add(candidate); !exists {

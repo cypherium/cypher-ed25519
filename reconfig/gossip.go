@@ -120,6 +120,10 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 		log.Error("handleNetworkMsgReq failed to cast to ")
 		return
 	}
+	if msg.Cmsg == nil && msg.Bmsg == nil && msg.Hmsg == nil {
+		log.Error("handleNetworkMsgReq nil message")
+		return
+	}
 	si := env.ServerIdentity
 	address := si.Address.String()
 	log.Info("handleNetworkMsgReq Recv", "from address", address)
@@ -135,7 +139,7 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 		m, ok := s.gossipMsg[hash]
 		s.muGossip.Unlock()
 		if !ok {
-			s.broadcast(msg)
+			s.broadcast(address, msg)
 		} else {
 			log.Info("Gossip_MSG Recv Same", "hash", hash, "keyblockN", m.keyblockN, "blockN", m.blockN)
 			return
@@ -144,21 +148,18 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 	s.backend.networkMsgAck(si, msg)
 }
 
-func (s *netService) broadcast(msg *networkMsg) {
-	var mb *bftview.Committee
-	if msg.Cmsg != nil {
-		mb = bftview.LoadMember(msg.Cmsg.KeyNumber, msg.Cmsg.KeyHash, true)
-	} else if msg.Bmsg != nil {
-		mb = bftview.LoadMember(msg.Bmsg.KeyNumber, msg.Bmsg.KeyHash, true)
-	} else if msg.Hmsg != nil {
-		mb = bftview.GetCurrentMember()
-		if msg.Hmsg.Number < atomic.LoadUint64(&s.curBlockN) {
-		}
-	}
-
+func (s *netService) broadcast(fromAddr string, msg *networkMsg) {
+	mb := msg.GetCommittee()
 	if mb == nil {
 		log.Error("broadcast", "error", "can't find current committee")
 		return
+	}
+	if fromAddr != "" {
+		p, _ := mb.Get(fromAddr, bftview.Address)
+		if p == nil {
+			log.Error("broadcast", "can't find current committee address", fromAddr)
+			return
+		}
 	}
 	msg.MsgFlag = Gossip_MSG
 	hash := rlpHash(msg)

@@ -248,7 +248,7 @@ func (self *worker) commitNewWork() {
 	tstart := time.Now()
 	keyBlock := self.chain.CurrentBlock() // todo: current keybBlock
 	txBlock := self.cph.BlockChain().CurrentBlock()
-	if txBlock.NumberU64() < keyBlock.T_Number() {
+	if txBlock.NumberU64() <= keyBlock.T_Number() {
 		return
 	}
 	if cphash.Mode(self.engine.PowMode()) != cphash.ModeLocalMock {

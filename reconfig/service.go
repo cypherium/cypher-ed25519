@@ -51,6 +51,18 @@ type networkMsg struct {
 	Bmsg    *bestCandidateInfo
 }
 
+func (msg *networkMsg) GetCommittee() *bftview.Committee {
+	var mb *bftview.Committee
+	if msg.Cmsg != nil {
+		mb = bftview.LoadMember(msg.Cmsg.KeyNumber, msg.Cmsg.KeyHash, true)
+	} else if msg.Bmsg != nil {
+		mb = bftview.LoadMember(msg.Bmsg.KeyNumber, msg.Bmsg.KeyHash, true)
+	} else if msg.Hmsg != nil {
+		mb = bftview.GetCurrentMember()
+	}
+	return mb
+}
+
 //Service work for protcol
 type Service struct {
 	netService *netService
@@ -137,6 +149,7 @@ func (s *Service) CurrentState() ([]byte, string, uint64) { //recv by onnewview
 	mb := bftview.GetCurrentMember()
 	if mb != nil {
 		leader := mb.List[curView.LeaderIndex]
+		//leader := mb.List[0]
 		log.Info("CurrentState.NextLeader", "index", curView.LeaderIndex, "ip", leader.Address)
 		leaderID = bftview.GetNodeID(leader.Address, leader.Public)
 	} else {
@@ -276,15 +289,14 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 	s.muCurrentView.Unlock()
 
 	if reconfigType > 0 {
-		block, keyblock, mb, bestCandi, _, err := s.keyService.tryProposalChangeCommittee(s.bc.CurrentBlock(), reconfigType, leaderIndex)
-		if err == nil && block != nil && keyblock != nil && mb != nil {
-			tbuf := block.EncodeToBytes()
+		keyblock, mb, bestCandi, _, err := s.keyService.tryProposalChangeCommittee(reconfigType, leaderIndex)
+		if err == nil && keyblock != nil && mb != nil {
 			kbuf := keyblock.EncodeToBytes()
 			if bestCandi != nil {
 				extra = bestCandi.EncodeToBytes()
 			}
 			proposeOK = true
-			return nil, kbuf, tbuf, extra
+			return nil, kbuf, nil, extra
 		}
 		log.Warn("tryProposalChangeCommittee error and tryProposalNewBlock", "error", err)
 		data, err := s.txService.tryProposalNewBlock(types.IsKeyBlockSkipType)
@@ -367,7 +379,7 @@ func (s *Service) Broadcast(data *hotstuff.HotstuffMessage) []error {
 			s.netService.SendRawData(node.Address, &networkMsg{Hmsg: data})
 		}
 	*/
-	s.netService.broadcast(&networkMsg{Hmsg: data})
+	s.netService.broadcast("", &networkMsg{Hmsg: data})
 	return nil //return arr
 }
 
@@ -428,7 +440,7 @@ func (s *Service) syncCommittee(mb *bftview.Committee, keyblock *types.KeyBlock)
 	s.netService.SendRawData(in.Address, &networkMsg{Cmsg: &committeeInfo{Committee: mb, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}})
 
 	msg := &bestCandidateInfo{Node: in, KeyHash: keyblock.Hash(), KeyNumber: keyblock.NumberU64()}
-	//s.netService.broadcast(&networkMsg{Bmsg: msg})
+	//s.netService.broadcast("", &networkMsg{Bmsg: msg})
 	for i, r := range mb.List {
 		if i == 0 || r.IsSelf() {
 			continue
@@ -621,7 +633,7 @@ func (s *Service) updateCurrentView(fromKeyBlock bool) { //call by keyblock done
 	s.currentView.KeyHash = curKeyBlock.Hash()
 	s.currentView.CommitteeHash = curKeyBlock.CommitteeHash()
 
-	if fromKeyBlock || curBlock.NumberU64() >= curKeyBlock.T_Number() {
+	if fromKeyBlock || curBlock.NumberU64() > curKeyBlock.T_Number() {
 		s.currentView.LeaderIndex = 0
 		s.currentView.ReconfigType = 0
 	}
@@ -646,7 +658,7 @@ func (s *Service) getBestCandidate(refresh bool) *types.Candidate {
 
 // Send new view when new block done
 func (s *Service) sendNewViewMsg(curN uint64) {
-	if bftview.IamMember() >= 0 && curN >= s.kbc.CurrentBlock().T_Number() {
+	if bftview.IamMember() >= 0 && curN > s.bc.CurrentBlockN() {
 		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: curN, hMsg: &hotstuff.HotstuffMessage{Code: hotstuff.MsgStartNewView}})
 	}
 }
@@ -746,4 +758,17 @@ func (s *Service) ResetLeaderAckTime() {
 		leader := mb.List[curView.LeaderIndex]
 		s.netService.ResetAckTime(leader.Address)
 	}
+}
+
+func (s *Service) MakeupData(data *hotstuff.StateSign) []byte {
+	if data.Type == hotstuff.TxState {
+		block := types.DecodeToBlock(data.State)
+		block.SetSignature(data.Sign, data.Mask)
+		return block.EncodeToBytes()
+	} else if data.Type == hotstuff.KeyState {
+		block := types.DecodeToKeyBlock(data.State)
+		block.SetSignature(data.Sign, data.Mask)
+		return block.EncodeToBytes()
+	}
+	return nil
 }

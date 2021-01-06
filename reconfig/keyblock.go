@@ -121,7 +121,7 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 		//log.Error("verifyKeyBlock", "Non contiguous consensus prevhash", keyblock.ParentHash(), "currenthash", curKeyblock.Hash())
 		return fmt.Errorf("verifyKeyBlock,Non contiguous key block's hash")
 	}
-	if keyblock.T_Number() != keyS.bc.CurrentBlockN()+1 {
+	if keyblock.T_Number() != keyS.bc.CurrentBlockN() {
 		return fmt.Errorf("verifyKeyBlock, T_Number is not current, cur tx number:%d, k_t_number:%d", keyS.bc.CurrentBlockN(), keyblock.T_Number())
 	}
 	viewleaderIndex := keyS.s.GetCurrentView().LeaderIndex
@@ -221,7 +221,7 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 }
 
 // Try to change committee and proposal a new keyblock
-func (keyS *keyService) tryProposalChangeCommittee(parentTxBlock *types.Block, reconfigType uint8, leaderIndex uint) (*types.Block, *types.KeyBlock, *bftview.Committee, *types.Candidate, string, error) {
+func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderIndex uint) (*types.KeyBlock, *bftview.Committee, *types.Candidate, string, error) {
 	log.Info("tryProposalChangeCommittee", "tx number", parentTxBlock.NumberU64(), "reconfigType", reconfigType, "leaderIndex", leaderIndex)
 	curKeyBlock := keyS.kbc.CurrentBlock()
 	curKNumber := curKeyBlock.Number()
@@ -266,23 +266,12 @@ func (keyS *keyService) tryProposalChangeCommittee(parentTxBlock *types.Block, r
 	}
 
 	header.CommitteeHash = mb.RlpHash()
-	header.T_Number = parentTxBlock.NumberU64() + 1
+	header.T_Number = s.bc.CurrentBlockN()
 	keyblock := types.NewKeyBlock(header)
 	keyblock = keyblock.WithBody(mb.In().Public, mb.In().CoinBase, outerPublic, outerCoinBase, mb.Leader().Public, mb.Leader().CoinBase)
 	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey())
-	//--tx block---------------------------------------------------------------------------------------------
-	state, err := keyS.bc.StateAt(parentTxBlock.Root())
-	if err != nil {
-		return nil, nil, nil, nil, "", err
-	}
-	txheader := packageHeader(curKHash, parentTxBlock, state, types.IsKeyBlockType)
-	block, err := keyS.bc.Processor.Finalize(false, txheader, state, nil, nil)
-	if err != nil {
-		return nil, nil, nil, nil, "", err
-	}
 	mb.Store(keyblock)
-
-	return block, keyblock, mb, best, badAddress, nil
+	return keyblock, mb, best, badAddress, nil
 }
 
 // Clear candidate in cache
