@@ -12,7 +12,6 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/rlp"
 )
 
@@ -268,13 +267,8 @@ func (b *KeyBlock) HasNewNode() bool {
 	return b.header.BlockType == PowReconfig || b.header.BlockType == PacePowReconfig
 }
 func (b *KeyBlock) TypeCheck(last_T_Number uint64) bool {
-	keyType := b.BlockType()
-	if keyType == PowReconfig && (b.T_Number()-last_T_Number)%params.KeyblockPerTxBlocks != 0 {
-		return false
-	} else if keyType == TimeReconfig && (b.T_Number()-last_T_Number)%params.GapTxBlocks != 0 {
-		return false
-	}
 	return true
+	//return (b.T_Number()-last_T_Number)%params.KeyblockPerTxBlocks == 0
 }
 
 // Body returns the non-header content of the block.

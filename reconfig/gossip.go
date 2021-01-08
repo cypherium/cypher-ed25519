@@ -126,7 +126,7 @@ func (s *netService) handleNetworkMsgAck(env *network.Envelope) {
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Info("handleNetworkMsgReq Recv", "from address", address)
+	//	log.Info("handleNetworkMsgReq Recv", "from address", address)
 	s.getAckInfo(address).ackTm = time.Now()
 
 	if s.IgnoreMsg(msg) {
@@ -314,14 +314,14 @@ func (s *netService) setIsRunning(id string, isStart bool) {
 
 //-------------------------------------------------------------------------------------------------------------------------------------------
 func (s *netService) handleHeartBeatMsgAck(env *network.Envelope) {
-	msg, ok := env.Msg.(*heartBeatMsg)
+	_, ok := env.Msg.(*heartBeatMsg)
 	if !ok {
 		log.Error("handleNetworkMsgReq failed to cast to ")
 		return
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Info("handleHeartBeatMsgAck Recv", "from address", address, "blockN", msg.blockN)
+	//log.Info("handleHeartBeatMsgAck Recv", "from address", address, "blockN", msg.blockN)
 	s.getAckInfo(address).ackTm = time.Now()
 }
 
@@ -361,8 +361,8 @@ func (s *netService) heartBeat_Loop() {
 						a.sendTm = time.Now()
 						go func(si *network.ServerIdentity, msg interface{}, isRunning *int32) {
 							atomic.StoreInt32(isRunning, 1)
-							err := s.SendRaw(si, msg, false)
-							log.Debug("sendHeartBeatMsg", "address", si.Address, "tm", time.Now(), "error", err)
+							s.SendRaw(si, msg, false)
+							//log.Debug("sendHeartBeatMsg", "address", si.Address, "tm", time.Now(), "error", err)
 							atomic.StoreInt32(isRunning, 0)
 						}(si, msg, a.isSending)
 					}

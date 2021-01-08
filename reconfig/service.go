@@ -280,7 +280,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 		return fmt.Errorf("replica view not equal to local current view"), nil, nil, nil
 	}
 	if !bftview.IamLeader(leaderIndex) {
-		proposeOK = true
+		//proposeOK = true
 		err := fmt.Errorf("not leader for propose")
 		log.Error("Propose", "error", err)
 		s.muCurrentView.Unlock()
@@ -297,15 +297,10 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 			}
 			proposeOK = true
 			return nil, kbuf, nil, extra
+		} else {
+			log.Error("tryProposalChangeCommittee failed", "error", err)
+			return fmt.Errorf("tryProposalChangeCommittee failed"), nil, nil, nil
 		}
-		log.Warn("tryProposalChangeCommittee error and tryProposalNewBlock", "error", err)
-		data, err := s.txService.tryProposalNewBlock(types.IsKeyBlockSkipType)
-		if err != nil {
-			log.Error("tryProposalNewBlock.1", "error", err)
-			return err, nil, nil, nil
-		}
-		proposeOK = true
-		return nil, nil, data, nil
 	}
 	data, err := s.txService.tryProposalNewBlock(types.IsTxBlockType)
 	if err != nil {
@@ -638,7 +633,7 @@ func (s *Service) updateCurrentView(fromKeyBlock bool) { //call by keyblock done
 		s.currentView.ReconfigType = 0
 	}
 	log.Trace("updateCurrentView", "TxNumber", s.currentView.TxNumber, "KeyNumber", s.currentView.KeyNumber, "LeaderIndex", s.currentView.LeaderIndex, "ReconfigType", s.currentView.ReconfigType)
-	if (s.currentView.TxNumber >= s.waittingView.TxNumber && s.currentView.KeyNumber >= s.waittingView.KeyNumber) || curBlock.BlockType() == types.IsKeyBlockSkipType {
+	if fromKeyBlock || (s.currentView.TxNumber >= s.waittingView.TxNumber && s.currentView.KeyNumber >= s.waittingView.KeyNumber) || curBlock.BlockType() == types.IsKeyBlockSkipType {
 		s.sendNewViewMsg(s.currentView.TxNumber)
 		s.waittingView.KeyNumber = s.currentView.KeyNumber
 		s.waittingView.TxNumber = s.currentView.TxNumber
@@ -658,7 +653,7 @@ func (s *Service) getBestCandidate(refresh bool) *types.Candidate {
 
 // Send new view when new block done
 func (s *Service) sendNewViewMsg(curN uint64) {
-	if bftview.IamMember() >= 0 && curN > s.bc.CurrentBlockN() {
+	if bftview.IamMember() >= 0 && curN >= s.bc.CurrentBlockN() {
 		s.hotstuffMsgQ.PushBack(&hotstuffMsg{sid: nil, lastN: curN, hMsg: &hotstuff.HotstuffMessage{Code: hotstuff.MsgStartNewView}})
 	}
 }
@@ -760,6 +755,7 @@ func (s *Service) ResetLeaderAckTime() {
 	}
 }
 
+/*
 func (s *Service) MakeupData(data *hotstuff.StateSign) []byte {
 	if data.Type == hotstuff.TxState {
 		block := types.DecodeToBlock(data.State)
@@ -772,3 +768,4 @@ func (s *Service) MakeupData(data *hotstuff.StateSign) []byte {
 	}
 	return nil
 }
+*/

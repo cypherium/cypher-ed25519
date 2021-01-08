@@ -235,7 +235,7 @@ func (r *Router) Send(e *ServerIdentity, msg Message, bForeConnect bool) (uint64
 		}
 	}
 
-	log.Debug("Send msg", "address", r.address, "to", e, "msg", msg)
+	//log.Debug("Send msg", "address", r.address, "to", e, "msg", msg)
 	sentLen, err := c.Send(msg)
 	totSentLen += sentLen
 	if err != nil {

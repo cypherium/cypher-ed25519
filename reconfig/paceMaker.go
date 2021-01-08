@@ -99,7 +99,7 @@ func (t *paceMakerTimer) loopTimer() {
 		now := time.Now()
 		diff := now.Sub(startTime)
 		if diff > params.AckTimeout && now.Sub(t.service.LeaderAckTime()) > params.AckTimeout && bftview.IamMember() >= 0 {
-			t.setNextLeader()
+			t.setNextLeader(false)
 			t.service.ResetLeaderAckTime()
 		} else if diff > params.PaceMakerTimeout /**time.Duration(retryNumber+1)*/ && bftview.IamMember() >= 0 { //timeout
 			log.Warn("Viewchange Event is coming", "retryNumber", retryNumber)
@@ -109,16 +109,20 @@ func (t *paceMakerTimer) loopTimer() {
 				t.start()
 				continue
 			}
-			t.setNextLeader()
+			t.setNextLeader(false)
 			t.retryNumber++
 		}
 	}
 }
 
-func (t *paceMakerTimer) setNextLeader() {
+func (t *paceMakerTimer) setNextLeader(isDone bool) {
 	curView := t.service.GetCurrentView()
-	if curView.ReconfigType == types.PowReconfig || curView.ReconfigType == types.PacePowReconfig {
-		t.service.setNextLeader(types.PacePowReconfig)
+	if isDone {
+		if t.service.getBestCandidate(false) != nil || len(t.candidatepool.Content()) > 0 {
+			t.service.setNextLeader(types.PowReconfig)
+		} else {
+			t.service.setNextLeader(types.TimeReconfig)
+		}
 	} else {
 		if t.service.getBestCandidate(false) != nil || len(t.candidatepool.Content()) > 0 {
 			t.service.setNextLeader(types.PacePowReconfig)
@@ -126,6 +130,7 @@ func (t *paceMakerTimer) setNextLeader() {
 			t.service.setNextLeader(types.PaceReconfig)
 		}
 	}
+
 	t.service.sendNewViewMsg(curView.TxNumber)
 	t.start()
 }
@@ -155,12 +160,8 @@ func (t *paceMakerTimer) procBlockDone(curBlock *types.Block, curKeyBlock *types
 		}
 
 		n := curBlock.NumberU64() - curKeyBlock.T_Number()
-		if n > 0 {
-			if n%params.KeyblockPerTxBlocks == 0 {
-				t.service.setNextLeader(types.PowReconfig)
-			} else if n%params.GapTxBlocks == 0 {
-				t.service.setNextLeader(types.TimeReconfig)
-			}
+		if n > 0 && n%params.KeyblockPerTxBlocks == 0 {
+			t.setNextLeader(true)
 		}
 
 		if curBlock.NumberU64()%20 == 0 {
