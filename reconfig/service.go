@@ -211,34 +211,44 @@ func (s *Service) CheckView(data []byte) error {
 }
 
 //OnPropose call by hotstuff
-func (s *Service) OnPropose(kState []byte, tState []byte, extra []byte) error { //verify new block
+func (s *Service) OnPropose(isKeyBlock bool, state []byte, extra []byte) error { //verify new block
 	log.Debug("OnPropose..")
 	if !s.isRunning(0) {
 		return types.ErrNotRunning
 	}
 
-	var err error
-	var block *types.Block
-	var kblock *types.KeyBlock
-	if kState != nil {
-		kblock = types.DecodeToKeyBlock(kState)
-		log.Info("OnPropose", "keyNumber", kblock.NumberU64())
-	}
-	if tState != nil {
-		block = types.DecodeToBlock(tState)
-		log.Info("OnPropose", "txNumber", block.NumberU64())
-	}
-	if kblock != nil {
-		err = s.keyService.verifyKeyBlock(kblock, types.DecodeToCandidate(extra), nil)
-		if err != nil {
-			log.Error("verify keyblock", "number", kblock.NumberU64(), "err", err)
+	if isKeyBlock {
+		var kblock *types.KeyBlock
+		if kState != nil {
+			kblock = types.DecodeToKeyBlock(kState)
+			log.Info("OnPropose", "keyNumber", kblock.NumberU64())
+		}
+		if kblock != nil {
+			err := s.keyService.verifyKeyBlock(kblock, types.DecodeToCandidate(extra), nil)
+			if err != nil {
+				log.Error("verify keyblock", "number", kblock.NumberU64(), "err", err)
+				return err
+			}
+		} else {
+			err := fmt.Errorf("DecodeToKeyBlock(state) error")
+			log.Error("Propose", "error", err)
 			return err
 		}
-	}
-	if block != nil {
-		err = s.txService.verifyTxBlock(block)
-		if err != nil {
-			log.Error("verify txblock", "number", block.NumberU64(), "err", err)
+	} else {
+		var block *types.Block
+		if tState != nil {
+			block = types.DecodeToBlock(tState)
+			log.Info("OnPropose", "txNumber", block.NumberU64())
+		}
+		if block != nil {
+			err := s.txService.verifyTxBlock(block)
+			if err != nil {
+				log.Error("verify txblock", "number", block.NumberU64(), "err", err)
+				return err
+			}
+		} else {
+			err := fmt.Errorf("DecodeToBlock(state) error")
+			log.Error("Propose", "error", err)
 			return err
 		}
 	}

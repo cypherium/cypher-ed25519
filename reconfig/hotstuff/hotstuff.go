@@ -126,7 +126,7 @@ type HotStuffApplication interface {
 	GetPublicKey() []*bls.PublicKey
 
 	OnNewView(currentState []byte, extra [][]byte) error
-	OnPropose(kState []byte, tState []byte, extra []byte) error
+	OnPropose(isKeyBlock bool, state []byte, extra []byte) error
 	OnViewDone(kSign *SignedState, tSign *SignedState) error
 
 	CheckView(currentState []byte) error
@@ -876,13 +876,15 @@ func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 		return ErrViewPhaseNotMatch
 	}
 
-	var kState, tState, extra []byte
+	isKeyBlock := false
+	var state, extra []byte
 	if len(m.DataA) > 0 {
-		kState = m.DataA
+		isKeyBlock = true
+		state = m.DataA
 	}
 
 	if len(m.DataB) > 0 {
-		tState = m.DataB
+		state = m.DataB
 	}
 
 	if len(m.DataF) > 0 {
@@ -895,7 +897,7 @@ func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 		return ErrInvalidHighQC
 	}
 
-	if err := hsm.app.OnPropose(kState, tState, extra); err != nil {
+	if err := hsm.app.OnPropose(isKeyBlock, state, extra); err != nil {
 		log.Debug("handlePrepareMsg failed to verify proposed data", "viewId", m.ViewId)
 		return ErrInvalidProposal
 	}
