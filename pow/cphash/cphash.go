@@ -452,52 +452,12 @@ func newRangeCphash(config Config) *Cphash {
 
 // New creates a full sized cphash PoW scheme.
 func newCphash(config Config) *Cphash {
-	//if config.CachesInMem <= 0 {
-	//	log.Warn("One cphash cache must always be in memory", "requested", config.CachesInMem)
-	//	config.CachesInMem = 1
-	//}
-	//if config.CacheDir != "" && config.CachesOnDisk > 0 {
-	//	log.Debug("Disk storage enabled for cphash caches", "dir", config.CacheDir, "count", config.CachesOnDisk)
-	//}
-	//if config.DatasetDir != "" && config.DatasetsOnDisk > 0 {
-	//	log.Debug("Disk storage enabled for cphash DAGs", "dir", config.DatasetDir, "count", config.DatasetsOnDisk)
-	//}
-
-	log.Debug("new cphash engine")
-	//config.PowMode = ModeLocalMock
-	cphash := &Cphash{
-		config: config,
-		//caches:   newlru("cache", config.CachesInMem, newCache),
-		//datasets: newlru("dataset", config.DatasetsInMem, newDataset),
-		update:   make(chan struct{}),
-		hashrate: metrics.NewMeter(),
-		rxKey:    []byte("cypherRx"),
-		threads:  runtime.NumCPU(),
-	}
-
-	vflags := C.randomx_get_flags()
-	cphash.vCache = C.randomx_alloc_cache(vflags)
-	if cphash.vCache == nil {
-		log.Error("rx fail to create verify cache")
-		return nil
-	}
-	C.randomx_init_cache(cphash.vCache, unsafe.Pointer(&cphash.rxKey[0]), (C.ulong)(len(cphash.rxKey)))
-	cphash.vvm = C.randomx_create_vm(vflags, cphash.vCache, nil)
-	if cphash.vvm == nil {
-		log.Error("rx fail to create vvm")
-		return nil
-	}
-
-	return cphash
+	return newRangeCphash(config)
 }
 
 // New creates a full sized cphash PoW scheme.
 func New(config Config) *Cphash {
-	if config.PowRangeMode == 0 {
-		return newCphash(config)
-	} else {
-		return newRangeCphash(config)
-	}
+	return newRangeCphash(config)
 }
 
 // NewTester creates a small sized cphash PoW scheme useful only for testing
