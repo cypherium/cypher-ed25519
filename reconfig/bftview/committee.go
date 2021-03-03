@@ -172,7 +172,7 @@ func GetCurrentMember() *Committee {
 	curBlock := m_config.keyblockchain.CurrentBlock()
 	c := LoadMember(curBlock.NumberU64(), curBlock.Hash(), true)
 	if c == nil {
-		log.Error("Committee.GetCurrent", "Roster or list is nil, keyblock number", curBlock.NumberU64())
+		//log.Error("Committee.GetCurrent", "Roster or list is nil, keyblock number", curBlock.NumberU64())
 		return nil
 	}
 	return c
