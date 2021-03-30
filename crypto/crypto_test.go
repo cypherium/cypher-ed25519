@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"testing"
 
+	"fmt"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 )
@@ -247,4 +248,22 @@ func TestPythonIntegration(t *testing.T) {
 
 	t.Logf("msg: %x, privkey: %s sig: %x\n", msg0, kh, sig0)
 	t.Logf("msg: %x, privkey: %s sig: %x\n", msg1, kh, sig1)
+}
+
+func TestCyperBech32(t *testing.T) {
+	sAddr := "b83abec83f8555fe5021fb8680f26648de73432a"
+	testAddr := common.HexToAddress(sAddr)
+	cypherAddress, err := CyperBech32Encode(testAddr)
+	if err != nil {
+		t.Errorf("encode cypher fail %v", err)
+	}
+
+	fmt.Println("TestCyperBech32 encode address", cypherAddress)
+
+	addr, err := CyperBech32Decode(cypherAddress)
+	if err != nil {
+		t.Errorf("decode cypher addr fail %v", err)
+	}
+
+	fmt.Printf("TestCyperBech32 decode address %s\n\r", addr.String())
 }

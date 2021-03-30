@@ -20,7 +20,6 @@
 package bech32
 
 import (
-	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strings"
@@ -403,48 +402,20 @@ func TestCoverage(t *testing.T) {
 	}
 }
 
-func TestCypher(t *testing.T) {
+func TestCyperBech32NoVersionEncode(t *testing.T) {
 	hrp := "cph"
-	sAddr := "7e45a38ea19b3b2c8e2cc9e28a55ac5cc49503bf"
-	addr, _ := hex.DecodeString(sAddr)
-
-	addrInt := make([]int, len(addr)*2)
-	for i := range addr {
-		addrInt[2*i] = (int)(addr[i]&0xf0) >> 4
-		addrInt[2*i+1] = (int)(addr[i] & 0xf)
-	}
-
-	cypherAddress, err := Encode(hrp, addrInt)
+	sAddr := "b83abec83f8555fe5021fb8680f26648de73432a"
+	cypherAddress, err := Bech32NoVersionEncode(hrp, sAddr)
 	if err != nil {
 		t.Errorf("encode cypher fail %v", err)
 	}
 
-	fmt.Println("encode address", cypherAddress)
+	fmt.Println("TestCyperBech32Encode encode address", cypherAddress)
 
-	h, daint, err := Decode(cypherAddress)
+	addr, err := Bech32NoVersionDecode(hrp, cypherAddress)
 	if err != nil {
-		t.Errorf("decode cypher fail %v", err)
+		t.Errorf("decode cypher addr fail %v", err)
 	}
 
-	da := ""
-	for i := range daint {
-		da += fmt.Sprintf("%x", daint[i])
-	}
-
-	fmt.Printf("decode address %s %s\n\r", h, da)
-}
-
-func TestCypherAddress(t *testing.T) {
-	h, daint, err := Decode("cyp12y0p0x0yqxty8pgf2qfgzq8gvyyy9d2p8xdqdpfx5axyhw")
-	if err != nil {
-		t.Errorf("decode cypher fail %v", err)
-	}
-
-	da := ""
-	for i := range daint {
-		da += fmt.Sprintf("%x", daint[i])
-	}
-
-	fmt.Printf("decode address %s %s\n\r", h, da)
-
+	fmt.Printf("Bech32NoVersionDecode address %x\n\r", addr)
 }

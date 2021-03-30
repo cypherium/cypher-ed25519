@@ -22,6 +22,7 @@ package bech32
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"strings"
 )
@@ -73,6 +74,7 @@ func createChecksum(hrp string, data []int) []int {
 // Encode encodes hrp(human-readable part) and data(32bit data array), returns Bech32 / or error
 // if hrp is uppercase, return uppercase Bech32
 func Encode(hrp string, data []int) (string, error) {
+
 	if (len(hrp) + len(data) + 7) > 90 {
 		return "", fmt.Errorf("too long : hrp length=%d, data length=%d", len(hrp), len(data))
 	}
@@ -138,6 +140,9 @@ func Decode(bechString string) (string, []int, error) {
 	return hrp, data[:len(data)-6], nil
 }
 
+func Convertbits(data []int, frombits, tobits uint, pad bool) ([]int, error) {
+	return convertbits(data, frombits, tobits, pad)
+}
 func convertbits(data []int, frombits, tobits uint, pad bool) ([]int, error) {
 	acc := 0
 	bits := uint(0)
@@ -214,4 +219,40 @@ func SegwitAddrEncode(hrp string, version int, program []int) (string, error) {
 		return "", err
 	}
 	return ret, nil
+}
+
+func Bech32NoVersionEncode(hrp, addr string) (string, error) {
+	addrbyte, _ := hex.DecodeString(addr)
+	addrInt := make([]int, len(addrbyte))
+	for i := range addrbyte {
+		if i < len(addrbyte) {
+			addrInt[i] = (int)(addrbyte[i])
+		}
+	}
+	data, err := Convertbits(addrInt, 8, 5, true)
+	if err != nil {
+		return "", err
+	}
+	ret, err := Encode(hrp, data)
+	if err != nil {
+		return "", err
+	}
+	return ret, nil
+}
+
+func Bech32NoVersionDecode(hrp, s string) ([]int, error) {
+	h, addrInt, err := Decode(s)
+	if err != nil {
+		return nil, err
+	}
+
+	if h != hrp {
+		return nil, fmt.Errorf("bech32 human readable part mismatch")
+	}
+	if addr, error := Convertbits(addrInt, 5, 8, false); error != nil {
+		return nil, error
+	} else {
+		return addr, nil
+	}
+
 }
