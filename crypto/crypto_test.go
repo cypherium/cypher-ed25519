@@ -251,7 +251,7 @@ func TestPythonIntegration(t *testing.T) {
 }
 
 func TestCyperBech32(t *testing.T) {
-	sAddr := "b83abec83f8555fe5021fb8680f26648de73432a"
+	sAddr := "bed616d842d152a5d0bac4c45c6ae98d06414c0b"
 	testAddr := common.HexToAddress(sAddr)
 	cypherAddress, err := CyperBech32Encode(testAddr)
 	if err != nil {

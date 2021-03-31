@@ -404,7 +404,7 @@ func TestCoverage(t *testing.T) {
 
 func TestCyperBech32NoVersionEncode(t *testing.T) {
 	hrp := "cph"
-	sAddr := "b83abec83f8555fe5021fb8680f26648de73432a"
+	sAddr := "bed616d842d152a5d0bac4c45c6ae98d06414c0b"
 	cypherAddress, err := Bech32NoVersionEncode(hrp, sAddr)
 	if err != nil {
 		t.Errorf("encode cypher fail %v", err)
