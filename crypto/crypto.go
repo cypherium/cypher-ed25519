@@ -270,7 +270,7 @@ func CyperBech32Encode(addr common.Address) (string, error) {
 	for i := range addr {
 		addrInt[i] = (int)(addr[i])
 	}
-	return bech32.Bech32NoVersionEncode(hrp, strings.ReplaceAll(addr.String(), "0x", ""))
+	return bech32.Bech32NoVersionEncode(hrp, strings.TrimPrefix(addr.String(), "0x"))
 }
 
 func CyperBech32Decode(addrstr string) (common.Address, error) {
