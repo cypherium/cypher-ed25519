@@ -95,15 +95,14 @@ const (
 	Bn256ScalarMulGas       uint64 = 40000  // Gas needed for an elliptic curve scalar multiplication
 	Bn256PairingBaseGas     uint64 = 100000 // Base price for an elliptic curve pairing check
 	Bn256PairingPerPointGas uint64 = 80000  // Per-point price for an elliptic curve pairing check
-	DifficultyFactor               = 10
 	TxDataGas               uint64 = 100
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(3072)                      // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072 * DifficultyFactor) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072 * DifficultyFactor) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13 * DifficultyFactor)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DifficultyBoundDivisor = big.NewInt(3072)    // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(1310720) // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(1310720) // The minimum that the difficulty may ever be.
+	DurationLimit          = big.NewInt(130)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
 	DisableGAS = false
 	DisableJVM = false
