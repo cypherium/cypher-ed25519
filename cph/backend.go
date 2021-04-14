@@ -205,6 +205,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
+	config.TxPool.PriceLimit = config.GasPrice.Uint64()
 	cph.txPool = core.NewTxPool(config.TxPool, cph.chainConfig, cph.blockchain)
 	cph.blockchain.TxPool = cph.txPool
 	cph.reconfig = reconfig.NewReconfig(chainDb, cph, cph.chainConfig, cph.EventMux(), cph.engine, extIP)

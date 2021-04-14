@@ -184,12 +184,6 @@ func (api *PrivateMinerAPI) Start(threads *int, addr common.Address, password st
 	//	th.SetThreads(*threads)
 	//}
 	if !api.e.IsMining() {
-		// Propagate the initial price point to the transaction pool
-		api.e.lock.RLock()
-		price := api.e.gasPrice
-		api.e.lock.RUnlock()
-
-		api.e.txPool.SetGasPrice(price)
 		return api.e.StartMining(true, eb, pubKey)
 	}
 	return nil
