@@ -1,4 +1,4 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -681,7 +681,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		invalidTxCounter.Inc(1)
 		return false, err
 	}
-	//pool.LogTxMsg("txpool.add", "hash", tx.Hash())
+	pool.LogTxMsg("txpool.add", "hash", tx.Hash())
 
 	// If the transaction is replacing an already pending one, do directly
 	from, _ := types.Sender(pool.signer, tx) // already validated
@@ -859,6 +859,7 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
+	log.Info("AddRemotes")
 	return pool.addTxs(txs, false)
 }
 
@@ -882,6 +883,7 @@ func (pool *TxPool) addTx(tx *types.Transaction, local bool) error {
 
 // addTxs attempts to queue a batch of transactions if they are valid.
 func (pool *TxPool) addTxs(txs []*types.Transaction, local bool) []error {
+	log.Info("addTxs")
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -894,7 +896,7 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
 	// Add the batch of transaction, tracking the accepted ones
 	dirty := make(map[common.Address]struct{})
 	errs := make([]error, len(txs))
-
+	log.Info("addTxsLocked 1")
 	for i, tx := range txs {
 		var replace bool
 		if replace, errs[i] = pool.add(tx, local); errs[i] == nil && !replace {
@@ -902,6 +904,7 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
 			dirty[from] = struct{}{}
 		}
 	}
+	log.Info("addTxsLocked 2")
 	// Only reprocess the internal state if something was actually added
 	if len(dirty) > 0 {
 		addrs := make([]common.Address, 0, len(dirty))
@@ -910,6 +913,7 @@ func (pool *TxPool) addTxsLocked(txs []*types.Transaction, local bool) []error {
 		}
 		pool.promoteExecutables(addrs)
 	}
+	log.Info("addTxsLocked 3")
 	return errs
 }
 
@@ -987,6 +991,7 @@ func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
 // future queue to the set of pending transactions. During this process, all
 // invalidated transactions (low nonce, low balance) are deleted.
 func (pool *TxPool) promoteExecutables(accounts []common.Address) {
+	log.Info("promoteExecutables")
 	// Track the promoted transactions to broadcast them at once
 	var promoted []*types.Transaction
 

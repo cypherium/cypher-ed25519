@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -877,6 +878,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// 	break
 		// }
 		// Transactions can be processed, parse all of them and deliver to the pool
+		log.Info("msg.Code == TxMsg 1")
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)

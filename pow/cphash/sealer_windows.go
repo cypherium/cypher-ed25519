@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
