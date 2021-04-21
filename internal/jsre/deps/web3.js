@@ -2405,7 +2405,7 @@ var isJson = function (str) {
 };
 
 /**
- * Returns true if given string is a valid Ethereum block header bloom.
+ * Returns true if given string is a valid Cypherium block header bloom.
  *
  * @method isBloom
  * @param {String} hex encoded bloom filter
