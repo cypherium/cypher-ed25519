@@ -203,19 +203,11 @@ func NewPublicAccountAPI(am *accounts.Manager) *PublicAccountAPI {
 }
 
 // Accounts returns the collection of accounts this node manages
-func (s *PublicAccountAPI) Accounts() []AlternativeAddress {
-	addresses := make([]AlternativeAddress, 0) // return [] instead of nil if empty
+func (s *PublicAccountAPI) Accounts() []common.Address {
+	addresses := make([]common.Address, 0) // return [] instead of nil if empty
 	for _, wallet := range s.am.Wallets() {
 		for _, account := range wallet.Accounts() {
-			encodedAddress, err := crypto.CyperBech32Encode(account.Address)
-			if err != nil {
-				continue
-			}
-
-			addresses = append(addresses, AlternativeAddress{
-				RawAddress:     account.Address,
-				EncodedAddress: encodedAddress,
-			})
+			addresses = append(addresses, account.Address)
 		}
 	}
 	return addresses

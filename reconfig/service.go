@@ -702,10 +702,12 @@ func (s *Service) setNextLeader(reconfigType uint8) {
 }
 
 func (s *Service) procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock) {
+	beKeyBlock := true
 	if keyblock == nil {
+		beKeyBlock = false
 		keyblock = s.kbc.CurrentBlock()
 	}
-	s.pacetMakerTimer.procBlockDone(txBlock, keyblock)
+	s.pacetMakerTimer.procBlockDone(txBlock, keyblock, beKeyBlock)
 	keyblockN := keyblock.NumberU64()
 	var blockN uint64
 	if txBlock == nil {

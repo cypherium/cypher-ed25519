@@ -28,9 +28,10 @@ const (
 	KeyblockPerTxBlocks = 360
 	GapTxBlocks         = KeyblockPerTxBlocks + 2
 	MaxTxCountPerBlock  = 1024
-	PaceMakerTimeout    = 2 * time.Minute
 	AckTimeout          = 35 * time.Second
 	HeatBeatTimeout     = 10 * time.Second
+	PaceMakerTimeout    = 2 * time.Minute
+	KeyBlockTimeout     = 28 * time.Minute
 
 	KeyBlock_Reward = 1e+18 // Block reward in wei for successfully mining a block
 	TxBlock_Reward  = 2e+17 // Block reward in wei for successfully mining a block
