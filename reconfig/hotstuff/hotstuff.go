@@ -807,17 +807,18 @@ func VerifySignature(bSign []byte, bMask []byte, data []byte, groupPublicKey []*
 
 loop:
 	for i := range bMask {
+		ii := i >> 3
 		for bit := 0; bit < 8; bit++ {
-			if i*8+bit >= len(groupPublicKey) {
+			if ii+bit >= len(groupPublicKey) {
 				break loop
 			}
 
-			if bMask[i]&(1<<uint64(bit)) != 0 {
+			if bMask[i]&(1<<uint(bit)) != 0 {
 				if isFirst {
-					pub.Deserialize(groupPublicKey[i*8+bit].Serialize())
+					pub = *groupPublicKey[ii+bit] //pub.Deserialize(groupPublicKey[ii+bit].Serialize())
 					isFirst = false
 				} else {
-					pub.Add(groupPublicKey[i*8+bit])
+					pub.Add(groupPublicKey[ii+bit])
 				}
 
 				signer += 1
@@ -847,13 +848,13 @@ func MaskToException(bMask []byte, groupPublicKey []*bls.PublicKey) []*bls.Publi
 	exception := make([]*bls.PublicKey, 0)
 loop:
 	for i := range bMask {
+		ii := i >> 3
 		for bit := 0; bit < 8; bit++ {
-			if i*8+bit >= len(groupPublicKey) {
+			if ii+bit >= len(groupPublicKey) {
 				break loop
 			}
-
-			if bMask[i]&(byte)(1<<(uint)(bit)) != 0 {
-				exception = append(exception, groupPublicKey[i*8+bit])
+			if bMask[i]&(1<<uint(bit)) == 0 {
+				exception = append(exception, groupPublicKey[ii+bit])
 			}
 		}
 	}
