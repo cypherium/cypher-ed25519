@@ -164,7 +164,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.E
 		}
 
 		if b.engine != nil {
-			block, _ := blockchain.Processor.Finalize(false, b.header, statedb, b.txs, b.receipts)
+			block, _ := blockchain.Processor.Finalize(false, b.header, statedb, b.txs, b.receipts, 0)
 			// Write state changes to db
 			root, err := statedb.Commit()
 			if err != nil {

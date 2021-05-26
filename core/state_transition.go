@@ -257,19 +257,20 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 		return
 	}
 	keyHash := pBlock.GetKeyHash()
-	if header.KeyHash != keyHash {
-		kheader := bc.GetKeyChainReader().GetHeaderByHash(header.KeyHash)
-		if kheader.HasNewNode() {
-			kNumber := kheader.NumberU64()
-			cnodes := bc.GetKeyChainReader().GetCommitteeByNumber(kNumber)
-			if cnodes == nil {
-				log.Error("RewardCommites", "not found committee keyNumber", kNumber)
-				return
+	/*
+		if header.KeyHash != keyHash {
+			kheader := bc.GetKeyChainReader().GetHeaderByHash(header.KeyHash)
+			if kheader.HasNewNode() {
+				kNumber := kheader.NumberU64()
+				cnodes := bc.GetKeyChainReader().GetCommitteeByNumber(kNumber)
+				if cnodes == nil {
+					log.Error("RewardCommites", "not found committee keyNumber", kNumber)
+					return
+				}
+				c := &bftview.Committee{List: cnodes}
+				state.AddBalance(common.HexToAddress(c.In().CoinBase), big.NewInt(params.KeyBlock_Reward))
 			}
-			c := &bftview.Committee{List: cnodes}
-			state.AddBalance(common.HexToAddress(c.In().CoinBase), big.NewInt(params.KeyBlock_Reward))
-		}
-	}
+		}*/
 
 	kheader := bc.GetKeyChainReader().GetHeaderByHash(keyHash)
 	if kheader == nil {

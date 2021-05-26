@@ -110,22 +110,24 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		}
 	}
 
+	var totalGas uint64
 	for i, tx := range txs {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := ApplyTransaction(false, messages[i], p.keyblockchain, p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
+		receipt, gas, err := ApplyTransaction(false, messages[i], p.keyblockchain, p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
+		totalGas += gas * tx.GasPriceU64()
 	}
 
-	p.Finalize(true, header, statedb, txs, receipts)
+	p.Finalize(true, header, statedb, txs, receipts, totalGas)
 
 	return receipts, allLogs, *usedGas, nil
 }
 
-func (p *StateProcessor) Finalize(onlyCheck bool, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
+func (p *StateProcessor) Finalize(onlyCheck bool, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt, rewardGas uint64) (*types.Block, error) {
 	// Accumulate any block and uncle rewards and commit the final state root
 	//accumulateRewards(keyChain,  p.bc.Config(), state, header)
 	//if header.BlockType == types.IsKeyBlockType {
@@ -133,11 +135,15 @@ func (p *StateProcessor) Finalize(onlyCheck bool, header *types.Header, state *s
 	//} else
 	{
 		if !params.DisableGAS {
-			var totalGas uint64
-			for _, r := range receipts {
-				totalGas += r.GasUsed
+			if header.Number.Uint64() > params.ForkFeeBlock {
+				RewardCommites(p.bc, state, header, rewardGas)
+			} else {
+				var totalGas uint64
+				for _, r := range receipts {
+					totalGas += r.GasUsed
+				}
+				RewardCommites(p.bc, state, header, totalGas)
 			}
-			RewardCommites(p.bc, state, header, totalGas)
 		} else {
 			//	RewardCommites(p.bc, state, header, params.TxBlock_Reward)
 		}

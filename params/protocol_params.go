@@ -111,4 +111,6 @@ var (
 	DisableEVM = false
 
 	WhiteAddressList = []common.Address{}
+
+	ForkFeeBlock uint64 = 1
 )

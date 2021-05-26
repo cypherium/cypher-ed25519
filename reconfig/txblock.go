@@ -179,14 +179,14 @@ func (txS *txService) packageTxs(blockType uint8) *types.Block {
 
 	signer := types.NewEIP155Signer(txS.config.ChainID)
 	txs := types.NewTransactionsByPriceAndNonce(signer, pending)
-	okTxs, receipts, useGas := txS.commitTransactions(signer, txs, header, state)
+	okTxs, receipts, useGas, totalGas := txS.commitTransactions(signer, txs, header, state)
 	tcount := len(okTxs)
 	if tcount == 0 {
 		log.Error("packageTxs okTxs is empty")
 		return nil
 	}
 
-	block, err := bc.Processor.Finalize(false, header, state, okTxs, receipts)
+	block, err := bc.Processor.Finalize(false, header, state, okTxs, receipts, totalGas)
 	if err != nil {
 		log.Error("packageTxs", "Failed to finalize block for sealing", err)
 		return nil
@@ -225,9 +225,10 @@ func packageHeader(keyHash common.Hash, parent *types.Block, state *state.StateD
 }
 
 // Apply transactions
-func (txS *txService) commitTransactions(signer types.Signer, txs *types.TransactionsByPriceAndNonce, header *types.Header, state *state.StateDB) (types.Transactions, []*types.Receipt, uint64) {
+func (txS *txService) commitTransactions(signer types.Signer, txs *types.TransactionsByPriceAndNonce, header *types.Header, state *state.StateDB) (types.Transactions, []*types.Receipt, uint64, uint64) {
 	var (
-		useGas uint64
+		useGas   uint64
+		totalGas uint64
 		//	coalescedLogs []*types.Log
 		failedTxs types.Transactions
 		okTxs     types.Transactions
@@ -276,6 +277,7 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 			receipts = append(receipts, receipt)
 			//??coalescedLogs = append(coalescedLogs, receipt.Logs...)
 			useGas += gas
+			totalGas += gas * tx.GasPriceU64()
 			tcount++
 			if tcount > params.MaxTxCountPerBlock {
 				break
@@ -307,5 +309,5 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 			}(cpy, tcount)
 		}
 	*/
-	return okTxs, receipts, useGas
+	return okTxs, receipts, useGas, totalGas
 }
