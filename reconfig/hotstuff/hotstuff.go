@@ -807,7 +807,7 @@ func VerifySignature(bSign []byte, bMask []byte, data []byte, groupPublicKey []*
 
 loop:
 	for i := range bMask {
-		ii := i >> 3
+		ii := i << 3
 		for bit := 0; bit < 8; bit++ {
 			if ii+bit >= len(groupPublicKey) {
 				break loop
@@ -848,7 +848,7 @@ func MaskToException(bMask []byte, groupPublicKey []*bls.PublicKey, beNewVer boo
 	exception := make([]*bls.PublicKey, 0)
 loop:
 	for i := range bMask {
-		ii := i >> 3
+		ii := i << 3
 		for bit := 0; bit < 8; bit++ {
 			if ii+bit >= len(groupPublicKey) {
 				break loop
