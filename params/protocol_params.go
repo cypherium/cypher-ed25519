@@ -112,5 +112,5 @@ var (
 
 	WhiteAddressList = []common.Address{}
 
-	ForkFeeBlock uint64 = 1
+	ForkFeeBlock uint64 = 13270
 )
