@@ -844,7 +844,7 @@ loop:
 	return true
 }
 
-func MaskToException(bMask []byte, groupPublicKey []*bls.PublicKey) []*bls.PublicKey {
+func MaskToException(bMask []byte, groupPublicKey []*bls.PublicKey, beNewVer bool) []*bls.PublicKey {
 	exception := make([]*bls.PublicKey, 0)
 loop:
 	for i := range bMask {
@@ -853,8 +853,14 @@ loop:
 			if ii+bit >= len(groupPublicKey) {
 				break loop
 			}
-			if bMask[i]&(1<<uint(bit)) == 0 {
-				exception = append(exception, groupPublicKey[ii+bit])
+			if beNewVer {
+				if bMask[i]&(1<<uint(bit)) == 0 {
+					exception = append(exception, groupPublicKey[ii+bit])
+				}
+			} else {
+				if bMask[i]&(1<<uint(bit)) != 0 {
+					exception = append(exception, groupPublicKey[ii+bit])
+				}
 			}
 		}
 	}

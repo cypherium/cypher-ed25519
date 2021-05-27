@@ -136,13 +136,13 @@ func (p *StateProcessor) Finalize(onlyCheck bool, header *types.Header, state *s
 	{
 		if !params.DisableGAS {
 			if header.Number.Uint64() > params.ForkFeeBlock {
-				RewardCommites(p.bc, state, header, rewardGas)
+				RewardCommites(p.bc, state, header, rewardGas, true)
 			} else {
 				var totalGas uint64
 				for _, r := range receipts {
 					totalGas += r.GasUsed
 				}
-				RewardCommites(p.bc, state, header, totalGas)
+				RewardCommites(p.bc, state, header, totalGas, false)
 			}
 		} else {
 			//	RewardCommites(p.bc, state, header, params.TxBlock_Reward)

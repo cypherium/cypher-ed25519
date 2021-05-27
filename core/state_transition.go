@@ -242,7 +242,7 @@ func (st *StateTransition) TransitionDb(onlyGas bool, header *types.Header) (ret
 	return ret, st.gasUsed(), vmerr != nil, err
 }
 
-func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header, blockReward uint64) {
+func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header, blockReward uint64, beNewVer bool) {
 	bRewardAll := false
 	//if header.BlockType == types.IsKeyBlockType {
 	//		bRewardAll = true
@@ -291,7 +291,7 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 	} else {
 		mycommittee := &bftview.Committee{List: cnodes}
 		pubs := mycommittee.ToBlsPublicKeys(keyHash)
-		exceptions := hotstuff.MaskToException(pBlock.Exceptions(), pubs)
+		exceptions := hotstuff.MaskToException(pBlock.Exceptions(), pubs, beNewVer)
 		for i, pub := range pubs {
 			isException := false
 			for _, exp := range exceptions {
