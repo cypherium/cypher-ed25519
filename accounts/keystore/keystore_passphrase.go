@@ -20,7 +20,7 @@
 This key store behaves as KeyStorePlain with the difference that
 the private key is encrypted and on disk uses another JSON encoding.
 
-The crypto is documented at https://github.com/cypherium/wiki/wiki/Web3-Secret-Storage-Definition
+The crypto is documented at https://github.com/cypherium/wiki/wiki/Web3c-Secret-Storage-Definition
 
 */
 

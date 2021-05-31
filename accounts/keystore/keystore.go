@@ -17,8 +17,8 @@
 
 // Package keystore implements encrypted storage of secp256k1 private keys.
 //
-// Keys are stored as encrypted JSON files according to the Web3 Secret Storage specification.
-// See https://github.com/cypherium/wiki/wiki/Web3-Secret-Storage-Definition for more information.
+// Keys are stored as encrypted JSON files according to the Web3c Secret Storage specification.
+// See https://github.com/cypherium/wiki/wiki/Web3c-Secret-Storage-Definition for more information.
 package keystore
 
 import (
