@@ -55,6 +55,7 @@ type Backend interface {
 	KeyBlockByHash(ctx context.Context, blockHash common.Hash) (*types.KeyBlock, error)
 	RollbackKeyChainFrom(lockHash common.Hash) error
 	RollbackTxChainFrom(lockHash common.Hash) error
+	Exceptions(blockNr int64) []string
 	CommitteeMembers(ctx context.Context, blockNr rpc.BlockNumber) ([]*common.Cnode, error)
 	MockKeyBlock(int64)
 	GetKeyBlockChain() *core.KeyBlockChain

@@ -397,8 +397,9 @@ func (s *Cypherium) StopMining() {
 	s.miner.Stop()
 }
 
-func (s *Cypherium) IsMining() bool          { return s.miner.Mining() }
-func (s *Cypherium) reconfigIsRunning() bool { return s.reconfig.ReconfigIsRunning() }
+func (s *Cypherium) IsMining() bool                        { return s.miner.Mining() }
+func (s *Cypherium) reconfigIsRunning() bool               { return s.reconfig.ReconfigIsRunning() }
+func (s *Cypherium) Exceptions(blockNumber int64) []string { return s.reconfig.Exceptions(blockNumber) }
 
 func (s *Cypherium) Miner() *miner.Miner                { return s.miner }
 func (s *Cypherium) Reconfig() *reconfig.Reconfig       { return s.reconfig }

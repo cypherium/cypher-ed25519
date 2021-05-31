@@ -272,6 +272,10 @@ func (api *PublicCphereumAPI) Status() string {
 	return s
 }
 
+func (api *PublicCphereumAPI) Exceptions(blockNumber int64) []string {
+	return api.e.Exceptions(blockNumber)
+}
+
 // PrivateAdminAPI is the collection of Cypherium full node-related APIs
 // exposed over the private admin endpoint.
 type PrivateAdminAPI struct {

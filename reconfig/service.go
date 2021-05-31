@@ -783,8 +783,8 @@ func (s *Service) ResetLeaderAckTime() {
 	}
 }
 
-func (s *Service) GetExceptions(blockNumber uint64) []string {
-	block := s.bc.GetBlockByNumber(blockNumber)
+func (s *Service) Exceptions(blockNumber int64) []string {
+	block := s.bc.GetBlockByNumber(uint64(blockNumber))
 	if block == nil {
 		return nil
 	}

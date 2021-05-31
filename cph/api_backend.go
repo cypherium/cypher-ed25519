@@ -55,6 +55,10 @@ func (b *CphAPIBackend) CurrentBlock() *types.Block {
 	return b.cph.blockchain.CurrentBlock()
 }
 
+func (b *CphAPIBackend) Exceptions(blockNumber int64) []string {
+	return b.cph.Exceptions(blockNumber)
+}
+
 func (b *CphAPIBackend) SetHead(number uint64) {
 	b.cph.protocolManager.downloader.Cancel()
 	b.cph.blockchain.SetHead(number)

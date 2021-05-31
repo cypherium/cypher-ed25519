@@ -77,6 +77,10 @@ func (s *PublicCphereumAPI) CommitteeMembers(ctx context.Context, blockNr rpc.Bl
 	return c, err
 }
 
+func (s *PublicCphereumAPI) CommitteeExceps(ctx context.Context, blockNr rpc.BlockNumber) []string {
+	return s.b.Exceptions(int64(blockNr))
+}
+
 // ProtocolVersion returns the current Cypherium protocol version this node supports
 func (s *PublicCphereumAPI) ProtocolVersion() hexutil.Uint {
 	return hexutil.Uint(s.b.ProtocolVersion())
@@ -649,11 +653,13 @@ func (s *PublicBlockChainAPI) KeyBlockNumber(ctx context.Context) uint64 {
 func (s *PublicBlockChainAPI) GetCommitteeMember(ctx context.Context, blockNr rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	committeeMembers, err := s.b.CommitteeMembers(ctx, blockNr)
 	if committeeMembers != nil {
-		//通过哈希值验证读取的委员会成员名单是否正确
-		//committeeMembers 转换成map?
 		return nil, err
 	}
 	return nil, err
+}
+
+func (s *PublicBlockChainAPI) GetCommitteeExceps(ctx context.Context, blockNr int64) []string {
+	return s.b.Exceptions(blockNr)
 }
 
 func (api *PublicBlockChainAPI) RosterConfig(data ...interface{}) error {
