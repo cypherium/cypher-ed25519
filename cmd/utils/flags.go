@@ -284,11 +284,6 @@ var (
 		Usage: "Ip encrypt Disable",
 		Value: 0,
 	}
-	PowRangeModeFlag = cli.IntFlag{ //0 for stable time pow,1 for wave rang
-		Name:  "powrangemode",
-		Usage: "Pow range",
-		Value: 0,
-	}
 	LocalTestIpConfig = cli.StringFlag{
 		Name:  "localtest",
 		Usage: "Local test ip",
@@ -1083,10 +1078,6 @@ func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
 	}
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
-	}
-	if ctx.GlobalIsSet(PowRangeModeFlag.Name) {
-		cfg.PowRangeMode = ctx.GlobalUint(PowRangeModeFlag.Name)
-
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100

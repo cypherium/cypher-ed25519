@@ -83,7 +83,6 @@ var (
 		utils.TxPoolDisabledGASFlag,
 		utils.TxPoolEnabledJVMFlag,
 		utils.TxPoolEnabledEVMFlag,
-		utils.PowRangeModeFlag,
 		utils.IpEncryptDisableFlag,
 		utils.LocalTestIpConfig,
 		utils.FastSyncFlag,

@@ -134,7 +134,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisKeyBlock(chainDb, config.GenesisKey)
 	chainConfig.OnetPort = config.OnetPort
 	chainConfig.EnabledTPS = config.TxPool.EnableTPS
-	chainConfig.PowRangeMode = config.PowRangeMode
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
@@ -265,7 +264,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, config *cphash.Config, chai
 	//	return clique.New(chainConfig.Clique, db)
 	//}
 	// Otherwise assume proof-of-work
-	log.Info("pow engine ", "mode", config.PowMode, "PowRangeMode", chainConfig.PowRangeMode)
+	log.Info("pow engine ", "mode", config.PowMode)
 	switch config.PowMode {
 	case cphash.ModeFake:
 		log.Warn("Cphash used in fake mode")
@@ -284,7 +283,6 @@ func CreateConsensusEngine(ctx *node.ServiceContext, config *cphash.Config, chai
 			DatasetDir:     config.DatasetDir,
 			DatasetsInMem:  config.DatasetsInMem,
 			DatasetsOnDisk: config.DatasetsOnDisk,
-			PowRangeMode:   chainConfig.PowRangeMode,
 		})
 		engine.SetThreads(-1) // Disable CPU mining
 		return engine

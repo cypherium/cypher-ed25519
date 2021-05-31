@@ -21,17 +21,9 @@
 
 package cphash
 
-/*
-#cgo CFLAGS: -I./randomX
-#cgo LDFLAGS: -L./randomX -lrandomx -lstdc++
-#include <randomx.h>
-*/
-import "C"
 import (
 	"errors"
 	"fmt"
-	"github.com/edsrzf/mmap-go"
-	"github.com/hashicorp/golang-lru/simplelru"
 	"math"
 	"math/big"
 	"math/rand"
@@ -48,16 +40,18 @@ import (
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/metrics"
 	"github.com/cypherium/cypherBFT/rpc"
+	mmap "github.com/edsrzf/mmap-go"
+	"github.com/hashicorp/golang-lru/simplelru"
 )
 
 var ErrInvalidDumpMagic = errors.New("invalid dump magic")
 
 var (
-	// maxUint256 is a big integer representing 2^256-1F
+	// maxUint256 is a big integer representing 2^256-1
 	maxUint256 = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
 
 	// sharedCphash is a full instance that can be shared between multiple users.
-	sharedCphash = New(Config{"", 3, 0, "", 1, 0, ModeFullFake, 0})
+	sharedCphash = New(Config{"", 3, 0, "", 1, 0, ModeFullFake})
 
 	// algorithmRevision is the data structure version used for file naming.
 	algorithmRevision = 23
@@ -66,14 +60,14 @@ var (
 	dumpMagic = []uint32{0xbaddcafe, 0xfee1dead}
 )
 
-//isLittleEndian returns whether the local system is running in little or big
-//endian byte order.
+// isLittleEndian returns whether the local system is running in little or big
+// endian byte order.
 func isLittleEndian() bool {
 	n := uint32(0x01020304)
 	return *(*byte)(unsafe.Pointer(&n)) == 0x04
 }
 
-//memoryMap tries to memory map a file of uint32s for read only access.
+// memoryMap tries to memory map a file of uint32s for read only access.
 func memoryMap(path string) (*os.File, mmap.MMap, []uint32, error) {
 	file, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
@@ -94,7 +88,7 @@ func memoryMap(path string) (*os.File, mmap.MMap, []uint32, error) {
 	return file, mem, buffer[len(dumpMagic):], err
 }
 
-//memoryMapFile tries to memory map an already opened file descriptor.
+// memoryMapFile tries to memory map an already opened file descriptor.
 func memoryMapFile(file *os.File, write bool) (mmap.MMap, []uint32, error) {
 	// Try to memory map the file
 	flag := mmap.RDONLY
@@ -113,9 +107,9 @@ func memoryMapFile(file *os.File, write bool) (mmap.MMap, []uint32, error) {
 	return mem, *(*[]uint32)(unsafe.Pointer(&header)), nil
 }
 
-//memoryMapAndGenerate tries to memory map a temporary file of uint32s for write
-//access, fill it with the data from a generator and then move it into the final
-//path requested.
+// memoryMapAndGenerate tries to memory map a temporary file of uint32s for write
+// access, fill it with the data from a generator and then move it into the final
+// path requested.
 func memoryMapAndGenerate(path string, size uint64, generator func(buffer []uint32)) (*os.File, mmap.MMap, []uint32, error) {
 	// Ensure the data folder exists
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -154,7 +148,7 @@ func memoryMapAndGenerate(path string, size uint64, generator func(buffer []uint
 	return memoryMap(path)
 }
 
-//lru tracks caches or datasets by their last use time, keeping at most N of them.
+// lru tracks caches or datasets by their last use time, keeping at most N of them.
 type lru struct {
 	what string
 	new  func(epoch uint64) interface{}
@@ -166,8 +160,8 @@ type lru struct {
 	futureItem interface{}
 }
 
-//newlru create a new least-recently-used cache for either the verification caches
-//or the mining datasets.
+// newlru create a new least-recently-used cache for either the verification caches
+// or the mining datasets.
 func newlru(what string, maxItems int, new func(epoch uint64) interface{}) *lru {
 	if maxItems <= 0 {
 		maxItems = 1
@@ -178,9 +172,9 @@ func newlru(what string, maxItems int, new func(epoch uint64) interface{}) *lru 
 	return &lru{what: what, new: new, cache: cache}
 }
 
-//get retrieves or creates an item for the given epoch. The first return value is always
-//non-nil. The second return value is non-nil if lru thinks that an item will be useful in
-//the near future.
+// get retrieves or creates an item for the given epoch. The first return value is always
+// non-nil. The second return value is non-nil if lru thinks that an item will be useful in
+// the near future.
 func (lru *lru) get(epoch uint64) (item, future interface{}) {
 	lru.mu.Lock()
 	defer lru.mu.Unlock()
@@ -206,7 +200,7 @@ func (lru *lru) get(epoch uint64) (item, future interface{}) {
 	return item, future
 }
 
-//cache wraps an cphash cache with some metadata to allow easier concurrent use.
+// cache wraps an cphash cache with some metadata to allow easier concurrent use.
 type cache struct {
 	epoch uint64    // Epoch for which this cache is relevant
 	dump  *os.File  // File descriptor of the memory mapped cache
@@ -215,13 +209,13 @@ type cache struct {
 	once  sync.Once // Ensures the cache is generated only once
 }
 
-//newCache creates a new cphash verification cache and returns it as a plain Go
-//interface to be usable in an LRU cache.
+// newCache creates a new cphash verification cache and returns it as a plain Go
+// interface to be usable in an LRU cache.
 func newCache(epoch uint64) interface{} {
 	return &cache{epoch: epoch}
 }
 
-//generate ensures that the cache content is generated before use.
+// generate ensures that the cache content is generated before use.
 func (c *cache) generate(dir string, limit int, test bool) {
 	c.once.Do(func() {
 		size := cacheSize(c.epoch*epochLength + 1)
@@ -273,7 +267,7 @@ func (c *cache) generate(dir string, limit int, test bool) {
 	})
 }
 
-//finalizer unmaps the memory and closes the file.
+// finalizer unmaps the memory and closes the file.
 func (c *cache) finalizer() {
 	if c.mmap != nil {
 		c.mmap.Unmap()
@@ -282,7 +276,7 @@ func (c *cache) finalizer() {
 	}
 }
 
-//dataset wraps an cphash dataset with some metadata to allow easier concurrent use.
+// dataset wraps an cphash dataset with some metadata to allow easier concurrent use.
 type dataset struct {
 	epoch   uint64    // Epoch for which this cache is relevant
 	dump    *os.File  // File descriptor of the memory mapped cache
@@ -291,13 +285,13 @@ type dataset struct {
 	once    sync.Once // Ensures the cache is generated only once
 }
 
-//newDataset creates a new cphash mining dataset and returns it as a plain Go
-//interface to be usable in an LRU cache.
+// newDataset creates a new cphash mining dataset and returns it as a plain Go
+// interface to be usable in an LRU cache.
 func newDataset(epoch uint64) interface{} {
 	return &dataset{epoch: epoch}
 }
 
-//generate ensures that the dataset content is generated before use.
+// generate ensures that the dataset content is generated before use.
 func (d *dataset) generate(dir string, limit int, test bool) {
 	d.once.Do(func() {
 		csize := cacheSize(d.epoch*epochLength + 1)
@@ -356,7 +350,7 @@ func (d *dataset) generate(dir string, limit int, test bool) {
 	})
 }
 
-//finalizer closes any file handlers and memory maps open.
+// finalizer closes any file handlers and memory maps open.
 func (d *dataset) finalizer() {
 	if d.mmap != nil {
 		d.mmap.Unmap()
@@ -365,13 +359,13 @@ func (d *dataset) finalizer() {
 	}
 }
 
-//MakeCache generates a new cphash cache and optionally stores it to disk.
+// MakeCache generates a new cphash cache and optionally stores it to disk.
 func MakeCache(block uint64, dir string) {
 	c := cache{epoch: block / epochLength}
 	c.generate(dir, math.MaxInt32, false)
 }
 
-//MakeDataset generates a new cphash dataset and optionally stores it to disk.
+// MakeDataset generates a new cphash dataset and optionally stores it to disk.
 func MakeDataset(block uint64, dir string) {
 	d := dataset{epoch: block / epochLength}
 	d.generate(dir, math.MaxInt32, false)
@@ -398,7 +392,6 @@ type Config struct {
 	DatasetsInMem  int
 	DatasetsOnDisk int
 	PowMode        Mode
-	PowRangeMode   uint
 }
 
 // Cphash is a pow engine based on proof-of-work implementing the cphash
@@ -421,17 +414,10 @@ type Cphash struct {
 	fakeDelay time.Duration // Time delay to sleep for before returning from verify
 
 	lock sync.Mutex // Ensures thread safety for the in-memory caches and mining fields
-
-	// RandomX mining and verifying mode
-	rxKey  []byte
-	vCache *C.struct_randomx_cache
-	vvm    *C.struct_randomx_vm
-
-	mDataset *C.struct_randomx_dataset
-	mvm      []*C.struct_randomx_vm
 }
 
-func newRangeCphash(config Config) *Cphash {
+// New creates a full sized cphash PoW scheme.
+func New(config Config) *Cphash {
 	if config.CachesInMem <= 0 {
 		log.Warn("One cphash cache must always be in memory", "requested", config.CachesInMem)
 		config.CachesInMem = 1
@@ -442,6 +428,7 @@ func newRangeCphash(config Config) *Cphash {
 	if config.DatasetDir != "" && config.DatasetsOnDisk > 0 {
 		log.Debug("Disk storage enabled for cphash DAGs", "dir", config.DatasetDir, "count", config.DatasetsOnDisk)
 	}
+	//config.PowMode = ModeLocalMock
 	return &Cphash{
 		config:   config,
 		caches:   newlru("cache", config.CachesInMem, newCache),
@@ -449,16 +436,6 @@ func newRangeCphash(config Config) *Cphash {
 		update:   make(chan struct{}),
 		hashrate: metrics.NewMeter(),
 	}
-}
-
-// New creates a full sized cphash PoW scheme.
-func newCphash(config Config) *Cphash {
-	return newRangeCphash(config)
-}
-
-// New creates a full sized cphash PoW scheme.
-func New(config Config) *Cphash {
-	return newRangeCphash(config)
 }
 
 // NewTester creates a small sized cphash PoW scheme useful only for testing
@@ -603,21 +580,5 @@ func (cphash *Cphash) APIs(chain types.ChainReader) []rpc.API {
 // SeedHash is the seed to use for generating a verification cache and the mining
 // dataset.
 func SeedHash(block uint64) []byte {
-	return nil
-}
-func SeedRangeHash(block uint64) []byte {
 	return seedHash(block)
-}
-
-func (cphash *Cphash) ReleaseVM() {
-	if len(cphash.mvm) > 0 {
-		C.randomx_release_dataset(cphash.mDataset)
-
-		for i := 0; i < len(cphash.mvm); i++ {
-			C.randomx_destroy_vm(cphash.mvm[i])
-		}
-
-		cphash.mvm = make([]*C.struct_randomx_vm, 0)
-		log.Debug("Release VM")
-	}
 }

@@ -52,8 +52,6 @@ type Engine interface {
 
 	CalcKeyBlockDifficulty(chain types.KeyChainReader, time uint64, parent *types.KeyBlockHeader) *big.Int
 	PowMode() uint
-	PowRangeMode() uint
-	ReleaseVM()
 }
 
 // PoW is a consensus engine based on proof-of-work.

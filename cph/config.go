@@ -81,10 +81,9 @@ type Config struct {
 	Genesis    *core.Genesis    `toml:",omitempty"`
 
 	// Protocol options
-	NetworkId    uint64 // Network ID to use for selecting peers to connect to
-	PowRangeMode uint
-	SyncMode     downloader.SyncMode
-	NoPruning    bool
+	NetworkId uint64 // Network ID to use for selecting peers to connect to
+	SyncMode  downloader.SyncMode
+	NoPruning bool
 
 	// Light client options
 	LightServ  int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
