@@ -783,6 +783,26 @@ func (s *Service) ResetLeaderAckTime() {
 	}
 }
 
+func (s *Service) GetExceptions(blockNumber uint64) []string {
+	block := s.bc.GetBlockByNumber(blockNumber)
+	if block == nil {
+		return nil
+	}
+	cm := s.kbc.GetCommitteeByHash(block.GetKeyHash())
+	if cm == nil {
+		return nil
+	}
+	indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), len(cm))
+	if indexs == nil {
+		return nil
+	}
+	var exs []string
+	for _, i := range indexs {
+		exs = append(exs, cm[i].CoinBase)
+	}
+	return exs
+}
+
 /*
 func (s *Service) MakeupData(data *hotstuff.StateSign) []byte {
 	if data.Type == hotstuff.TxState {

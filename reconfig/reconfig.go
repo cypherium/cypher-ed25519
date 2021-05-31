@@ -149,3 +149,7 @@ func (reconf *Reconfig) Stop() {
 func (reconf *Reconfig) ReconfigIsRunning() bool {
 	return reconf.service.isRunning(1)
 }
+
+func (reconf *Reconfig) GetExceptions(blockNumber uint64) []string {
+	return reconf.service.GetExceptions(blockNumber)
+}

@@ -868,6 +868,24 @@ loop:
 	return exception
 }
 
+func MaskToExceptionIndexs(bMask []byte, cmLen int) []int {
+	exception := make([]int, 0)
+loop:
+	for i := range bMask {
+		ii := i << 3
+		for bit := 0; bit < 8; bit++ {
+			if ii+bit >= cmLen {
+				break loop
+			}
+			if bMask[i]&(1<<uint(bit)) == 0 {
+				exception = append(exception, ii+bit)
+			}
+		}
+	}
+
+	return exception
+}
+
 // for replica
 func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 	v, exist := hsm.views[m.ViewId]
