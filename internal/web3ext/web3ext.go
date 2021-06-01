@@ -403,8 +403,8 @@ web3c._extend({
 			inputFormatter: [web3c._extend.formatters.inputBlockNumberFormatter]
 		}),
         new web3c._extend.Method({
-			name: 'Exceptions',
-			call: 'cph_Exceptions',
+			name: 'committeeExceptions',
+			call: 'cph_committeeExceptions',
 			params: 1,
 			inputFormatter: [web3c._extend.formatters.inputBlockNumberFormatter]
 		}),

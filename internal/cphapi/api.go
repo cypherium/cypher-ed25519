@@ -77,7 +77,7 @@ func (s *PublicCphereumAPI) CommitteeMembers(ctx context.Context, blockNr rpc.Bl
 	return c, err
 }
 
-func (s *PublicCphereumAPI) CommitteeExceps(ctx context.Context, blockNr rpc.BlockNumber) []string {
+func (s *PublicCphereumAPI) CommitteeExceptions(ctx context.Context, blockNr rpc.BlockNumber) []string {
 	return s.b.Exceptions(int64(blockNr))
 }
 
@@ -656,10 +656,6 @@ func (s *PublicBlockChainAPI) GetCommitteeMember(ctx context.Context, blockNr rp
 		return nil, err
 	}
 	return nil, err
-}
-
-func (s *PublicBlockChainAPI) GetCommitteeExceps(ctx context.Context, blockNr int64) []string {
-	return s.b.Exceptions(blockNr)
 }
 
 func (api *PublicBlockChainAPI) RosterConfig(data ...interface{}) error {
