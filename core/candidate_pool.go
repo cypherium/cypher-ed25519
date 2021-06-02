@@ -19,7 +19,9 @@ import (
 	"github.com/cypherium/cypherBFT/cphdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
+	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/pow"
+	"net"
 )
 
 var (
@@ -329,6 +331,10 @@ func (cp *CandidatePool) verify(candidate *types.Candidate) error {
 		return ErrCandidateVersionLow
 	}
 
+	err = netutil.VerifyConnectivity(net.IP(candidate.IP).String(), candidate.Port)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

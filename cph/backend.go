@@ -200,7 +200,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 		cph.blockchain.SetHead(compat.RewindTo)
 		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
-	//??cph.bloomIndexer.Start(cph.blockchain)
 
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)

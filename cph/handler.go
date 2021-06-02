@@ -878,7 +878,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// 	break
 		// }
 		// Transactions can be processed, parse all of them and deliver to the pool
-		log.Info("msg.Code == TxMsg 1")
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
