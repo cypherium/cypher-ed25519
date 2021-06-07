@@ -353,7 +353,7 @@ func (r *Router) handleConn(remote *ServerIdentity, c Conn) {
 				return
 			}
 			// Temporary error, continue.
-			log.Warn("HandleConn", "", r.ServerIdentity, "Error with connection", address, "=>", err)
+			log.Debug("HandleConn", "", r.ServerIdentity, "Error with connection", address, "=>", err)
 			try++
 			if try > 3 {
 				return
@@ -395,7 +395,7 @@ func (r *Router) registerConnection(remote *ServerIdentity, c Conn) error {
 	}
 	_, okc := r.connections[remote.ID]
 	if okc {
-		log.Warn("Connection already registered. Appending new connection to same identity.")
+		log.Debug("Connection already registered. Appending new connection to same identity.")
 	}
 	r.connections[remote.ID] = append(r.connections[remote.ID], c)
 	return nil

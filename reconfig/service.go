@@ -330,7 +330,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 	}
 	data, err := s.txService.tryProposalNewBlock(types.IsTxBlockType)
 	if err != nil {
-		log.Error("tryProposalNewBlock", "error", err)
+		log.Warn("tryProposalNewBlock", "error", err)
 		return err, nil, nil, nil
 	}
 	proposeOK = true
