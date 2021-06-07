@@ -522,11 +522,11 @@ var (
 	}
 	//Committee debug flags
 	RnetDebugFlag = cli.IntFlag{
-		Name:  "onetdebug",
+		Name:  "rnetdebug",
 		Usage: "Rnet debug level",
 	}
 	RnetPortFlag = cli.StringFlag{
-		Name:  "onetport",
+		Name:  "rnetport",
 		Usage: "port of listen",
 		Value: "7002",
 	}

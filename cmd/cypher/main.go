@@ -142,7 +142,7 @@ var (
 		utils.IPCPathFlag,
 	}
 
-	onetFlags = []cli.Flag{
+	rnetFlags = []cli.Flag{
 		utils.RnetDebugFlag,
 		utils.RnetPortFlag,
 		utils.PublicKeyFlag,
@@ -198,7 +198,7 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, onetFlags...)
+	app.Flags = append(app.Flags, rnetFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
