@@ -28,9 +28,9 @@ import (
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet/network"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 	"github.com/cypherium/cypherBFT/reconfig/hotstuff"
+	"github.com/cypherium/cypherBFT/rnet/network"
 )
 
 type committeeInfo struct {

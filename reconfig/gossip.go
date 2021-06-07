@@ -25,11 +25,11 @@ import (
 	"github.com/cypherium/cypherBFT/common/math"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet"
-	"github.com/cypherium/cypherBFT/onet/network"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 	"github.com/cypherium/cypherBFT/rlp"
+	"github.com/cypherium/cypherBFT/rnet"
+	"github.com/cypherium/cypherBFT/rnet/network"
 )
 
 type serviceCallback interface {
@@ -58,8 +58,8 @@ type msgHeadInfo struct {
 }
 
 type netService struct {
-	*onet.ServiceProcessor // We need to embed the ServiceProcessor, so that incoming messages are correctly handled.
-	server                 *onet.Server
+	*rnet.ServiceProcessor // We need to embed the ServiceProcessor, so that incoming messages are correctly handled.
+	server                 *rnet.Server
 	serverAddress          string
 	serverID               string
 	gossipMsg              map[common.Hash]*msgHeadInfo
@@ -77,15 +77,15 @@ type netService struct {
 }
 
 func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netService {
-	registerService := func(c *onet.Context) (onet.Service, error) {
-		s := &netService{ServiceProcessor: onet.NewServiceProcessor(c)}
+	registerService := func(c *rnet.Context) (rnet.Service, error) {
+		s := &netService{ServiceProcessor: rnet.NewServiceProcessor(c)}
 		s.RegisterProcessorFunc(network.RegisterMessage(&networkMsg{}), s.handleNetworkMsgAck)
 		s.RegisterProcessorFunc(network.RegisterMessage(&heartBeatMsg{}), s.handleHeartBeatMsgAck)
 		return s, nil
 	}
-	onet.RegisterNewService(sName, registerService)
-	address := conf.cph.ExtIP().String() + ":" + conf.config.OnetPort
-	server := onet.NewKcpServer(address)
+	rnet.RegisterNewService(sName, registerService)
+	address := conf.cph.ExtIP().String() + ":" + conf.config.RnetPort
+	server := rnet.NewKcpServer(address)
 	s := server.Service(sName).(*netService)
 	s.server = server
 	s.serverID = address

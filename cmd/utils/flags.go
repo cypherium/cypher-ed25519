@@ -521,11 +521,11 @@ var (
 		Value: cph.DefaultConfig.GPO.Percentile,
 	}
 	//Committee debug flags
-	OnetDebugFlag = cli.IntFlag{
+	RnetDebugFlag = cli.IntFlag{
 		Name:  "onetdebug",
-		Usage: "Onet debug level",
+		Usage: "Rnet debug level",
 	}
-	OnetPortFlag = cli.StringFlag{
+	RnetPortFlag = cli.StringFlag{
 		Name:  "onetport",
 		Usage: "port of listen",
 		Value: "7002",
@@ -1060,7 +1060,7 @@ func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
 	SetLocalTestTestIpSw(ctx, &cfg.LocalTestConfig)
 	setCphash(ctx, cfg)
 
-	cfg.OnetPort = ctx.GlobalString(OnetPortFlag.Name)
+	cfg.RnetPort = ctx.GlobalString(RnetPortFlag.Name)
 
 	switch {
 	case ctx.GlobalIsSet(SyncModeFlag.Name):

@@ -1,4 +1,4 @@
-package onet
+package rnet
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet/network"
+	"github.com/cypherium/cypherBFT/rnet/network"
 	"rsc.io/goversion/version"
 )
 

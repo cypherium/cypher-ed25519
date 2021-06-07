@@ -1,7 +1,7 @@
-package onet
+package rnet
 
 import (
-	"github.com/cypherium/cypherBFT/onet/network"
+	"github.com/cypherium/cypherBFT/rnet/network"
 )
 
 // Context represents the methods that are available to a service.

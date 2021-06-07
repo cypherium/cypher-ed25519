@@ -239,7 +239,7 @@ func homeDir() string {
 	return ""
 }
 
-func OnetDefaultDir() string {
+func RnetDefaultDir() string {
 	if home := os.Getenv("HOME"); home != "" {
 		return path.Join(home, "Library", "Application Support", "cypher", "private.toml")
 	}

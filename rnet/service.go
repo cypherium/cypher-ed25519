@@ -1,4 +1,4 @@
-package onet
+package rnet
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet/network"
+	"github.com/cypherium/cypherBFT/rnet/network"
 	uuid "gopkg.in/satori/go.uuid.v1"
 )
 
@@ -18,15 +18,15 @@ func init() {
 // Service is a generic interface to define any type of services.
 // A Service has multiple roles:
 // * Processing websocket client requests with ProcessClientRequests
-// * Handling onet information to ProtocolInstances created with
+// * Handling rnet information to ProtocolInstances created with
 //  	NewProtocol
 // * Handling any kind of messages between Services between different hosts with
 //   	the Processor interface
 type Service interface {
-	// NewProtocol is called upon a ProtocolInstance's first message when Onet needs
+	// NewProtocol is called upon a ProtocolInstance's first message when Rnet needs
 	// to instantiate the protocol. A Service is expected to manually create
 	// the ProtocolInstance it is using. If a Service returns (nil,nil), that
-	// means this Service lets Onet handle the protocol instance.
+	// means this Service lets Rnet handle the protocol instance.
 	//NewProtocol(*TreeNodeInstance, *GenericConfig) (ProtocolInstance, error)
 	// ProcessClientRequest is called when a message from an
 	// external client is received by the websocket for this
@@ -200,7 +200,7 @@ func (s *serviceFactory) start(name string, con *Context) (Service, error) {
 type serviceManager struct {
 	// the actual services
 	services map[ServiceID]Service
-	// the onet host
+	// the rnet host
 	server *Server
 	network.Dispatcher
 }

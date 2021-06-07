@@ -116,7 +116,7 @@ type Config struct {
 
 	// Miscellaneous options
 	DocRoot  string `toml:"-"`
-	OnetPort string
+	RnetPort string
 }
 
 type configMarshaling struct {

@@ -1,4 +1,4 @@
-package onet
+package rnet
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"reflect"
 
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet/network"
+	"github.com/cypherium/cypherBFT/rnet/network"
 	"github.com/dedis/protobuf"
 )
 

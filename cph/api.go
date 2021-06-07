@@ -166,9 +166,9 @@ func (api *PrivateMinerAPI) Start(threads *int, addr common.Address, password st
 		return errors.New("missing public key")
 	}
 	log.Warn("pubKey", "pubKey", server.Public, "prvKey", server.Private)
-	log.Warn("exip", "ip", api.e.ExtIP(), "port", api.e.config.OnetPort)
+	log.Warn("exip", "ip", api.e.ExtIP(), "port", api.e.config.RnetPort)
 	server.Ip = api.e.ExtIP().String()
-	server.Port = api.e.config.OnetPort
+	server.Port = api.e.config.RnetPort
 	api.e.reconfig.Start(server)
 	// Start the miner and return
 	// Set the number of threads if the seal engine supports it

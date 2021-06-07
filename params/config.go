@@ -66,7 +66,7 @@ type ChainConfig struct {
 	// Various consensus engines
 	Cphash           *CphashConfig    `json:"cphash,omitempty"`
 	Clique           *CliqueConfig    `json:"clique,omitempty"`
-	OnetPort         string           `json:"onetport,omitempty"`
+	RnetPort         string           `json:"onetport,omitempty"`
 	GenCommittee     GenesisCommittee `json:"committee"      gencodec:"required"`
 	EnabledTPS       bool
 	ReconfigBlock    *big.Int `json:"reconfigBlock,omitempty"`

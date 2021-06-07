@@ -269,7 +269,7 @@ func (self *worker) commitNewWork() {
 		time.Sleep(wait)
 	}
 
-	port, _ := strconv.Atoi(self.config.OnetPort)
+	port, _ := strconv.Atoi(self.config.RnetPort)
 	candidate := types.NewCandidate(keyBlock.Hash(), nil, keyBlock.Number().Uint64()+uint64(1), txBlock.NumberU64(), nil, self.IP, common.HexString(self.pubKey), self.coinBase.String(), port)
 	committeeSize := len(self.cph.KeyBlockChain().CurrentCommittee())
 

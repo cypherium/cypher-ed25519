@@ -143,8 +143,8 @@ var (
 	}
 
 	onetFlags = []cli.Flag{
-		utils.OnetDebugFlag,
-		utils.OnetPortFlag,
+		utils.RnetDebugFlag,
+		utils.RnetPortFlag,
 		utils.PublicKeyFlag,
 	}
 
@@ -249,8 +249,8 @@ func cypher(ctx *cli.Context) error {
 	//if err != nil {
 	//	log.Error("Cannot get home directory")
 	//}
-	//OnetPort := ctx.GlobalString(utils.OnetPortFlag.Name)
-	//logFile, _ := os.OpenFile(strings.Join([]string{usr.HomeDir, "/", OnetPort, ".log"}, ""), os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
+	//RnetPort := ctx.GlobalString(utils.RnetPortFlag.Name)
+	//logFile, _ := os.OpenFile(strings.Join([]string{usr.HomeDir, "/", RnetPort, ".log"}, ""), os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
 	//syscall.Dup2(int(logFile.Fd()), 1)
 	//syscall.Dup2(int(logFile.Fd()), 2)
 	//fmt.Println(logFile, syscall.Getuid())
