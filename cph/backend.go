@@ -142,14 +142,19 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
-	var extIP net.IP
 	log.Info("Initialised chain configuration", "config id", chainConfig.ChainID)
-	if len(config.LocalTestConfig.LocalTestIP) < 6 {
-		extIP = net.ParseIP(nat.GetExternalIp())
-	} else {
-		extIP = net.ParseIP(config.LocalTestConfig.LocalTestIP)
-
+	var extIP net.IP
+	extIP = net.ParseIP(config.ExternalIp).To4()
+	if extIP == nil {
+		log.Info("nil1")
+		extIP = net.ParseIP(config.LocalTestConfig.LocalTestIP).To4()
+		if extIP == nil {
+			extIP = net.ParseIP(nat.GetExternalIp())
+		} else {
+			extIP = net.ParseIP(config.LocalTestConfig.LocalTestIP)
+		}
 	}
+
 	log.Info("extIP address", "IP", extIP.String())
 	cph := &Cypherium{
 		config:         config,

@@ -50,7 +50,7 @@ import (
 	"github.com/cypherium/cypherBFT/p2p/nat"
 	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/params"
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -912,8 +912,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -987,6 +985,12 @@ func SetLocalTestTestIpSw(ctx *cli.Context, cfg *core.LocalTestIpConfig) {
 	}
 }
 
+func SetExternalIp(cfg *node.Config, cphcg *cph.Config) {
+	if ext, err := cfg.P2P.NAT.ExternalIP(); err == nil {
+		cphcg.ExternalIp = ext.String()
+	}
+}
+
 func setCphash(ctx *cli.Context, cfg *cph.Config) {
 	if ctx.GlobalIsSet(CphashCacheDirFlag.Name) {
 		cfg.Cphash.CacheDir = ctx.GlobalString(CphashCacheDirFlag.Name)
@@ -1047,7 +1051,7 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 // SetCphhConfig applies cph-related command line flags to the config.
-func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
+func SetCphhConfig(ctx *cli.Context, cfg *cph.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, FastSyncFlag, LightModeFlag, SyncModeFlag)

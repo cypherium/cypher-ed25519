@@ -121,16 +121,15 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gcphConfig) {
 
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
+	utils.SetExternalIp(&cfg.Node, &cfg.Cph)
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetCphhConfig(ctx, stack, &cfg.Cph)
+	utils.SetCphhConfig(ctx, &cfg.Cph)
 	if ctx.GlobalIsSet(utils.CphStatsURLFlag.Name) {
 		cfg.Cphstats.URL = ctx.GlobalString(utils.CphStatsURLFlag.Name)
 	}
-
-	//	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	return stack, cfg
 }
 

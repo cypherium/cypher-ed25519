@@ -213,6 +213,10 @@ type LocalTestIpConfig struct {
 	LocalTestIP string
 }
 
+type ExternalIpConfig struct {
+	ExternalIP string
+}
+
 ///////////////////////////////////////////////
 type CandidatePool struct {
 	candidates *candidateLookup

@@ -115,8 +115,9 @@ type Config struct {
 	EnablePreimageRecording bool
 
 	// Miscellaneous options
-	DocRoot  string `toml:"-"`
-	RnetPort string
+	DocRoot    string `toml:"-"`
+	RnetPort   string
+	ExternalIp string
 }
 
 type configMarshaling struct {
