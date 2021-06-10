@@ -985,10 +985,23 @@ func SetLocalTestTestIpSw(ctx *cli.Context, cfg *core.LocalTestIpConfig) {
 	}
 }
 
-func SetExternalIp(cfg *node.Config, cphcg *cph.Config) {
-	if ext, err := cfg.P2P.NAT.ExternalIP(); err == nil {
-		cphcg.ExternalIp = ext.String()
+func SetExternalIp(ctx *cli.Context, cfg *node.Config, cphcg *cph.Config) {
+	if ctx.GlobalIsSet(NATFlag.Name) {
+		natif, err := nat.Parse(ctx.GlobalString(NATFlag.Name))
+		if err != nil {
+			Fatalf("Option %s: %v", NATFlag.Name, err)
+		} else {
+			if natif != nil {
+				if ext, err := cfg.P2P.NAT.ExternalIP(); err == nil {
+					cphcg.ExternalIp = ext.String()
+				}
+			} else {
+				cphcg.ExternalIp = "none"
+			}
+		}
+
 	}
+
 }
 
 func setCphash(ctx *cli.Context, cfg *cph.Config) {

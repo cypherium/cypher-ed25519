@@ -146,7 +146,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	var extIP net.IP
 	extIP = net.ParseIP(config.ExternalIp).To4()
 	if extIP == nil {
-		log.Info("nil1")
 		extIP = net.ParseIP(config.LocalTestConfig.LocalTestIP).To4()
 		if extIP == nil {
 			extIP = net.ParseIP(nat.GetExternalIp())
