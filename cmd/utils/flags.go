@@ -325,11 +325,6 @@ var (
 		Usage: "Target gas limit sets the artificial target gas floor for the blocks to mine",
 		Value: params.GenesisGasLimit,
 	}
-	CpherbaseFlag = cli.StringFlag{
-		Name:  "cpherbase",
-		Usage: "Public address for block mining rewards (default = first account created)",
-		Value: "0",
-	}
 	GasPriceFlag = BigFlag{
 		Name:  "gasprice",
 		Usage: "Minimal gas price to accept for mining a transactions",

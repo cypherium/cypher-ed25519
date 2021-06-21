@@ -25,7 +25,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/cph/downloader"
@@ -97,9 +96,8 @@ type Config struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	Cpherbase    common.Address `toml:",omitempty"`
-	MinerThreads int            `toml:",omitempty"`
-	ExtraData    []byte         `toml:",omitempty"`
+	MinerThreads int    `toml:",omitempty"`
+	ExtraData    []byte `toml:",omitempty"`
 	GasPrice     *big.Int
 
 	// Cphash options

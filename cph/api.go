@@ -54,14 +54,9 @@ func NewPublicCphereumAPI(e *Cypherium) *PublicCphereumAPI {
 	return &PublicCphereumAPI{e}
 }
 
-// Cpherbase is the address that mining rewards will be send to
-func (api *PublicCphereumAPI) Cpherbase() (common.Address, error) {
-	return api.e.Cpherbase()
-}
-
-// Coinbase is the address that mining rewards will be send to (alias for Cpherbase)
+// Coinbase is the address that mining rewards will be send to
 func (api *PublicCphereumAPI) Coinbase() (common.Address, error) {
-	return api.Cpherbase()
+	return api.e.Coinbase()
 }
 
 // Hashrate returns the POW hashrate
@@ -140,6 +135,11 @@ func (api *PrivateMinerAPI) Start(threads *int, addr common.Address, password st
 		prvKey ed25519.PrivateKey
 		pubKey ed25519.PublicKey
 	)
+
+	if api.e.IsMining() {
+		return fmt.Errorf("Miner is running...")
+	}
+
 	server := &common.NodeConfig{}
 
 	if addr != (common.Address{}) {
@@ -152,8 +152,8 @@ func (api *PrivateMinerAPI) Start(threads *int, addr common.Address, password st
 				//wallet.GetPubKey(account, passwd)
 				pubKey, prvKey, err = wallet.GetKeyPair(account, password)
 				if err != nil {
-					log.Error("Cannot start reconfig without public key of cpherbase", "err", err)
-					return fmt.Errorf("cpherbase missing public key: %v", err)
+					log.Error("Cannot start reconfig without public key of coinbase", "err", err)
+					return fmt.Errorf("Coinbase missing public key: %v", err)
 				}
 				server.Public = common.HexString(pubKey)
 				server.Private = common.HexString(prvKey)
@@ -184,10 +184,7 @@ func (api *PrivateMinerAPI) Start(threads *int, addr common.Address, password st
 	//	log.Info("Updated mining threads", "threads", *threads)
 	//	th.SetThreads(*threads)
 	//}
-	if !api.e.IsMining() {
-		return api.e.StartMining(true, eb, pubKey)
-	}
-	return nil
+	return api.e.StartMining(true, eb, pubKey)
 }
 
 // Stop the miner

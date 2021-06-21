@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
-	"sync"
 	"sync/atomic"
 
 	"golang.org/x/crypto/ed25519"
@@ -97,17 +96,14 @@ type Cypherium struct {
 
 	APIBackend *CphAPIBackend
 
-	miner     *miner.Miner
-	reconfig  *reconfig.Reconfig
-	gasPrice  *big.Int
-	cpherbase common.Address
+	miner    *miner.Miner
+	reconfig *reconfig.Reconfig
+	gasPrice *big.Int
 
 	networkID     uint64
 	netRPCService *cphapi.PublicNetAPI
 
 	extIP net.IP
-
-	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and cpherbase)
 
 	scope   event.SubscriptionScope
 	tpsFeed event.Feed
@@ -165,7 +161,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.GasPrice,
-		cpherbase:      config.Cpherbase,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks),
 		extIP:          extIP,
@@ -360,27 +355,19 @@ func (s *Cypherium) ResetWithGenesisBlock(gb *types.Block) {
 	s.blockchain.ResetWithGenesisBlock(gb)
 }
 
-func (s *Cypherium) Cpherbase() (eb common.Address, err error) {
-	s.lock.RLock()
-	cpherbase := s.cpherbase
-	s.lock.RUnlock()
-
-	if cpherbase != (common.Address{}) {
-		return cpherbase, nil
+func (s *Cypherium) Coinbase() (eb common.Address, err error) {
+	if s.miner.Mining() {
+		return s.miner.GetCoinbase(), nil
 	}
 	if wallets := s.AccountManager().Wallets(); len(wallets) > 0 {
 		if accounts := wallets[0].Accounts(); len(accounts) > 0 {
-			cpherbase := accounts[0].Address
+			coinbase := accounts[0].Address
 
-			s.lock.Lock()
-			s.cpherbase = cpherbase
-			s.lock.Unlock()
-
-			log.Info("Cpherbase automatically configured", "address", cpherbase)
-			return cpherbase, nil
+			log.Info("Coinbase automatically configured", "address", coinbase)
+			return coinbase, nil
 		}
 	}
-	return common.Address{}, fmt.Errorf("cpherbase must be explicitly specified")
+	return common.Address{}, fmt.Errorf("Coinbase must be explicitly specified")
 }
 
 func (s *Cypherium) StartMining(local bool, eb common.Address, pubKey ed25519.PublicKey) error {

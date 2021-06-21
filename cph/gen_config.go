@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/cph/downloader"
@@ -31,9 +30,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DatabaseCache           int
 		TrieCache               int
 		TrieTimeout             time.Duration
-		Cpherbase               common.Address `toml:",omitempty"`
-		MinerThreads            int            `toml:",omitempty"`
-		ExtraData               hexutil.Bytes  `toml:",omitempty"`
+		MinerThreads            int           `toml:",omitempty"`
+		ExtraData               hexutil.Bytes `toml:",omitempty"`
 		GasPrice                *big.Int
 		Cphash                  cphash.Config
 		TxPool                  core.TxPoolConfig
@@ -55,7 +53,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DatabaseCache = c.DatabaseCache
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
-	enc.Cpherbase = c.Cpherbase
 	enc.MinerThreads = c.MinerThreads
 	enc.ExtraData = c.ExtraData
 	enc.GasPrice = c.GasPrice
@@ -83,9 +80,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DatabaseCache           *int
 		TrieCache               *int
 		TrieTimeout             *time.Duration
-		Cpherbase               *common.Address `toml:",omitempty"`
-		MinerThreads            *int            `toml:",omitempty"`
-		ExtraData               *hexutil.Bytes  `toml:",omitempty"`
+		MinerThreads            *int           `toml:",omitempty"`
+		ExtraData               *hexutil.Bytes `toml:",omitempty"`
 		GasPrice                *big.Int
 		Cphash                  *cphash.Config
 		TxPool                  *core.TxPoolConfig
@@ -133,9 +129,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
-	}
-	if dec.Cpherbase != nil {
-		c.Cpherbase = *dec.Cpherbase
 	}
 	if dec.MinerThreads != nil {
 		c.MinerThreads = *dec.MinerThreads
