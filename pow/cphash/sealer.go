@@ -15,8 +15,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
 
-// +build linux darwin
-
 package cphash
 
 import (
@@ -27,10 +25,11 @@ import (
 	"runtime"
 	"sync"
 
+	"time"
+
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/log"
-	"time"
 )
 
 // SealCandidate implements pow.Engine, attempting to find a nonce that satisfies

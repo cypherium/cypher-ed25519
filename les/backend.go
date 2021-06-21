@@ -154,12 +154,7 @@ func lesTopic(genesisHash common.Hash, protocolVersion uint) discv5.Topic {
 
 type LightDummyAPI struct{}
 
-// Cpherbase is the address that mining rewards will be send to
-func (s *LightDummyAPI) Cpherbase() (common.Address, error) {
-	return common.Address{}, fmt.Errorf("not supported")
-}
-
-// Coinbase is the address that mining rewards will be send to (alias for Cpherbase)
+// Coinbase is the address that mining rewards will be send to
 func (s *LightDummyAPI) Coinbase() (common.Address, error) {
 	return common.Address{}, fmt.Errorf("not supported")
 }

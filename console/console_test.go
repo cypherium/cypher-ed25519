@@ -97,8 +97,7 @@ func newTester(t *testing.T, confOverride func(*cph.Config)) *tester {
 		t.Fatalf("failed to create node: %v", err)
 	}
 	cphConf := &cph.Config{
-		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-		Cpherbase: common.HexToAddress(testAddress),
+		Genesis: core.DeveloperGenesisBlock(15, common.Address{}),
 		Cphash: cphash.Config{
 			PowMode: cphash.ModeTest,
 		},

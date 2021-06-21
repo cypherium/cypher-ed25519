@@ -128,7 +128,6 @@ func testAttachWelcome(t *testing.T, cypher *testgcph, endpoint, apis string) {
 	attach.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	attach.SetTemplateFunc("gover", runtime.Version)
 	attach.SetTemplateFunc("gcphver", func() string { return params.Version })
-	attach.SetTemplateFunc("cpherbase", func() string { return cypher.Cpherbase })
 	attach.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
 	attach.SetTemplateFunc("ipc", func() bool { return strings.HasPrefix(endpoint, "ipc") })
 	attach.SetTemplateFunc("datadir", func() string { return cypher.Datadir })

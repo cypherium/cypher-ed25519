@@ -39,7 +39,6 @@ type testgcph struct {
 
 	// template variables for expect
 	Datadir   string
-	Cpherbase string
 }
 
 func init() {

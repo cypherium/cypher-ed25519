@@ -515,12 +515,6 @@ web3c._extend({
 			call: 'miner_stop'
 		}),
 		new web3c._extend.Method({
-			name: 'setCpherbase',
-			call: 'miner_setCpherbase',
-			params: 1,
-			inputFormatter: [web3c._extend.formatters.inputAddressFormatter]
-		}),
-		new web3c._extend.Method({
 			name: 'setExtra',
 			call: 'miner_setExtra',
 			params: 1

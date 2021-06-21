@@ -151,3 +151,7 @@ func (self *Miner) SetCoinbase(eb common.Address) {
 	self.coinBase = eb
 	self.worker.SetCoinbase(eb)
 }
+
+func (self *Miner) GetCoinbase() common.Address {
+	return self.coinBase
+}

@@ -17,8 +17,6 @@
 
 // Package cphash implements the cphash proof-of-work pow engine.
 
-// +build linux darwin
-
 package cphash
 
 import (
