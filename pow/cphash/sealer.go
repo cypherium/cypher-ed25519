@@ -19,17 +19,15 @@ package cphash
 
 import (
 	crand "crypto/rand"
+	"github.com/cypherium/cypherBFT/common"
+	"github.com/cypherium/cypherBFT/core/types"
+	"github.com/cypherium/cypherBFT/log"
 	"math"
 	"math/big"
 	"math/rand"
 	"runtime"
 	"sync"
-
 	"time"
-
-	"github.com/cypherium/cypherBFT/common"
-	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/log"
 )
 
 // SealCandidate implements pow.Engine, attempting to find a nonce that satisfies
@@ -67,7 +65,7 @@ func (cphash *Cphash) SealCandidate(candidate *types.Candidate, stop <-chan stru
 		threads = runtime.NumCPU()
 	}
 	if threads < 0 {
-		threads = 0 // Allows disabling local mining without extra logic around local/remote
+		threads = 1
 	}
 	var pend sync.WaitGroup
 	for i := 0; i < threads; i++ {
@@ -144,7 +142,7 @@ search:
 				// Seal and return a block (if still needed)
 				select {
 				case found <- candidate:
-					//log.Info("Cphash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
+					log.Info("Cphash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
 				case <-abort:
 					logger.Trace("Cphash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
 				}

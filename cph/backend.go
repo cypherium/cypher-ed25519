@@ -21,16 +21,6 @@ package cph
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"runtime"
-	"sync/atomic"
-
-	"golang.org/x/crypto/ed25519"
-
-	"net"
-
-	"time"
-
 	"github.com/cypherium/cypherBFT/accounts"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
@@ -49,9 +39,17 @@ import (
 	"github.com/cypherium/cypherBFT/miner"
 	"github.com/cypherium/cypherBFT/node"
 	"github.com/cypherium/cypherBFT/p2p"
+	"golang.org/x/crypto/ed25519"
+	"math/big"
+	"net"
+	"runtime"
+	"strconv"
+	"sync/atomic"
+	"time"
 
 	//"github.com/cypherium/cypherBFT/p2p/nat"
 	"github.com/cypherium/cypherBFT/p2p/nat"
+	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/pow"
 	"github.com/cypherium/cypherBFT/pow/cphash"
@@ -208,7 +206,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	cph.blockchain.TxPool = cph.txPool
 	cph.reconfig = reconfig.NewReconfig(chainDb, cph, cph.chainConfig, cph.EventMux(), cph.engine, extIP)
 	cph.miner = miner.New(cph, cph.chainConfig, cph.EventMux(), cph.engine, extIP)
-
+	err = selfCheckConsensusPortIsOpened(cph.chainConfig.RnetPort)
+	if err != nil {
+		log.Error("New backend", "selfCheckConsensusPortIsOpened", err)
+		return nil, err
+	}
 	if cph.protocolManager, err = NewProtocolManager(cph.chainConfig, config.SyncMode, config.NetworkId, cph.eventMux, cph.txPool, cph.engine, cph.blockchain, cph.keyBlockChain, cph.reconfig, chainDb, cph.candidatePool); err != nil {
 		return nil, err
 	}
@@ -225,7 +227,16 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 
 	return cph, nil
 }
-
+func selfCheckConsensusPortIsOpened(RnetPort string) error {
+	protocol := "udp"
+	port, _ := strconv.Atoi(RnetPort)
+	err := netutil.VerifyConnectivity(protocol, net.ParseIP("127.0.0.1").String(), port)
+	if err != nil {
+		return fmt.Errorf("POW work is not to be permit;Due to your node haven't been opened  UDP consensus port.", port)
+	}
+	log.Info("selfCheckConsensusPortIsOpened", "UDP consensus port", port)
+	return nil
+}
 func makeExtraData(extra []byte) []byte {
 	if len(extra) == 0 {
 		// create default extradata

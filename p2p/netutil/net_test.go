@@ -261,3 +261,21 @@ func TestDistinctNetSetAddRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestVerifyConnectivity(t *testing.T) {
+	protocol := "udp"
+	err := VerifyConnectivity(protocol, parseIP("127.0.0.1").String(), 7100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protocol = "tcp"
+	err = VerifyConnectivity(protocol, parseIP("127.0.0.1").String(), 8000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = VerifyConnectivity(protocol, parseIP("127.0.0.1").String(), 6000)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

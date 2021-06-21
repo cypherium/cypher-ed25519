@@ -324,8 +324,8 @@ func (s DistinctNetSet) String() string {
 }
 
 // VerifyConnectivity tries to connect to a remote host on a given
-func VerifyConnectivity(host string, port int) error {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), 3*time.Second)
+func VerifyConnectivity(protocol, host string, port int) error {
+	conn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%d", host, port), 10*time.Second)
 	if err != nil {
 		return err
 	}

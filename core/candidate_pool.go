@@ -335,8 +335,9 @@ func (cp *CandidatePool) verify(candidate *types.Candidate) error {
 		return ErrCandidateVersionLow
 	}
 
-	err = netutil.VerifyConnectivity(net.IP(candidate.IP).String(), candidate.Port)
+	err = netutil.VerifyConnectivity("udp", net.IP(candidate.IP).String(), candidate.Port)
 	if err != nil {
+		log.Warn("candidate pool verify candidate's ip", "err", err)
 		return err
 	}
 	return nil

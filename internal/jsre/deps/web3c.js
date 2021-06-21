@@ -5426,6 +5426,18 @@ var methods = function () {
         inputFormatter: [formatters.inputBlockNumberFormatter,null,null],
         outputFormatter: formatters.outputBlockFormatter,
     });
+    var getKeyBlockByHash = new Method({
+        name: 'getKeyBlockByHash',
+        call: 'cph_getKeyBlockByHash',
+        params: 1,
+        outputFormatter: formatters.outputKeyBlockFormatter
+    });
+    var getTxBlockByHash = new Method({
+        name: 'getTxBlockByHash',
+        call: 'cph_getTxBlockByHash',
+        params: 1,
+        outputFormatter: formatters.outputBlockFormatter
+    });
     var getCompilers = new Method({
         name: 'getCompilers',
         call: 'cph_getCompilers',
@@ -5573,6 +5585,8 @@ var methods = function () {
         getBlock,
         getKeyBlockByNumber,
         getTxBlockByNumber,
+        getKeyBlockByHash,
+        getTxBlockByHash,
         getCompilers,
         getBlockTransactionCount,
         getTransaction,

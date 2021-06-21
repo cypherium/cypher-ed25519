@@ -815,7 +815,7 @@ loop:
 
 			if bMask[i]&(1<<uint(bit)) != 0 {
 				if isFirst {
-					pub = *groupPublicKey[ii+bit] //pub.Deserialize(groupPublicKey[ii+bit].Serialize())
+					pub.Deserialize(groupPublicKey[ii+bit].Serialize())
 					isFirst = false
 				} else {
 					pub.Add(groupPublicKey[ii+bit])
