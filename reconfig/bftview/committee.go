@@ -336,10 +336,11 @@ func (committee *Committee) Add(r *common.Cnode, leaderIndex int, outAddress str
 		if leaderIndex > 0 {
 			for i := leaderIndex; i < n-1; i++ {
 				committee.List[i] = committee.List[i+1]
-				if outAddress != "" && outAddrI != 0 && ((isIp && committee.List[i].Address == outAddress) || (!isIp && committee.List[i].CoinBase == outAddress)) {
+				if outAddress != "" && outAddrI == 0 && ((isIp && committee.List[i].Address == outAddress) || (!isIp && committee.List[i].CoinBase == outAddress)) {
 					outAddrI = i
 				}
 			}
+			//log.Info("committee.Add", "outAddrI", outAddrI, "leaderIndex", leaderIndex)
 			outer = committee.List[leaderIndex-1]
 			committee.List[leaderIndex-1] = list0
 			if leaderIndex-1 == 0 && outAddrI > 0 {
