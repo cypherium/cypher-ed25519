@@ -153,7 +153,7 @@ func (s *Service) OnNewView(data []byte, extraes [][]byte) error { //buf is snap
 		}
 		bestCandidates = append(bestCandidates, cand)
 	}
-	s.keyService.setBestCandidateAndBadAddress(bestCandidates, nil)
+	s.keyService.setBestCandidate(bestCandidates)
 
 	return nil
 }
@@ -240,7 +240,7 @@ func (s *Service) OnPropose(isKeyBlock bool, state []byte, extra []byte) error {
 			log.Info("OnPropose", "keyNumber", kblock.NumberU64())
 		}
 		if kblock != nil {
-			err := s.keyService.verifyKeyBlock(kblock, types.DecodeToCandidate(extra), nil)
+			err := s.keyService.verifyKeyBlock(kblock, types.DecodeToCandidate(extra))
 			if err != nil {
 				log.Error("verify keyblock", "number", kblock.NumberU64(), "err", err)
 				return err
@@ -315,7 +315,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 	s.muCurrentView.Unlock()
 
 	if reconfigType > 0 {
-		keyblock, mb, bestCandi, _, err := s.keyService.tryProposalChangeCommittee(reconfigType, leaderIndex)
+		keyblock, mb, bestCandi, err := s.keyService.tryProposalChangeCommittee(reconfigType, leaderIndex)
 		if err == nil && keyblock != nil && mb != nil {
 			kbuf := keyblock.EncodeToBytes()
 			if bestCandi != nil {

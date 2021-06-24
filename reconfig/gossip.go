@@ -208,9 +208,11 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 
 	s.setIsRunning(address, true)
 	s.muIdMap.Lock()
-	q, _ := s.idDataMap[address]
+	q, ok := s.idDataMap[address]
 	s.muIdMap.Unlock()
-	q.PushBack(msg)
+	if ok && q != nil {
+		q.PushBack(msg)
+	}
 	//	log.Info("SendRawData", "to address", address, "msg", msg)
 	return nil
 }

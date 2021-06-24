@@ -327,6 +327,9 @@ func (committee *Committee) Add(r *common.Cnode, leaderIndex int, outAddress str
 				return nil
 			}
 		}
+		if outAddress != "" && outAddress[0] == '*' {
+			outAddress = outAddress[1:]
+		}
 		outAddrI := 0
 		isIp := strings.Contains(outAddress, ".")
 		var outer *common.Cnode
@@ -515,7 +518,7 @@ func ReadCommittee(keyBlockNumber uint64, hash common.Hash) *Committee {
 	}
 	data, _ := m_config.db.Get(rawdb.CommitteeKey(keyBlockNumber, hash))
 	if len(data) == 0 {
-		log.Error("ReadCommittee", "read data is empty", "")
+		log.Warn("ReadCommittee", "read data is empty", "")
 		return nil
 	}
 	cm := new(Committee)
