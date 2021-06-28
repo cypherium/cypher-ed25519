@@ -585,11 +585,6 @@ func (pool *TxPool) PendingCount() int {
 
 func (pool *TxPool) PostChainHeadEvent() {
 	pool.chainHeadCh <- ChainHeadEvent{Block: pool.chain.CurrentBlock()}
-
-	//log.Info("TxPool PostChainHeadEvent end")
-	//pool.RemoveBatch(block.Transactions())
-	//pool.lockedReset(nil, block.Header())
-	//pool.chainHeadCh <- ChainHeadEvent{Block: block}
 }
 
 // local retrieves all currently known local transactions, groupped by origin

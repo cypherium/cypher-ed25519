@@ -897,25 +897,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Trace("fail to decode candidate message")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-
-		err := pm.candidatePool.AddRemote(&candidate, false)
-		if err != nil {
-			if err == core.ErrCandidatePowVerificationFail {
-				// Got bad candidates, drop peer
-				drop := p.MarkBadCandidate()
-				if drop {
-					return errResp(ErrDecode, "msg %v: %v", msg, errors.New("Too many bad candidates "))
-				}
-			}
-			/*
-				log.Warn("Discard bad candidate",
-					"candidate.number", candidate.KeyCandidate.Number.Uint64(),
-					"keyBlockNumber", pm.keyBlockChain.CurrentBlockN(),
-					"peer", p.String(), "err", err)
-			*/
-		} else {
-			p.MarkCandidate(candidate.Hash())
-		}
+		p.MarkCandidate(candidate.Hash())
+		pm.eventMux.Post(core.RemoteCandidateEvent{Candidate: &candidate})
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)

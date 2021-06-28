@@ -223,6 +223,7 @@ type CandidatePool struct {
 	mu         sync.Mutex
 	feed       event.Feed
 	scope      event.SubscriptionScope
+	txFeed     event.Feed
 	backend    Backend
 	mux        *event.TypeMux
 	db         cphdb.Database
@@ -242,7 +243,25 @@ func NewCandidatePool(cph Backend, mux *event.TypeMux, db cphdb.Database) *Candi
 		mux:        mux,
 		backend:    cph,
 	}
+	go cp.loop()
 	return cp
+}
+
+func (cp *CandidatePool) loop() {
+	events := cp.mux.Subscribe(RemoteCandidateEvent{})
+	defer events.Unsubscribe()
+	for ev := range events.Chan() {
+		switch obj := ev.Data.(type) {
+		case RemoteCandidateEvent:
+			candidate := obj.Candidate
+			log.Info("loop RemoteCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey, "IP", candidate.IP, "Port", candidate.Port)
+			err := cp.AddRemote(candidate, false)
+			if err != nil {
+				log.Error("loop RemoteCandidateEvent", "err", ErrCandidatePowVerificationFail)
+			}
+
+		}
+	}
 }
 
 func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext bool) error {
@@ -265,7 +284,7 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 		if local == false {
 
 			// if the candidate comes from network, we need to notify reconfig module which may start doing PBFT consensus
-			go cp.mux.Post(NewCandidateEvent{Candidate: candidate})
+			go cp.mux.Post(RemoteCandidateEvent{Candidate: candidate})
 
 		}
 

@@ -38,7 +38,7 @@ type PendingStateEvent struct{}
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
 
-type NewCandidateEvent struct {
+type RemoteCandidateEvent struct {
 	Candidate *types.Candidate
 }
 
@@ -82,8 +82,4 @@ type IdentityChangeEvent struct {
 
 type SelfRoleChangeEvent struct {
 	IsMember bool
-}
-
-type ResetRoleChangeEvent struct {
-	NodeRole uint8
 }

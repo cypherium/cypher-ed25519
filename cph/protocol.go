@@ -83,6 +83,7 @@ const (
 	ErrNoStatusMsg
 	ErrExtraStatusMsg
 	ErrSuspendedPeer
+	ErrCandidate
 )
 
 func (e errCode) String() string {
@@ -100,6 +101,7 @@ var errorToString = map[int]string{
 	ErrNoStatusMsg:             "No status message",
 	ErrExtraStatusMsg:          "Extra status message",
 	ErrSuspendedPeer:           "Suspended peer",
+	ErrCandidate:               "Invalid candidate,can't telnet it's ip and port",
 }
 
 type txPool interface {

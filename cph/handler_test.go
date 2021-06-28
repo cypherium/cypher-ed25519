@@ -18,24 +18,19 @@
 package cph
 
 import (
-	"math"
-	"math/big"
-	"math/rand"
-	"testing"
-	"time"
-
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/core/state"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/core/vm"
 	"github.com/cypherium/cypherBFT/cph/downloader"
 	"github.com/cypherium/cypherBFT/cphdb"
 	"github.com/cypherium/cypherBFT/crypto"
-	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/p2p"
 	"github.com/cypherium/cypherBFT/params"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"math"
+	"math/big"
+	"math/rand"
+	"testing"
 )
 
 // Tests that protocol versions and modes of operations are matched up properly.
@@ -277,7 +272,7 @@ func testGetBlockBodies(t *testing.T, protocol int) {
 					block := pm.blockchain.GetBlockByNumber(uint64(num))
 					hashes = append(hashes, block.Hash())
 					if len(bodies) < tt.expected {
-						bodies = append(bodies, &blockBody{Transactions: block.Transactions(), Uncles: block.Uncles()})
+						bodies = append(bodies, &blockBody{Transactions: block.Transactions()})
 					}
 					break
 				}
@@ -287,7 +282,7 @@ func testGetBlockBodies(t *testing.T, protocol int) {
 			hashes = append(hashes, hash)
 			if tt.available[j] && len(bodies) < tt.expected {
 				block := pm.blockchain.GetBlockByHash(hash)
-				bodies = append(bodies, &blockBody{Transactions: block.Transactions(), Uncles: block.Uncles()})
+				bodies = append(bodies, &blockBody{Transactions: block.Transactions()})
 			}
 		}
 		// Send the hash request and verify the response
@@ -324,9 +319,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 			block.AddTx(tx1)
 			block.AddTx(tx2)
 		case 2:
-			// Block 3 is empty but was mined by account #2.
-			block.SetCoinbase(acc2Addr)
-			block.SetExtra([]byte("yeehaw"))
+
 		case 3:
 			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
 			b2 := block.PrevBlock(1).Header()
@@ -416,9 +409,7 @@ func testGetReceipt(t *testing.T, protocol int) {
 			block.AddTx(tx1)
 			block.AddTx(tx2)
 		case 2:
-			// Block 3 is empty but was mined by account #2.
-			block.SetCoinbase(acc2Addr)
-			block.SetExtra([]byte("yeehaw"))
+
 		case 3:
 			// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
 			b2 := block.PrevBlock(1).Header()
@@ -446,78 +437,5 @@ func testGetReceipt(t *testing.T, protocol int) {
 	p2p.Send(peer.app, 0x0f, hashes)
 	if err := p2p.ExpectMsg(peer.app, 0x10, receipts); err != nil {
 		t.Errorf("receipts mismatch: %v", err)
-	}
-}
-
-// Tests that post cph protocol handshake, DAO fork-enabled clients also execute
-// a DAO "challenge" verifying each others' DAO fork headers to ensure they're on
-// compatible chains.
-func TestDAOChallengeNoVsNo(t *testing.T)       { testDAOChallenge(t, false, false, false) }
-func TestDAOChallengeNoVsPro(t *testing.T)      { testDAOChallenge(t, false, true, false) }
-func TestDAOChallengeProVsNo(t *testing.T)      { testDAOChallenge(t, true, false, false) }
-func TestDAOChallengeProVsPro(t *testing.T)     { testDAOChallenge(t, true, true, false) }
-func TestDAOChallengeNoVsTimeout(t *testing.T)  { testDAOChallenge(t, false, false, true) }
-func TestDAOChallengeProVsTimeout(t *testing.T) { testDAOChallenge(t, true, true, true) }
-
-func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool) {
-	// Reduce the DAO handshake challenge timeout
-	if timeout {
-		defer func(old time.Duration) { daoChallengeTimeout = old }(daoChallengeTimeout)
-		daoChallengeTimeout = 500 * time.Millisecond
-	}
-	// Create a DAO aware protocol manager
-	var (
-		evmux         = new(event.TypeMux)
-		pow           = cphash.NewFaker()
-		db            = cphdb.NewMemDatabase()
-		config        = &params.ChainConfig{DAOForkBlock: big.NewInt(1), DAOForkSupport: localForked}
-		gspec         = &core.Genesis{Config: config}
-		genesis       = gspec.MustCommit(db)
-		blockchain, _ = core.NewBlockChain(db, nil, config, pow, vm.Config{})
-	)
-	pm, err := NewProtocolManager(config, downloader.FullSync, DefaultConfig.NetworkId, evmux, new(testTxPool), pow, blockchain, db)
-	if err != nil {
-		t.Fatalf("failed to start test protocol manager: %v", err)
-	}
-	pm.Start(1000)
-	defer pm.Stop()
-
-	// Connect a new peer and check that we receive the DAO challenge
-	peer, _ := newTestPeer("peer", cph63, pm, true)
-	defer peer.close()
-
-	challenge := &getBlockHeadersData{
-		Origin:  hashOrNumber{Number: config.DAOForkBlock.Uint64()},
-		Amount:  1,
-		Skip:    0,
-		Reverse: false,
-	}
-	if err := p2p.ExpectMsg(peer.app, GetBlockHeadersMsg, challenge); err != nil {
-		t.Fatalf("challenge mismatch: %v", err)
-	}
-	// Create a block to reply to the challenge if no timeout is simulated
-	if !timeout {
-		blocks, _ := core.GenerateChain(&params.ChainConfig{}, genesis, cphash.NewFaker(), db, 1, func(i int, block *core.BlockGen) {
-			if remoteForked {
-				block.SetExtra(params.DAOForkBlockExtra)
-			}
-		})
-		if err := p2p.Send(peer.app, BlockHeadersMsg, []*types.Header{blocks[0].Header()}); err != nil {
-			t.Fatalf("failed to answer challenge: %v", err)
-		}
-		time.Sleep(100 * time.Millisecond) // Sleep to avoid the verification racing with the drops
-	} else {
-		// Otherwise wait until the test timeout passes
-		time.Sleep(daoChallengeTimeout + 500*time.Millisecond)
-	}
-	// Verify that depending on fork side, the remote peer is maintained or dropped
-	if localForked == remoteForked && !timeout {
-		if peers := pm.peers.Len(); peers != 1 {
-			t.Fatalf("peer count mismatch: have %d, want %d", peers, 1)
-		}
-	} else {
-		if peers := pm.peers.Len(); peers != 0 {
-			t.Fatalf("peer count mismatch: have %d, want %d", peers, 0)
-		}
 	}
 }

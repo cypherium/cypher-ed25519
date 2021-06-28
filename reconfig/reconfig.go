@@ -78,14 +78,9 @@ func NewReconfig(db cphdb.Database, cph Backend, config *params.ChainConfig, mux
 	reconfig := &Reconfig{mux: mux, cph: cph, config: config, engine: engine, db: db}
 
 	reconfig.service = newService("cypherBFTService", reconfig)
-	//reconfig.service = newService1("cypherBFTService", reconfig)
-
 	bftview.SetCommitteeConfig(db, cph.KeyBlockChain(), reconfig.service)
 	reconfig.service.pacetMakerTimer = newPaceMakerTimer(config, reconfig.service, cph)
 	go reconfig.service.pacetMakerTimer.loopTimer()
-
-	//reconfig.reconfigSub = mux.Subscribe(core.NewCandidateEvent{}, core.KeyChainHeadEvent{})
-	//go reconfig.update()
 
 	reconfig.txsCh = make(chan core.NewTxsEvent, 1024)
 	reconfig.txsSub = cph.TxPool().SubscribeNewTxsEvent(reconfig.txsCh)
@@ -94,30 +89,6 @@ func NewReconfig(db cphdb.Database, cph Backend, config *params.ChainConfig, mux
 	return reconfig
 }
 
-/*
-func (reconf *Reconfig) update() {
-	for ev := range reconf.reconfigSub.Chan() {
-		if !reconf.service.isRunning() {
-			continue
-		}
-
-		switch obj := ev.Data.(type) {
-
-		case core.KeyChainHeadEvent:
-			keyblock := obj.KeyBlock
-			log.Info("reconfig recived KeyChainHeadEvent", "keyblock number", keyblock.NumberU64())
-
-		case core.NewCandidateEvent:
-			//log.Info("NewCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey)
-			//reconf.service.clearCandidate(obj.Candidate)
-
-		default:
-
-		}
-	}
-	log.Info("quit Reconfig.update")
-}
-*/
 // Monitoring new txs Event
 func (reconf *Reconfig) txsEventLoop() {
 	for {
