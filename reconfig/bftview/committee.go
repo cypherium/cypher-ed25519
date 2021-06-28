@@ -486,10 +486,10 @@ func GetCommittee(newNode *common.Cnode, keyblock *types.KeyBlock, needIp bool) 
 			return nil, nil
 		}
 		mb = parentMb.Copy()
-		outer = mb.Add(newNode, int(index), keyblock.OutAddress())
+		outer = mb.Add(newNode, int(index), keyblock.OutAddress(1))
 	} else {
 		mb = parentMb.Copy()
-		outer = mb.Add(nil, int(index), keyblock.OutAddress())
+		outer = mb.Add(nil, int(index), keyblock.OutAddress(1))
 	}
 	return mb, outer
 }

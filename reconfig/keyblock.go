@@ -194,7 +194,7 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 		if outer == nil {
 			return fmt.Errorf("keyblock verify failed, PowReconfig or PacePowReconfig should has outer")
 		}
-		outAddress := keyblock.OutAddress()
+		outAddress := keyblock.OutAddress(0)
 		isBadAddress := false
 		if outAddress[0] == '*' {
 			outAddress = outAddress[1:]

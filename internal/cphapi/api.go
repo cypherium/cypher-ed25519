@@ -979,7 +979,7 @@ func RPCMarshalKeyBlock(b *types.KeyBlock) (map[string]interface{}, error) {
 	fields["inPubKey"] = b.InPubKey()
 	fields["inAddress"] = b.InAddress()
 	fields["outPubKey"] = b.OutPubKey()
-	fields["outAddress"] = b.OutAddress()
+	fields["outAddress"] = b.OutAddress(0)
 	fields["leaderPubKey"] = b.LeaderPubKey()
 	fields["leaderAddress"] = b.LeaderAddress()
 	fields["committeeHash"] = head.CommitteeHash

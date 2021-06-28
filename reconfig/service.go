@@ -603,7 +603,7 @@ func (s *Service) updateCommittee(keyBlock *types.KeyBlock) bool {
 func (s *Service) Committee_OnStored(keyblock *types.KeyBlock, mb *bftview.Committee) {
 	log.Debug("store committee", "keyNumber", keyblock.NumberU64(), "ip0", mb.List[0].Address, "ipn", mb.List[len(mb.List)-1].Address)
 	if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlockN() {
-		s.netService.AdjustConnect(keyblock.OutAddress())
+		s.netService.AdjustConnect(keyblock.OutAddress(1))
 	}
 }
 
