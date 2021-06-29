@@ -59,6 +59,10 @@ func (b *CphAPIBackend) Exceptions(blockNumber int64) []string {
 	return b.cph.Exceptions(blockNumber)
 }
 
+func (b *CphAPIBackend) TakePartInNumbers(address common.Address, blockNumber int64) []string {
+	return b.cph.TakePartInNumbers(address, blockNumber)
+}
+
 func (b *CphAPIBackend) SetHead(number uint64) {
 	b.cph.protocolManager.downloader.Cancel()
 	b.cph.blockchain.SetHead(number)

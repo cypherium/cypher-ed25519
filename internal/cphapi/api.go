@@ -81,6 +81,10 @@ func (s *PublicCphereumAPI) CommitteeExceptions(ctx context.Context, blockNr rpc
 	return s.b.Exceptions(int64(blockNr))
 }
 
+func (s *PublicCphereumAPI) TakePartInNumbers(ctx context.Context, addr common.Address, blockNr rpc.BlockNumber) []string {
+	return s.b.TakePartInNumbers(addr, int64(blockNr))
+}
+
 // ProtocolVersion returns the current Cypherium protocol version this node supports
 func (s *PublicCphereumAPI) ProtocolVersion() hexutil.Uint {
 	return hexutil.Uint(s.b.ProtocolVersion())

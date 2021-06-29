@@ -124,3 +124,7 @@ func (reconf *Reconfig) ReconfigIsRunning() bool {
 func (reconf *Reconfig) Exceptions(blockNumber int64) []string {
 	return reconf.service.Exceptions(blockNumber)
 }
+
+func (reconf *Reconfig) TakePartInNumbers(address common.Address, backCheckNumber int64) []string {
+	return reconf.service.TakePartInNumbers(address, backCheckNumber)
+}

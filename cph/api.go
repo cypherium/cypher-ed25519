@@ -273,6 +273,10 @@ func (api *PublicCphereumAPI) Exceptions(blockNumber int64) []string {
 	return api.e.Exceptions(blockNumber)
 }
 
+func (api *PublicCphereumAPI) TakePartInNumbers(address common.Address, blockNumber int64) []string {
+	return api.e.TakePartInNumbers(address, blockNumber)
+}
+
 // PrivateAdminAPI is the collection of Cypherium full node-related APIs
 // exposed over the private admin endpoint.
 type PrivateAdminAPI struct {

@@ -408,6 +408,12 @@ web3c._extend({
 			params: 1,
 			inputFormatter: [web3c._extend.formatters.inputBlockNumberFormatter]
 		}),
+      new web3c._extend.Method({
+			name: 'takePartInNumbers',
+			call: 'cph_takePartInNumbers',
+			params: 2,
+			inputFormatter: [web3c._extend.formatters.inputAddressFormatter,null]
+		}),
 		new web3c._extend.Method({
 			name: 'sign',
 			call: 'cph_sign',
