@@ -897,9 +897,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Trace("fail to decode candidate message")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
-		p.MarkCandidate(candidate.Hash())
-		pm.eventMux.Post(core.RemoteCandidateEvent{Candidate: &candidate})
-
+		if !pm.candidatePool.FoundCandidate(candidate.KeyCandidate.Number, candidate.PubKey) {
+			log.Debug("CandidateMsg", "new candidate coinbase", candidate.Coinbase)
+			p.MarkCandidate(candidate.Hash())
+			pm.eventMux.Post(core.RemoteCandidateEvent{Candidate: &candidate})
+		}
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -917,6 +919,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	}
 	// If propagation is requested, send to a subset of the peer
 	if propagate {
+
 		// Send the block to a subset of our peers
 		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
 		for _, peer := range transfer {

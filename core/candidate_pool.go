@@ -254,7 +254,7 @@ func (cp *CandidatePool) loop() {
 		switch obj := ev.Data.(type) {
 		case RemoteCandidateEvent:
 			candidate := obj.Candidate
-			log.Info("loop RemoteCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey, "IP", candidate.IP, "Port", candidate.Port)
+			log.Debug("loop RemoteCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey, "IP", candidate.IP, "Port", candidate.Port)
 			err := cp.AddRemote(candidate, false)
 			if err != nil {
 				log.Error("loop RemoteCandidateEvent", "err", ErrCandidatePowVerificationFail)
