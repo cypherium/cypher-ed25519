@@ -188,7 +188,7 @@ func (s *netService) broadcast(fromAddr string, msg *networkMsg) {
 
 	mblist := mb.List
 	n := len(mblist)
-	seedIndexs := math.GetRandIntArray(n, (n*4/10)+1)
+	seedIndexs := math.GetRandIntArray(n, n/2+1)
 	for i, _ := range seedIndexs {
 		if mblist[i].Address == "" {
 			continue

@@ -94,7 +94,6 @@ func (t *paceMakerTimer) stop() error {
 	t.beStop = true
 	t.retryNumber = 0
 	t.startTime = maxPaceMakerTime
-	log.Debug("paceMakerTimer stop")
 	return nil
 }
 
