@@ -18,6 +18,7 @@ package reconfig
 
 import (
 	"fmt"
+	"github.com/cypherium/cypherBFT/params"
 	"strconv"
 	"strings"
 	"sync"
@@ -808,9 +809,8 @@ func (s *Service) Exceptions(blockNumber int64) []string {
 func (s *Service) TakePartInNumbers(address common.Address, backCheckNumber int64) []string {
 	var takePartInNumberList []string
 	var i, backBlockNumber int64
-	committeeSize := len(s.kbc.CurrentCommittee())
 	isInExceptions := false
-	for i = 0; i < int64(committeeSize); i++ {
+	for i = 0; i < int64(params.CheckBackNumber); i++ {
 		if backCheckNumber == 0 {
 			backBlockNumber = int64(s.bc.CurrentBlockN()) - i
 		} else {
@@ -833,18 +833,3 @@ func (s *Service) TakePartInNumbers(address common.Address, backCheckNumber int6
 	}
 	return takePartInNumberList
 }
-
-/*
-func (s *Service) MakeupData(data *hotstuff.StateSign) []byte {
-	if data.Type == hotstuff.TxState {
-		block := types.DecodeToBlock(data.State)
-		block.SetSignature(data.Sign, data.Mask)
-		return block.EncodeToBytes()
-	} else if data.Type == hotstuff.KeyState {
-		block := types.DecodeToKeyBlock(data.State)
-		block.SetSignature(data.Sign, data.Mask)
-		return block.EncodeToBytes()
-	}
-	return nil
-}
-*/
