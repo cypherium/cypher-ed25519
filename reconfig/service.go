@@ -18,9 +18,7 @@ package reconfig
 
 import (
 	"fmt"
-	"github.com/cypherium/cypherBFT/params"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -806,29 +804,61 @@ func (s *Service) Exceptions(blockNumber int64) []string {
 	return exs
 }
 
-func (s *Service) TakePartInNumbers(address common.Address, backCheckNumber int64) []string {
-	var takePartInNumberList []string
-	var i, backBlockNumber int64
-	isInExceptions := false
-	for i = 0; i < int64(params.CheckBackNumber); i++ {
-		if backCheckNumber == 0 {
-			backBlockNumber = int64(s.bc.CurrentBlockN()) - i
-		} else {
-			backBlockNumber = backCheckNumber
-		}
+func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber int64) []string {
+	coinbase := address.String()
+	if checkKeyNumber < 0 || uint64(checkKeyNumber) > s.kbc.CurrentBlockN() {
+		return nil
+	}
 
-		exceptions := s.Exceptions(backBlockNumber)
-		for _, exception := range exceptions {
-			log.Debug("Service TakePartInNumbers", "backBlockNumber", backBlockNumber, "address", strings.ToLower(address.String()), "exception", strings.ToLower(exception))
-			if strings.ToLower(address.String()) == strings.ToLower(exception) {
-				isInExceptions = true
-				break
-			} else {
-				isInExceptions = false
-			}
+	keyNumber := uint64(checkKeyNumber)
+	keyblock := s.kbc.GetBlockByNumber(keyNumber)
+	if keyblock == nil {
+		return nil
+	}
+	c := bftview.LoadMember(keyNumber, keyblock.Hash(), false)
+	if c == nil {
+		return nil
+	}
+	isMember := false
+	memberI := 0
+	for i, r := range c.List {
+		if r.CoinBase == coinbase {
+			isMember = true
+			memberI = i
+			break
 		}
-		if !isInExceptions {
-			takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(backBlockNumber, 10))
+	}
+	if !isMember {
+		return nil
+	}
+	var takePartInNumberList []string
+
+	fromN := keyblock.T_Number() + 1
+	toN := uint64(0)
+	if keyNumber == s.kbc.CurrentBlockN() {
+		toN = s.bc.CurrentBlockN()
+	} else {
+		nextkeyblock := s.kbc.GetBlockByNumber(keyNumber + 1)
+		toN = nextkeyblock.T_Number()
+	}
+	if toN < fromN {
+		return nil
+	}
+	n := len(c.List)
+	for i := fromN; i <= toN; i++ {
+		block := s.bc.GetBlockByNumber(i)
+		if block == nil {
+			return nil
+		}
+		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), n)
+		if indexs == nil {
+			return nil
+		}
+		for _, j := range indexs {
+			if j == memberI {
+				takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(int64(i), 10))
+				break
+			}
 		}
 	}
 	return takePartInNumberList
