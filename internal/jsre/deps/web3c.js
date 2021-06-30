@@ -5523,7 +5523,7 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
         name: 'takePartInNumbers',
         call: 'cph_takePartInNumbers',
         params: 2,
-        inputFormatter: [formatters.inputAddressFormatter, null]
+        inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
       });
       var signTransaction = new Method({
         name: 'signTransaction',

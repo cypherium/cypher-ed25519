@@ -401,8 +401,8 @@ func (s *Cypherium) StopMining() {
 func (s *Cypherium) IsMining() bool                        { return s.miner.Mining() }
 func (s *Cypherium) reconfigIsRunning() bool               { return s.reconfig.ReconfigIsRunning() }
 func (s *Cypherium) Exceptions(blockNumber int64) []string { return s.reconfig.Exceptions(blockNumber) }
-func (s *Cypherium) TakePartInNumbers(address common.Address, backCheckNumber int64) []string {
-	return s.reconfig.TakePartInNumbers(address, backCheckNumber)
+func (s *Cypherium) TakePartInNumberList(address common.Address, backCheckNumber rpc.BlockNumber) []string {
+	return s.reconfig.TakePartInNumberList(address, int64(backCheckNumber))
 }
 
 func (s *Cypherium) Miner() *miner.Miner                { return s.miner }

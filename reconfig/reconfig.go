@@ -125,6 +125,6 @@ func (reconf *Reconfig) Exceptions(blockNumber int64) []string {
 	return reconf.service.Exceptions(blockNumber)
 }
 
-func (reconf *Reconfig) TakePartInNumbers(address common.Address, backCheckNumber int64) []string {
-	return reconf.service.TakePartInNumbers(address, backCheckNumber)
+func (reconf *Reconfig) TakePartInNumberList(address common.Address, backCheckNumber int64) []string {
+	return reconf.service.TakePartInNumberList(address, backCheckNumber)
 }

@@ -56,7 +56,7 @@ type Backend interface {
 	RollbackKeyChainFrom(lockHash common.Hash) error
 	RollbackTxChainFrom(lockHash common.Hash) error
 	Exceptions(blockNr int64) []string
-	TakePartInNumbers(address common.Address, backCheckNumber int64) []string
+	TakePartInNumberList(address common.Address, blockNr rpc.BlockNumber) []string
 	CommitteeMembers(ctx context.Context, blockNr rpc.BlockNumber) ([]*common.Cnode, error)
 	MockKeyBlock(int64)
 	GetKeyBlockChain() *core.KeyBlockChain

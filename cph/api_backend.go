@@ -59,8 +59,8 @@ func (b *CphAPIBackend) Exceptions(blockNumber int64) []string {
 	return b.cph.Exceptions(blockNumber)
 }
 
-func (b *CphAPIBackend) TakePartInNumbers(address common.Address, blockNumber int64) []string {
-	return b.cph.TakePartInNumbers(address, blockNumber)
+func (b *CphAPIBackend) TakePartInNumberList(address common.Address, blockNumber rpc.BlockNumber) []string {
+	return b.cph.TakePartInNumberList(address, blockNumber)
 }
 
 func (b *CphAPIBackend) SetHead(number uint64) {
