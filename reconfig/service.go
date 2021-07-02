@@ -19,6 +19,7 @@ package reconfig
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -805,30 +806,40 @@ func (s *Service) Exceptions(blockNumber int64) []string {
 }
 
 func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber int64) []string {
-	coinbase := address.String()
+	coinbase := strings.ToLower(address.String())
+	coinbase = coinbase[2:] //del 0x
+	log.Info("TakePartInNumberList", "address", address, "coinbase", coinbase)
 	if checkKeyNumber < 0 || uint64(checkKeyNumber) > s.kbc.CurrentBlockN() {
+		log.Info("TakePartInNumberList..1")
 		return nil
 	}
 
 	keyNumber := uint64(checkKeyNumber)
 	keyblock := s.kbc.GetBlockByNumber(keyNumber)
 	if keyblock == nil {
+		log.Info("TakePartInNumberList..keyblock == nil")
 		return nil
 	}
 	c := bftview.LoadMember(keyNumber, keyblock.Hash(), false)
 	if c == nil {
+		log.Info("TakePartInNumberList..c == nil")
 		return nil
 	}
 	isMember := false
 	memberI := 0
 	for i, r := range c.List {
-		if r.CoinBase == coinbase {
+		ss := strings.ToLower(r.CoinBase)
+		if strings.HasPrefix(ss, "0x") {
+			ss = ss[2:]
+		}
+		if ss == coinbase {
 			isMember = true
 			memberI = i
 			break
 		}
 	}
 	if !isMember {
+		log.Info("TakePartInNumberList..!isMember", "memberI", memberI)
 		return nil
 	}
 	var takePartInNumberList []string
@@ -842,24 +853,32 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 		toN = nextkeyblock.T_Number()
 	}
 	if toN < fromN {
+		log.Info("TakePartInNumberList..!isMember", "from", fromN, "to", toN)
 		return nil
 	}
 	n := len(c.List)
 	for i := fromN; i <= toN; i++ {
 		block := s.bc.GetBlockByNumber(i)
 		if block == nil {
+			log.Info("TakePartInNumberList..block == nil", "i", i)
 			return nil
 		}
 		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), n)
 		if indexs == nil {
-			return nil
+			takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(int64(i), 10))
+			continue
 		}
+		isException := false
 		for _, j := range indexs {
 			if j == memberI {
-				takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(int64(i), 10))
+				isException = true
 				break
 			}
 		}
+		if !isException {
+			takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(int64(i), 10))
+		}
 	}
+
 	return takePartInNumberList
 }
