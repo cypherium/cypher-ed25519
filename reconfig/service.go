@@ -808,21 +808,17 @@ func (s *Service) Exceptions(blockNumber int64) []string {
 func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber int64) []string {
 	coinbase := strings.ToLower(address.String())
 	coinbase = coinbase[2:] //del 0x
-	log.Info("TakePartInNumberList", "address", address, "coinbase", coinbase)
 	if checkKeyNumber < 0 || uint64(checkKeyNumber) > s.kbc.CurrentBlockN() {
-		log.Info("TakePartInNumberList..1")
 		return nil
 	}
 
 	keyNumber := uint64(checkKeyNumber)
 	keyblock := s.kbc.GetBlockByNumber(keyNumber)
 	if keyblock == nil {
-		log.Info("TakePartInNumberList..keyblock == nil")
 		return nil
 	}
 	c := bftview.LoadMember(keyNumber, keyblock.Hash(), false)
 	if c == nil {
-		log.Info("TakePartInNumberList..c == nil")
 		return nil
 	}
 	isMember := false
@@ -839,7 +835,6 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 		}
 	}
 	if !isMember {
-		log.Info("TakePartInNumberList..!isMember", "memberI", memberI)
 		return nil
 	}
 	var takePartInNumberList []string
@@ -853,14 +848,12 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 		toN = nextkeyblock.T_Number()
 	}
 	if toN < fromN {
-		log.Info("TakePartInNumberList..!isMember", "from", fromN, "to", toN)
 		return nil
 	}
 	n := len(c.List)
 	for i := fromN; i <= toN; i++ {
 		block := s.bc.GetBlockByNumber(i)
 		if block == nil {
-			log.Info("TakePartInNumberList..block == nil", "i", i)
 			return nil
 		}
 		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), n)
