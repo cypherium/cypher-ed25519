@@ -195,7 +195,6 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 			return fmt.Errorf("keyblock verify failed, PowReconfig or PacePowReconfig should has outer")
 		}
 		outAddress := keyblock.OutAddress(0)
-		log.Info("keyblock verify","outAddress", outAddress)
 		isBadAddress := false
 		if outAddress[0] == '*' {
 			outAddress = outAddress[1:]
@@ -267,7 +266,6 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 			return nil, nil, nil, fmt.Errorf("not new best candidate")
 		}
 		outerPublic, outerCoinBase = outer.Public, outer.CoinBase
-		log.Info("tryProposalChangeCommittee","badAddress",badAddress,"outerCoinBase",outerCoinBase)
 		if badAddress != "" && outerCoinBase == badAddress {
 			outerCoinBase = "*" + outerCoinBase
 		}
@@ -281,7 +279,7 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	header.T_Number = keyS.bc.CurrentBlockN()
 	keyblock := types.NewKeyBlock(header)
 	keyblock = keyblock.WithBody(mb.In().Public, mb.In().CoinBase, outerPublic, outerCoinBase, mb.Leader().Public, mb.Leader().CoinBase)
-	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey(), "outerCoinBase", outerCoinBase)
+	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey())
 	mb.Store(keyblock)
 	return keyblock, mb, best, nil
 }
@@ -344,14 +342,12 @@ func (keyS *keyService) getBadAddress() string {
 	fromN := keyS.kbc.CurrentBlock().T_Number() + 1
 	ToN := keyS.bc.CurrentBlockN()
 	if fromN > ToN {
-		log.Info("getBadAddress nil..1", "from",fromN, "toN",ToN)
 		return ""
 	}
 
 	for i := fromN; i <= ToN; i++ {
 		block := keyS.bc.GetBlockByNumber(uint64(i))
 		if block == nil {
-			log.Info("getBadAddress nil..2")
 			return ""
 		}
 		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), cmLen)
@@ -374,13 +370,8 @@ func (keyS *keyService) getBadAddress() string {
 
 	ii := 0
 	maxV := 0
-	for i := 0; i < cmLen; i++ {
-		v, ok := exps[i]
-		if !ok {
-			continue
-		}
-
-		if ToN-fromN < 10 && isGenesis(mb.List[i].CoinBase) {
+	for i, v := range exps {
+		if isGenesis(mb.List[i].CoinBase) {
 			v = v - 1
 		}
 
@@ -389,7 +380,6 @@ func (keyS *keyService) getBadAddress() string {
 			ii = i
 		}
 	}
-	log.Info("getBadAddress", "ii", ii)
 	return mb.List[ii].CoinBase
 }
 
