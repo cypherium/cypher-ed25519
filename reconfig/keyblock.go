@@ -307,9 +307,24 @@ func (keyS *keyService) getBadAddress() string {
 			}
 		}
 	}
+
+	genesisCm := keyS.config.GenCommittee
+	isGenesis := func(addr string) bool {
+		for _, r := range genesisCm {
+			if r.CoinBase == addr {
+				return true
+			}
+		}
+		return false
+	}
+
 	ii := 0
 	maxV := 0
 	for i, v := range exps {
+		if isGenesis(mb.List[i].CoinBase) {
+			v = v - 1
+		}
+
 		if v > maxV {
 			maxV = v
 			ii = i
