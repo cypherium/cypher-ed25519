@@ -195,6 +195,7 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 			return fmt.Errorf("keyblock verify failed, PowReconfig or PacePowReconfig should has outer")
 		}
 		outAddress := keyblock.OutAddress(0)
+		log.Info("keyblock verify","outAddress", outAddress)
 		isBadAddress := false
 		if outAddress[0] == '*' {
 			outAddress = outAddress[1:]
@@ -278,6 +279,7 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	header.CommitteeHash = mb.RlpHash()
 	header.T_Number = keyS.bc.CurrentBlockN()
 	keyblock := types.NewKeyBlock(header)
+	log.Info("tryProposalChangeCommittee","outerCoinBase",outerCoinBase)
 	keyblock = keyblock.WithBody(mb.In().Public, mb.In().CoinBase, outerPublic, outerCoinBase, mb.Leader().Public, mb.Leader().CoinBase)
 	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey())
 	mb.Store(keyblock)
