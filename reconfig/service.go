@@ -745,9 +745,9 @@ func (s *Service) stop() {
 
 func (s *Service) isRunning(flag int) bool {
 	//log all status
-	if flag == 1 {
-		go s.printAllStatus()
-	}
+	//	if flag == 1 {
+	//		go s.printAllStatus()
+	//	}
 	return atomic.LoadInt32(&s.runningState) == 1
 }
 
