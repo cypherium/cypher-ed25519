@@ -340,6 +340,7 @@ func (kbc *KeyBlockChain) insert(block *types.KeyBlock) error {
 	if err := kbc.khc.WriteTd(block.Hash(), block.NumberU64(), block.Difficulty()); err != nil {
 		return err
 	}
+	log.Info("KeyBlockChain.insert", "outAddress", block.OutAddress(0) )
 	rawdb.WriteKeyBlock(kbc.db, block)
 	rawdb.WriteKeyBlockHash(kbc.db, block.Hash(), block.NumberU64())
 	rawdb.WriteHeadKeyBlockHash(kbc.db, block.Hash())
