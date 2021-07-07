@@ -961,6 +961,8 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func RPCMarshalKeyBlock(b *types.KeyBlock) (map[string]interface{}, error) {
+	fmt.Println("RPCMarshalKeyBlock",b)
+	b.OutPubKey()
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
 		"version":    head.Version,
