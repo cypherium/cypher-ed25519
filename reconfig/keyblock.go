@@ -281,7 +281,7 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	keyblock := types.NewKeyBlock(header)
 	log.Info("tryProposalChangeCommittee","outerCoinBase",outerCoinBase)
 	keyblock = keyblock.WithBody(mb.In().Public, mb.In().CoinBase, outerPublic, outerCoinBase, mb.Leader().Public, mb.Leader().CoinBase)
-	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey())
+	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey(), "outerCoinBase", outerCoinBase)
 	mb.Store(keyblock)
 	return keyblock, mb, best, nil
 }
