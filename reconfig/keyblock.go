@@ -372,8 +372,13 @@ func (keyS *keyService) getBadAddress() string {
 
 	ii := 0
 	maxV := 0
-	for i, v := range exps {
-		if isGenesis(mb.List[i].CoinBase) {
+	for i := 0; i < cmLen; i++ {
+		v, ok := exps[i]
+		if !ok {
+			continue
+		}
+
+		if ToN-fromN < 10 && isGenesis(mb.List[i].CoinBase) {
 			v = v - 1
 		}
 
