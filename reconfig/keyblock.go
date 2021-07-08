@@ -267,6 +267,7 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 			return nil, nil, nil, fmt.Errorf("not new best candidate")
 		}
 		outerPublic, outerCoinBase = outer.Public, outer.CoinBase
+		log.Info("tryProposalChangeCommittee","badAddress",badAddress,"outerCoinBase",outerCoinBase)
 		if badAddress != "" && outerCoinBase == badAddress {
 			outerCoinBase = "*" + outerCoinBase
 		}
@@ -279,7 +280,6 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	header.CommitteeHash = mb.RlpHash()
 	header.T_Number = keyS.bc.CurrentBlockN()
 	keyblock := types.NewKeyBlock(header)
-	log.Info("tryProposalChangeCommittee","outerCoinBase",outerCoinBase)
 	keyblock = keyblock.WithBody(mb.In().Public, mb.In().CoinBase, outerPublic, outerCoinBase, mb.Leader().Public, mb.Leader().CoinBase)
 	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey(), "outerCoinBase", outerCoinBase)
 	mb.Store(keyblock)
@@ -344,12 +344,14 @@ func (keyS *keyService) getBadAddress() string {
 	fromN := keyS.kbc.CurrentBlock().T_Number() + 1
 	ToN := keyS.bc.CurrentBlockN()
 	if fromN > ToN {
+		log.Info("getBadAddress nil..1", "from",fromN, "toN",ToN)
 		return ""
 	}
 
 	for i := fromN; i <= ToN; i++ {
 		block := keyS.bc.GetBlockByNumber(uint64(i))
 		if block == nil {
+			log.Info("getBadAddress nil..2")
 			return ""
 		}
 		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), cmLen)
@@ -387,6 +389,7 @@ func (keyS *keyService) getBadAddress() string {
 			ii = i
 		}
 	}
+	log.Info("getBadAddress", "ii", ii)
 	return mb.List[ii].CoinBase
 }
 
