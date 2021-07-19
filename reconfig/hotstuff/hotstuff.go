@@ -532,7 +532,7 @@ func (hsm *HotstuffProtocolManager) NewView() error {
 		hsm.views[v.hash] = v
 	}
 
-	sig := hsm.secretKey.SignHash(crypto.Keccak256(v.currentState)).Serialize()
+	sig := hsm.SignHash(v.currentState)
 	msg := hsm.newMsg(MsgNewView, v.number, v.hash, v.currentState, sig, extra)
 
 	log.Debug("New View", "leader", v.leaderId, "ViewID", common.HexString(v.hash[:]))
@@ -936,14 +936,14 @@ func (hsm *HotstuffProtocolManager) handlePrepareMsg(m *HotstuffMessage) error {
 		v.proposedKState = make([]byte, len(m.DataA))
 		copy(v.proposedKState, m.DataA)
 
-		kSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedKState)).Serialize()
+		kSign = hsm.SignHash(v.proposedKState)
 	}
 
 	if m.DataB != nil && len(m.DataB) > 0 {
 		v.proposedTState = make([]byte, len(m.DataB))
 		copy(v.proposedTState, m.DataB)
 
-		tSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedTState)).Serialize()
+		tSign = hsm.SignHash(v.proposedTState)
 	}
 
 	msg := hsm.newMsg(MsgVotePrepare, v.number, v.hash, nil, kSign, tSign)
@@ -1089,11 +1089,11 @@ func (hsm *HotstuffProtocolManager) handlePreCommitMsg(m *HotstuffMessage) error
 	kSign := []byte(nil)
 	tSign := []byte(nil)
 	if v.hasKState() {
-		kSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedKState)).Serialize()
+		kSign = hsm.SignHash(v.proposedKState)
 	}
 
 	if v.hasTState() {
-		tSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedTState)).Serialize()
+		tSign = hsm.SignHash(v.proposedTState)
 	}
 
 	msg := hsm.newMsg(MsgVotePreCommit, v.number, v.hash, nil, kSign, tSign)
@@ -1223,11 +1223,11 @@ func (hsm *HotstuffProtocolManager) handleCommitMsg(m *HotstuffMessage) error {
 	kSign := []byte(nil)
 	tSign := []byte(nil)
 	if v.hasKState() {
-		kSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedKState)).Serialize()
+		kSign = hsm.SignHash(v.proposedKState)
 	}
 
 	if v.hasTState() {
-		tSign = hsm.secretKey.SignHash(crypto.Keccak256(v.proposedTState)).Serialize()
+		tSign = hsm.SignHash(v.proposedTState)
 	}
 
 	msg := hsm.newMsg(MsgVoteCommit, v.number, v.hash, nil, kSign, tSign)
@@ -1429,4 +1429,10 @@ func (hsm *HotstuffProtocolManager) HandleMessage(msg *HotstuffMessage) error {
 	}
 
 	return err
+}
+
+func (hsm *HotstuffProtocolManager) SignHash(data []byte) []byte {
+	sign := hsm.secretKey.SignHash(crypto.Keccak256(data)).Serialize()
+	log.Info("Signed hotstuff data!")
+	return sign
 }
