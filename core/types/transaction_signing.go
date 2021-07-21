@@ -31,6 +31,7 @@ import (
 
 var (
 	ErrInvalidChainId = errors.New("invalid chain id for signer")
+	ErrInvalidTxDataV = errors.New("invalid txdata V")
 )
 
 // sigCache is used to cache the derived sender and contains
@@ -132,7 +133,7 @@ var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if !tx.Protected() {
-		return HomesteadSigner{}.Sender(tx)
+		return common.Address{},ErrInvalidTxDataV
 	}
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
