@@ -132,10 +132,10 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
-	log.Info("Sender 1")
-	if !tx.Protected() {
-		return HomesteadSigner{}.Sender(tx)
-	}
+	//log.Info("Sender 1")
+	//if !tx.Protected() {
+	//	return HomesteadSigner{}.Sender(tx)
+	//}
 	log.Info("Sender 2")
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
