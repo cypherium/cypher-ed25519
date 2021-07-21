@@ -79,8 +79,6 @@ var (
 	ErrOverSlotsData = errors.New("overslots data")
 
 	ErrLockedFunds = errors.New("locked funds")
-
-	ErrInvalidTxDataV = errors.New("invalid txdata V")
 )
 
 var (
@@ -653,9 +651,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Gas() < intrGas {
 		log.Trace("Intrinsic Gas too low", "gas", tx.Gas(), "Intrinsic", intrGas)
 		return ErrIntrinsicGas
-	}
-	if !tx.ValidateV() {
-		return ErrInvalidTxDataV
 	}
 	return nil
 }
