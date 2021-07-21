@@ -133,11 +133,13 @@ func (tx *Transaction) Protected() bool {
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
-		return v != 27 && v != 28
+		if v==27||v==28{
+			return false
+		}
 	}
-	// anything not 27 or 28 are considered unprotected
 	return true
 }
+
 
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
