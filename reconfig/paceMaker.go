@@ -67,7 +67,7 @@ func (t *paceMakerTimer) start() error {
 	t.Lock()
 	defer t.Unlock()
 	if t.beStop { //first
-		if t.txPool.PendingCount() > 0 {
+		if t.txPool.PendingCount() > 0 && t.service.SwitchOK() {
 			t.startTime = time.Now()
 		} else {
 			now := time.Now()
