@@ -877,7 +877,7 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 }
 
 func (s *Service) SwitchOK() bool {
-	fromN := s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/2)
+	fromN := s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/3+1)
 	if fromN < 0 {
 		fromN = 0
 	}
