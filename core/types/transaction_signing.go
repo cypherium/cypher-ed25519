@@ -27,7 +27,6 @@ import (
 	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/params"
 	"golang.org/x/crypto/ed25519"
-	"github.com/cypherium/cypherBFT/log"
 )
 
 var (
@@ -132,15 +131,12 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
-	//log.Info("Sender 1")
-	//if !tx.Protected() {
-	//	return HomesteadSigner{}.Sender(tx)
-	//}
-	log.Info("Sender 2")
+	if !tx.Protected() {
+		return HomesteadSigner{}.Sender(tx)
+	}
 	if tx.ChainId().Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
 	}
-	log.Info("Sender 3")
 	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
 	V.Sub(V, big8)
 
