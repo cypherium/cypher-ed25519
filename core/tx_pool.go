@@ -79,6 +79,8 @@ var (
 	ErrOverSlotsData = errors.New("overslots data")
 
 	ErrLockedFunds = errors.New("locked funds")
+
+	ErrInvalidTxDataV = errors.New("invalid txdata V")
 )
 
 var (
@@ -653,7 +655,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrIntrinsicGas
 	}
 	if !tx.ValidateV() {
-		return types.ErrInvalidTxDataV
+		return ErrInvalidTxDataV
 	}
 	return nil
 }
