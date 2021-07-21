@@ -131,10 +131,13 @@ func (tx *Transaction) Protected() bool {
 }
 
 func isProtectedV(V *big.Int) bool {
+	log.Info("isProtectedV 1")
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
+		log.Info("isProtectedV 1<")
 		return v != 27 && v != 28
 	}
+	log.Info("isProtectedV end")
 	// anything not 27 or 28 are considered unprotected
 	return true
 }
