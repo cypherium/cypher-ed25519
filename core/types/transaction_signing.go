@@ -27,6 +27,7 @@ import (
 	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/params"
 	"golang.org/x/crypto/ed25519"
+	"github.com/cypherium/cypherBFT/log"
 )
 
 var (
