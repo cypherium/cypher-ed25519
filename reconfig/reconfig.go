@@ -71,6 +71,7 @@ type serviceI interface {
 	sendNewViewMsg(curN uint64)
 	LeaderAckTime() time.Time
 	ResetLeaderAckTime()
+	SwitchOK() bool
 }
 
 //NewReconfig call by backend

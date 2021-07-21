@@ -875,3 +875,15 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 
 	return takePartInNumberList
 }
+
+func (s *Service) SwitchOK() bool {
+	fromN := s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/2)
+	if fromN < 0 {
+		fromN = 0
+	}
+	keyblock := s.kbc.GetBlockByNumber(fromN)
+	if s.bc.CurrentBlockN()-keyblock.T_Number() > 0 {
+		return true
+	}
+	return false
+}
