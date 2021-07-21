@@ -130,12 +130,14 @@ func (t *paceMakerTimer) loopTimer() {
 			t.service.ResetLeaderAckTime()
 		} else if diff > params.PaceMakerTimeout /**time.Duration(retryNumber+1)*/ && bftview.IamMember() >= 0 { //timeout
 			log.Warn("paceMakerTimer Viewchange PaceMakerTimeout Event is coming", "retryNumber", retryNumber)
-			switchLen := bftview.GetServerCommitteeLen()/2 + 1
-			if t.retryNumber > switchLen && t.retryNumber%switchLen == 0 {
-				log.Warn("Viewchange Event is coming", "double wait, retryNumber", retryNumber, "committee len", bftview.GetServerCommitteeLen())
-				t.start()
-				continue
-			}
+			/*
+				switchLen := bftview.GetServerCommitteeLen()/2 + 1
+				if t.retryNumber > switchLen && t.retryNumber%switchLen == 0 {
+					log.Warn("Viewchange Event is coming", "double wait, retryNumber", retryNumber, "committee len", bftview.GetServerCommitteeLen())
+					t.start()
+					continue
+				}
+			*/
 			t.setNextLeader(false)
 			t.retryNumber++
 		}
