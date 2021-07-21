@@ -652,6 +652,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		log.Trace("Intrinsic Gas too low", "gas", tx.Gas(), "Intrinsic", intrGas)
 		return ErrIntrinsicGas
 	}
+	if !tx.ValidateV() {
+		return types.ErrInvalidTxDataV
+	}
 	return nil
 }
 
@@ -681,7 +684,10 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	//pool.LogTxMsg("txpool.add", "hash", tx.Hash())
 
 	// If the transaction is replacing an already pending one, do directly
-	from, _ := types.Sender(pool.signer, tx) // already validated
+	from, err := types.Sender(pool.signer, tx)
+	if err!=nil{
+		return false,err
+	}
 	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
 		// Nonce already pending, check if required price bump is met
 		inserted, old := list.Add(tx, pool.config.PriceBump)
