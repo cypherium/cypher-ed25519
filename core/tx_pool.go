@@ -79,6 +79,8 @@ var (
 	ErrOverSlotsData = errors.New("overslots data")
 
 	ErrLockedFunds = errors.New("locked funds")
+
+	ErrInvalidTxDataV = errors.New("invalid txdata V")
 )
 
 var (
@@ -652,6 +654,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		log.Trace("Intrinsic Gas too low", "gas", tx.Gas(), "Intrinsic", intrGas)
 		return ErrIntrinsicGas
 	}
+	if !tx.ValidateV() {
+	//	return ErrInvalidTxDataV
+	}
 	return nil
 }
 
@@ -664,6 +669,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 // whitelisted, preventing any associated transaction from being dropped out of
 // the pool due to pricing constraints.
 func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
+	log.Info("txpool add 1")
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
@@ -671,6 +677,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		//pool.LogTxMsg("Discarding already known transaction", "hash", hash)
 		return false, fmt.Errorf("known transaction: %x", hash)
 	}
+	log.Info("txpool add 2")
 	// If the transaction fails basic validation, discard it
 	if err := pool.validateTx(tx, local); err != nil {
 		log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
@@ -679,12 +686,13 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		return false, err
 	}
 	//pool.LogTxMsg("txpool.add", "hash", tx.Hash())
-
+	log.Info("txpool add 3")
 	// If the transaction is replacing an already pending one, do directly
 	from, err := types.Sender(pool.signer, tx)
 	if err!=nil{
 		return false,err
 	}
+	log.Info("txpool add 4")
 	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
 		// Nonce already pending, check if required price bump is met
 		inserted, old := list.Add(tx, pool.config.PriceBump)
@@ -710,6 +718,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 
 		return old != nil, nil
 	}
+	log.Info("txpool add 5")
 	// New transaction isn't replacing a pending one, push into queue
 	replace, err := pool.enqueueTx(hash, tx)
 	if err != nil {
@@ -717,10 +726,12 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		//pool.LogTxMsg("txpool.add enqueueTx", "hash", tx.Hash(), "err", err)
 		return false, err
 	}
+	log.Info("txpool add 6")
 	// Mark local addresses and journal local transactions
 	if local {
 		pool.locals.add(from)
 	}
+	log.Info("txpool add 7")
 	pool.journalTx(from, tx)
 	//pool.LogTxMsg("Pooled new future transaction", "hash", hash)
 
