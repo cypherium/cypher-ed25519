@@ -124,6 +124,16 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
+// Protected returns whether the transaction is protected from replay protection.
+func (tx *Transaction) ValidateV() bool {
+	chainid:=tx.ChainId().Int64()
+	mulV:=chainid*2+35
+	if tx.data.V.Int64()>mulV{
+		return false
+	}else{
+		return true
+	}
+}
 
 // Protected returns whether the transaction is protected from replay protection.
 func (tx *Transaction) Protected() bool {
