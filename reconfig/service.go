@@ -882,7 +882,6 @@ func (s *Service) SwitchOK() bool {
 		return true
 	}
 	keyblock := s.kbc.GetBlockByNumber(uint64(fromN))
-	log.Info("SwitchOK", "fromN", fromN, "keyblock", keyblock)
 	if s.bc.CurrentBlockN()-keyblock.T_Number() > 0 {
 		return true
 	}
