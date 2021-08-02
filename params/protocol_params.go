@@ -25,14 +25,15 @@ import (
 )
 
 const (
-	KeyblockPerTxBlocks = 360
-	MaxTxCountPerBlock  = 1024
-	AckTimeout          = 35 * time.Second
-	HeatBeatTimeout     = 10 * time.Second
-	PaceMakerTimeout    = 2 * time.Minute
-	KeyBlockTimeout     = 28 * time.Minute
-	KeyBlock_Reward     = 1e+18 // Block reward in wei for successfully mining a block
-	CheckBackNumber     = 10
+	KeyblockPerTxBlocks  = 360
+	MaxTxCountPerBlock   = 1024
+	AckTimeout           = 35 * time.Second
+	HeatBeatTimeout      = 10 * time.Second
+	PaceMakerTimeout     = 2 * time.Minute
+	KeyBlockTimeout      = 28 * time.Minute
+	KeyBlock_Reward      = 1e+18 // Block reward in wei for successfully mining a block
+	CheckBackNumber      = 10
+	CollectQuorumTimeout = 20 * time.Second
 )
 
 var (

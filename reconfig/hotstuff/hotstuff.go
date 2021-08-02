@@ -11,6 +11,7 @@ import (
 	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/log"
+	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/rlp"
 )
 
@@ -211,6 +212,7 @@ func (v *View) hasTState() bool {
 type HotstuffProtocolManager struct {
 	secretKey    *bls.SecretKey
 	publicKey    *bls.PublicKey
+	cmLen        int
 	views        map[common.Hash]*View
 	leaderView   *View
 	app          HotStuffApplication
@@ -398,7 +400,8 @@ func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint32, lead
 		v.groupPublicKey = append(v.groupPublicKey, p)
 	}
 
-	v.threshold = CalcThreshold(len(groupPublicKey))
+	hsm.cmLen = len(groupPublicKey)
+	v.threshold = CalcThreshold(hsm.cmLen)
 
 	return v
 }
@@ -409,6 +412,7 @@ func (hsm *HotstuffProtocolManager) updateViewPublicKey(v *View) {
 	for _, p := range groupPublicKey {
 		v.groupPublicKey = append(v.groupPublicKey, p)
 	}
+	hsm.cmLen = len(groupPublicKey)
 }
 
 func (hsm *HotstuffProtocolManager) DumpView(v *View, asLeader bool) {
@@ -1033,7 +1037,11 @@ func (hsm *HotstuffProtocolManager) handlePrepareVoteMsg(m *HotstuffMessage) err
 		return ErrInsufficientQC
 	}
 
-	log.Debug("handlePrepareVoteMsg collect sufficient votes", "viewId", m.ViewId)
+	elapsed := time.Now().Sub(v.createdAt)
+	log.Debug("@@@handlePrepareVoteMsg collect sufficient votes", "viewId", m.ViewId, "elapsed(s)", elapsed)
+	if elapsed < params.CollectQuorumTimeout && len(v.prepareQuorum) < hsm.cmLen {
+		return nil
+	}
 
 	if err := hsm.aggregateQC(v, "prepare", v.prepareQuorum); err != nil {
 		log.Debug("aggregate prepare quorum failed")
