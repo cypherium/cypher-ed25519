@@ -877,11 +877,12 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 }
 
 func (s *Service) SwitchOK() bool {
-	fromN := s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/3+1)
-	if fromN < 0 {
-		fromN = 0
+	fromN := int(s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/3+1))
+	if fromN <= 0 {
+		return true
 	}
-	keyblock := s.kbc.GetBlockByNumber(fromN)
+	keyblock := s.kbc.GetBlockByNumber(uint64(fromN))
+	log.Info("SwitchOK", "fromN", fromN, "keyblock", keyblock)
 	if s.bc.CurrentBlockN()-keyblock.T_Number() > 0 {
 		return true
 	}
