@@ -230,9 +230,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 func selfCheckConsensusPortIsOpened(RnetPort string) error {
 	protocol := "udp"
 	port, _ := strconv.Atoi(RnetPort)
-	err := netutil.VerifyConnectivity(protocol, net.ParseIP("127.0.0.1").String(), port)
+	err := netutil.VerifyConnectivity(protocol, net.ParseIP("127.0.0.1"), port)
 	if err != nil {
-		return fmt.Errorf("POW work is not to be permit;Due to your node haven't been opened  UDP consensus port.", port)
+		return fmt.Errorf("POW work is not to be permit.Due to your node haven't been opened  UDP consensus port:%d", port)
 	}
 	log.Info("selfCheckConsensusPortIsOpened", "UDP consensus port", port)
 	return nil
