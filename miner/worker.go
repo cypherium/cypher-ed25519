@@ -123,6 +123,7 @@ func (self *worker) start() {
 		log.Error("|********************Your node haven't opened :%d UDP consensus port.So POW work is not permitted********************|", port)
 		return
 	}
+
 	atomic.StoreInt32(&self.running, 1)
 	self.keyHeadSub = self.cph.KeyBlockChain().SubscribeChainEvent(self.keyHeadCh)
 
