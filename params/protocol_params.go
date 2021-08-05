@@ -27,13 +27,13 @@ import (
 const (
 	KeyblockPerTxBlocks  = 360
 	MaxTxCountPerBlock   = 1024
-	AckTimeout           = 35 * time.Second
+	AckTimeout           = 60 * time.Second
 	HeatBeatTimeout      = 10 * time.Second
 	PaceMakerTimeout     = 3 * time.Minute
 	KeyBlockTimeout      = 28 * time.Minute
 	KeyBlock_Reward      = 1e+18 // Block reward in wei for successfully mining a block
 	CheckBackNumber      = 10
-	CollectQuorumTimeout = 60 * time.Second
+	CollectQuorumTimeout = 20 * time.Second
 )
 
 var (
