@@ -33,7 +33,7 @@ const (
 	KeyBlockTimeout      = 28 * time.Minute
 	KeyBlock_Reward      = 1e+18 // Block reward in wei for successfully mining a block
 	CheckBackNumber      = 10
-	CollectQuorumTimeout = 15 * time.Second
+	CollectQuorumTimeout = 60 * time.Second
 )
 
 var (
