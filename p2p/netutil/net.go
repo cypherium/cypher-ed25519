@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -333,7 +334,7 @@ func VerifyConnectivity(protocol string, host net.IP, port int) error {
 		conn.Close()
 		return nil
 	} else if protocol == "udp" {
-		addr, err := net.ResolveUDPAddr(protocol, host.String()+string(port))
+		addr, err := net.ResolveUDPAddr(protocol, host.String()+":"+strconv.Itoa(port))
 		if nil != err {
 			return err
 		}
@@ -341,7 +342,7 @@ func VerifyConnectivity(protocol string, host net.IP, port int) error {
 		if nil != err {
 			return err
 		}
-		conn.Close()
+		defer conn.Close()
 		return nil
 
 	}
