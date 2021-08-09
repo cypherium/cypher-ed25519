@@ -106,6 +106,7 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	s.idDataMap = make(map[string]*common.Queue)
 	s.ackMap = make(map[string]*ackInfo)
 	s.backend = callback
+	s.candidatepool = conf.cph.CandidatePool()
 
 	return s
 }
