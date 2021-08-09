@@ -14,6 +14,8 @@ import (
 
 	"strconv"
 
+	"net"
+
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/cphdb"
@@ -21,7 +23,6 @@ import (
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/pow"
-	"net"
 )
 
 var (
@@ -219,14 +220,15 @@ type ExternalIpConfig struct {
 
 ///////////////////////////////////////////////
 type CandidatePool struct {
-	candidates *candidateLookup
-	mu         sync.Mutex
-	feed       event.Feed
-	scope      event.SubscriptionScope
-	txFeed     event.Feed
-	backend    Backend
-	mux        *event.TypeMux
-	db         cphdb.Database
+	candidates     *candidateLookup
+	mu             sync.Mutex
+	feed           event.Feed
+	scope          event.SubscriptionScope
+	txFeed         event.Feed
+	backend        Backend
+	mux            *event.TypeMux
+	db             cphdb.Database
+	CheckMinerPort func(addr string, blockN uint64, keyblockN uint64)
 }
 
 // Backend wraps all methods required for candidate pool.
@@ -272,6 +274,7 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 		log.Error("CandidatePool.add is too low", "number", candidate.KeyCandidate.T_Number)
 		return errors.New("candidate's txBlockNumber is too low")
 	}
+	cp.CheckMinerPort("127.0.0.1:7100", cp.backend.BlockChain().CurrentBlockN(), cp.backend.KeyBlockChain().CurrentBlockN())
 	if exists := cp.candidates.Add(candidate); !exists {
 		/*
 			log.Info("CandidatePool add new candidate",
@@ -300,6 +303,10 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 	}
 
 	return nil
+}
+
+func (cp *CandidatePool) CheckMinerMsgAck(address string, blockN uint64, keyblockN uint64) {
+	//.........
 }
 
 func (cp *CandidatePool) Content() []*types.Candidate {

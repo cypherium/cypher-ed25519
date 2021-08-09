@@ -21,6 +21,12 @@ package cph
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"net"
+	"runtime"
+	"sync/atomic"
+	"time"
+
 	"github.com/cypherium/cypherBFT/accounts"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
@@ -40,11 +46,6 @@ import (
 	"github.com/cypherium/cypherBFT/node"
 	"github.com/cypherium/cypherBFT/p2p"
 	"golang.org/x/crypto/ed25519"
-	"math/big"
-	"net"
-	"runtime"
-	"sync/atomic"
-	"time"
 
 	//"github.com/cypherium/cypherBFT/p2p/nat"
 	"github.com/cypherium/cypherBFT/p2p/nat"
@@ -207,6 +208,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	if cph.protocolManager, err = NewProtocolManager(cph.chainConfig, config.SyncMode, config.NetworkId, cph.eventMux, cph.txPool, cph.engine, cph.blockchain, cph.keyBlockChain, cph.reconfig, chainDb, cph.candidatePool); err != nil {
 		return nil, err
 	}
+	cph.candidatePool.CheckMinerPort = cph.reconfig.CheckMinerPort
 	cph.blockchain.AddNewMinedBlock = cph.protocolManager.AddNewMinedBlock
 	// cph.miner.SetExtra(makeExtraData(config.ExtraData))
 	cph.APIBackend = &CphAPIBackend{cph, nil}

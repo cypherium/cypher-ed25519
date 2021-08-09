@@ -418,7 +418,8 @@ func (s *Service) handleHotStuffMsg() {
 	for {
 		data := s.hotstuffMsgQ.PopFront()
 		if data == nil {
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
+			s.protocolMng.HandleMessage(&hotstuff.HotstuffMessage{Code: hotstuff.MsgTimer, Number: s.bc.CurrentBlockN()})
 			continue
 		}
 		msg := data.(*hotstuffMsg)

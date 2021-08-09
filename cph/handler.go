@@ -663,7 +663,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 				next = block.NumberU64() + 1
 			} else {
-				log.Trace("Get key Block RLP ", "number", next)
+				//log.Trace("Get key Block RLP ", "number", next)
 				data = pm.keyBlockChain.GetBlockRLPByNumber(next)
 				next = next + 1
 			}

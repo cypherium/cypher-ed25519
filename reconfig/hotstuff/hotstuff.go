@@ -54,6 +54,7 @@ const (
 	// pseudo messages
 	MsgStartNewView // for handling new view from app
 	MsgTryPropose
+	MsgTimer
 )
 
 func ReadableMsgType(m uint32) string {
@@ -188,17 +189,16 @@ type View struct {
 	qc              map[string]*QC
 	leaderMsg       map[uint64]*HotstuffMessage // record messages from leader to replica: MsgPrepare, MsgPreCommit, MsgCommit, MsgDecide
 
-	tReplica       *time.Timer
-	tLeader        *time.Timer
-	stopTReplicaCh chan bool // stop the tReplica go routine
-	stopTLeaderCh  chan bool // stop the tLeader go routine
-
 	groupPublicKey []*bls.PublicKey
 	threshold      int
+	cmLen          int
 
 	extra [][]byte
 
 	futureNewViewMsg []*HotstuffMessage
+
+	waitingMoreQuorum   bool
+	waitingMoreQuorumAt time.Time
 }
 
 func (v *View) hasKState() bool {
@@ -212,7 +212,6 @@ func (v *View) hasTState() bool {
 type HotstuffProtocolManager struct {
 	secretKey    *bls.SecretKey
 	publicKey    *bls.PublicKey
-	cmLen        int
 	views        map[common.Hash]*View
 	leaderView   *View
 	app          HotStuffApplication
@@ -345,8 +344,6 @@ func (hsm *HotstuffProtocolManager) newView() (*View, []byte) {
 		commitQuorum:     make([]*Quorum, 0),
 		qc:               make(map[string]*QC),
 		leaderMsg:        make(map[uint64]*HotstuffMessage),
-		stopTLeaderCh:    make(chan bool),
-		stopTReplicaCh:   make(chan bool),
 		extra:            make([][]byte, 0),
 		futureNewViewMsg: make([]*HotstuffMessage, 0),
 		createdAt:        time.Now(),
@@ -362,8 +359,8 @@ func (hsm *HotstuffProtocolManager) newView() (*View, []byte) {
 	for _, p := range groupPublicKey {
 		v.groupPublicKey = append(v.groupPublicKey, p)
 	}
-
-	v.threshold = CalcThreshold(len(groupPublicKey))
+	v.cmLen = len(groupPublicKey)
+	v.threshold = CalcThreshold(v.cmLen)
 
 	return v, hsm.app.GetExtra()
 }
@@ -399,9 +396,8 @@ func (hsm *HotstuffProtocolManager) createView(asLeader bool, phase uint32, lead
 	for _, p := range groupPublicKey {
 		v.groupPublicKey = append(v.groupPublicKey, p)
 	}
-
-	hsm.cmLen = len(groupPublicKey)
-	v.threshold = CalcThreshold(hsm.cmLen)
+	v.cmLen = len(groupPublicKey)
+	v.threshold = CalcThreshold(v.cmLen)
 
 	return v
 }
@@ -412,7 +408,6 @@ func (hsm *HotstuffProtocolManager) updateViewPublicKey(v *View) {
 	for _, p := range groupPublicKey {
 		v.groupPublicKey = append(v.groupPublicKey, p)
 	}
-	hsm.cmLen = len(groupPublicKey)
 }
 
 func (hsm *HotstuffProtocolManager) DumpView(v *View, asLeader bool) {
@@ -1033,16 +1028,27 @@ func (hsm *HotstuffProtocolManager) handlePrepareVoteMsg(m *HotstuffMessage) err
 
 	v.prepareQuorum = append(v.prepareQuorum, qrum)
 	if len(v.prepareQuorum) < v.threshold {
-		log.Debug("handlePrepareVoteMsg need more quorum", "threshold", v.threshold, "current", len(v.prepareQuorum))
+		log.Debug("handlePrepareVoteMsg need more quorum", "number", v.number, "threshold", v.threshold, "current", len(v.prepareQuorum))
 		return ErrInsufficientQC
 	}
 
-	elapsed := time.Now().Sub(v.createdAt)
-	log.Debug("@@@handlePrepareVoteMsg collect sufficient votes", "viewId", m.ViewId, "elapsed(s)", elapsed)
-	if elapsed < params.CollectQuorumTimeout && len(v.prepareQuorum) < hsm.cmLen {
-		return nil
+	isTimeout := false
+	if v.waitingMoreQuorum {
+		elapsed := time.Now().Sub(v.waitingMoreQuorumAt)
+		log.Debug("@@@handlePrepareVoteMsg collect sufficient votes", "viewId", m.ViewId, "number", v.number, "elapsed(s)", elapsed)
+		if elapsed >= params.CollectQuorumTimeout {
+			isTimeout = true
+		}
 	}
 
+	if !isTimeout && len(v.prepareQuorum) < v.cmLen-1 {
+		if !v.waitingMoreQuorum {
+			v.waitingMoreQuorum = true
+			v.waitingMoreQuorumAt = time.Now()
+		}
+		return nil
+	}
+	v.waitingMoreQuorum = false
 	if err := hsm.aggregateQC(v, "prepare", v.prepareQuorum); err != nil {
 		log.Debug("aggregate prepare quorum failed")
 		return err
@@ -1050,7 +1056,7 @@ func (hsm *HotstuffProtocolManager) handlePrepareVoteMsg(m *HotstuffMessage) err
 
 	msg := hsm.createSignatureMsg(v, MsgDecide, "prepare")
 
-	log.Debug("handlePrepareVoteMsg broadcast Decide msg", "viewId", m.ViewId)
+	log.Debug("handlePrepareVoteMsg broadcast Decide msg", "viewId", m.ViewId, "number", v.number)
 	hsm.app.Broadcast(msg)
 	v.phaseAsLeader = PhaseFinal
 	v.leaderMsg[MsgDecide] = msg
@@ -1374,6 +1380,9 @@ func (hsm *HotstuffProtocolManager) handleDecideMsg(m *HotstuffMessage) error {
 
 func (hsm *HotstuffProtocolManager) handleMessage(m *HotstuffMessage) error {
 	switch {
+	case m.Code == MsgTimer:
+		return hsm.handleTimerMsg(m.Number)
+
 	case m.Code == MsgNewView:
 		return hsm.handleNewViewMsg(m)
 
@@ -1437,6 +1446,36 @@ func (hsm *HotstuffProtocolManager) HandleMessage(msg *HotstuffMessage) error {
 	}
 
 	return err
+}
+
+func (hsm *HotstuffProtocolManager) handleTimerMsg(curN uint64) error {
+	for _, v := range hsm.views {
+		if v.number <= curN {
+			continue
+		}
+		if v.phaseAsLeader == PhaseFinal || !v.waitingMoreQuorum || len(v.prepareQuorum) < v.threshold {
+			continue
+		}
+		elapsed := time.Now().Sub(v.waitingMoreQuorumAt)
+		if elapsed < params.CollectQuorumTimeout {
+			continue
+		}
+
+		log.Debug("@@@handleTimerMsg", "curN", curN, "number", v.number, "elapsed(s)", elapsed)
+		if err := hsm.aggregateQC(v, "prepare", v.prepareQuorum); err != nil {
+			log.Debug("aggregate prepare quorum failed")
+			continue
+		}
+
+		log.Debug("handleTimerMsg handlePrepareVoteMsg broadcast Decide msg", "number", v.number)
+		v.waitingMoreQuorum = false
+		msg := hsm.createSignatureMsg(v, MsgDecide, "prepare")
+		hsm.app.Broadcast(msg)
+		v.phaseAsLeader = PhaseFinal
+		v.leaderMsg[MsgDecide] = msg
+	}
+
+	return nil
 }
 
 func (hsm *HotstuffProtocolManager) SignHash(data []byte) []byte {

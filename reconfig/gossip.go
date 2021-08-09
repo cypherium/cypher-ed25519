@@ -23,6 +23,7 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/math"
+	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/params"
@@ -46,6 +47,12 @@ type retryMsg struct {
 type heartBeatMsg struct {
 	blockN uint64
 }
+type checkMinerMsg struct {
+	blockN    uint64
+	keyblockN uint64
+	isCheck   bool
+}
+
 type ackInfo struct {
 	ackTm     time.Time
 	sendTm    time.Time
@@ -70,10 +77,11 @@ type netService struct {
 	ackMap    map[string]*ackInfo
 	muIdMap   sync.Mutex
 
-	backend      serviceCallback
-	curBlockN    uint64
-	curKeyBlockN uint64
-	isStoping    bool
+	backend       serviceCallback
+	curBlockN     uint64
+	curKeyBlockN  uint64
+	isStoping     bool
+	candidatepool *core.CandidatePool
 }
 
 func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netService {
@@ -81,6 +89,8 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 		s := &netService{ServiceProcessor: rnet.NewServiceProcessor(c)}
 		s.RegisterProcessorFunc(network.RegisterMessage(&networkMsg{}), s.handleNetworkMsgAck)
 		s.RegisterProcessorFunc(network.RegisterMessage(&heartBeatMsg{}), s.handleHeartBeatMsgAck)
+		s.RegisterProcessorFunc(network.RegisterMessage(&checkMinerMsg{}), s.handleCheckMinerMsgAck)
+
 		return s, nil
 	}
 	rnet.RegisterNewService(sName, registerService)
@@ -110,6 +120,30 @@ func (s *netService) StartStop(isStart bool) {
 	}
 }
 
+//----------------------------------------------------------------------------------------------------
+func (s *netService) CheckMinerPort(addr string, blockN uint64, keyblockN uint64, isCheck bool) {
+	msg := &checkMinerMsg{blockN: blockN, keyblockN: keyblockN, isCheck: isCheck}
+	si := network.NewServerIdentity(addr)
+	go s.SendRaw(si, msg, false)
+}
+
+func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
+	msg, ok := env.Msg.(*checkMinerMsg)
+	if !ok {
+		log.Error("handleCheckMinerMsgAck failed to cast to ")
+		return
+	}
+	si := env.ServerIdentity
+	address := si.Address.String()
+	log.Info("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.blockN, "keyblockN", msg.keyblockN)
+	if msg.isCheck {
+		s.CheckMinerPort(address, atomic.LoadUint64(&s.curBlockN), atomic.LoadUint64(&s.curKeyBlockN), false)
+	} else {
+		s.candidatepool.CheckMinerMsgAck(address, msg.blockN, msg.keyblockN)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------
 func (s *netService) AdjustConnect(outAddress string) {
 	s.setIsRunning(outAddress, false)
 }
