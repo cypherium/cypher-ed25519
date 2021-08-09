@@ -82,6 +82,8 @@ type netService struct {
 	curKeyBlockN  uint64
 	isStoping     bool
 	candidatepool *core.CandidatePool
+	bc            *core.BlockChain
+	kbc           *core.KeyBlockChain
 }
 
 func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netService {
@@ -107,6 +109,8 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	s.ackMap = make(map[string]*ackInfo)
 	s.backend = callback
 	s.candidatepool = conf.cph.CandidatePool()
+	s.bc = conf.cph.BlockChain()
+	s.kbc = conf.cph.KeyBlockChain()
 
 	return s
 }
@@ -136,9 +140,9 @@ func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Info("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.blockN, "keyblockN", msg.keyblockN)
+	log.Info("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.blockN, "keyblockN", msg.keyblockN, "isCheck", msg.isCheck)
 	if msg.isCheck {
-		s.CheckMinerPort(address, atomic.LoadUint64(&s.curBlockN), atomic.LoadUint64(&s.curKeyBlockN), false)
+		s.CheckMinerPort(address, s.bc.CurrentBlockN(), s.kbc.CurrentBlockN(), false)
 	} else {
 		s.candidatepool.CheckMinerMsgAck(address, msg.blockN, msg.keyblockN)
 	}
