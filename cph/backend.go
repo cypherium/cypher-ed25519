@@ -185,7 +185,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	cph.candidatePool = core.NewCandidatePool(cph, cph.EventMux(), chainDb)
 	cph.blockchain.Mux = cph.EventMux()
 
 	// Rewind the chain in case of an incompatible config upgrade.
@@ -202,7 +202,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	cph.txPool = core.NewTxPool(config.TxPool, cph.chainConfig, cph.blockchain)
 	cph.blockchain.TxPool = cph.txPool
 	cph.reconfig = reconfig.NewReconfig(chainDb, cph, cph.chainConfig, cph.EventMux(), cph.engine, extIP)
-	cph.candidatePool = core.NewCandidatePool(cph, cph.EventMux(), chainDb)
+
 	cph.miner = miner.New(cph, cph.chainConfig, cph.EventMux(), cph.engine, extIP)
 	if cph.protocolManager, err = NewProtocolManager(cph.chainConfig, config.SyncMode, config.NetworkId, cph.eventMux, cph.txPool, cph.engine, cph.blockchain, cph.keyBlockChain, cph.reconfig, chainDb, cph.candidatePool); err != nil {
 		return nil, err
