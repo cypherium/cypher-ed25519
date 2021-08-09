@@ -140,7 +140,7 @@ func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Info("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.blockN, "keyblockN", msg.keyblockN, "isCheck", msg.isCheck)
+	log.Debug("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.blockN, "keyblockN", msg.keyblockN, "isCheck", msg.isCheck)
 	if msg.isCheck {
 		s.CheckMinerPort(address, s.bc.CurrentBlockN(), s.kbc.CurrentBlockN(), false)
 	} else {
