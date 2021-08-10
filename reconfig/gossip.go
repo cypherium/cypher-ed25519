@@ -127,9 +127,10 @@ func (s *netService) StartStop(isStart bool) {
 
 //----------------------------------------------------------------------------------------------------
 func (s *netService) CheckMinerPort(addr string, blockN uint64, keyblockN uint64, isCheck bool) {
+	log.Info("CheckMinerPort", "adddr", addr)
 	msg := &checkMinerMsg{blockN: blockN, keyblockN: keyblockN, isCheck: isCheck}
 	si := network.NewServerIdentity(addr)
-	go s.SendRaw(si, msg, false)
+	go s.SendRaw(si, msg, true)
 }
 
 func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
