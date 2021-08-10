@@ -35,6 +35,7 @@ var (
 
 type candidateLookup struct {
 	all              map[common.Hash]*types.Candidate
+	temp             map[common.Hash]*types.Candidate
 	DisableIpEncrypt bool
 	lock             sync.Mutex
 	backend          Backend
@@ -43,6 +44,7 @@ type candidateLookup struct {
 func newCandidateLookup(cph Backend) *candidateLookup {
 	return &candidateLookup{
 		all:     make(map[common.Hash]*types.Candidate),
+		temp:    make(map[common.Hash]*types.Candidate),
 		backend: cph,
 	}
 }
@@ -161,6 +163,19 @@ func (t *candidateLookup) Add(c *types.Candidate) bool {
 	return false
 }
 
+func (t *candidateLookup) AddToTemp(c *types.Candidate) bool {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	if _, ok := t.temp[c.Hash()]; ok {
+		return true // already exists
+	}
+
+	t.temp[c.Hash()] = c
+
+	return false
+}
+
 // Remove deletes a candidate from the maintained map, returning whether the
 // candidate was found.
 func (t *candidateLookup) Remove(c *types.Candidate) bool {
@@ -187,6 +202,17 @@ func (t *candidateLookup) ClearObsolete(keyHeadNumber *big.Int) {
 	}
 }
 
+func (t *candidateLookup) ClearObsoleteFromTemp(keyHeadNumber *big.Int) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	//log.Info("Clear candidates older than", "number", keyHeadNumber.Uint64())
+	for k, v := range t.temp {
+		if keyHeadNumber.Cmp(v.KeyCandidate.Number) >= 0 {
+			delete(t.temp, k)
+		}
+	}
+}
 func (t *candidateLookup) ClearCandidate(pubKey ed25519.PublicKey) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
@@ -196,6 +222,17 @@ func (t *candidateLookup) ClearCandidate(pubKey ed25519.PublicKey) {
 		}
 	}
 }
+
+func (t *candidateLookup) ClearCandidateByIp(pubKey ed25519.PublicKey) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	for k, candidate := range t.all {
+		if string(pubKey) == candidate.PubKey {
+			delete(t.all, k)
+		}
+	}
+}
+
 func (t *candidateLookup) FoundCandidate(number *big.Int, pubKey string) bool {
 	t.lock.Lock()
 	defer t.lock.Unlock()
@@ -213,7 +250,7 @@ func (t *candidateLookup) FoundCandidateByIp(ip string) (*types.Candidate, bool)
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	for _, candidate := range t.all {
+	for _, candidate := range t.temp {
 		log.Debug("FoundCandidateByIp", "ip", ip, "candidate.IP", net.IP(candidate.IP).String())
 		if ip == net.IP(candidate.IP).String() {
 			log.Debug("FoundCandidateByIp true")
@@ -288,38 +325,44 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 		return errors.New("candidate's txBlockNumber is too low")
 	}
 
-	if exists := cp.candidates.Add(candidate); !exists {
-		log.Debug("CandidatePool add new candidate",
+	if exists := cp.candidates.AddToTemp(candidate); !exists {
+		log.Info("CandidatePool AddToTemp ",
 			"local", local,
 			"candidate.number", candidate.KeyCandidate.Number.Uint64(),
 			"pubkey", candidate.PubKey,
 			"hash", candidate.Hash(),
 		)
 		cp.CheckMinerPort(net.IP(candidate.IP).String()+":"+strconv.Itoa(candidate.Port), cp.backend.BlockChain().CurrentBlockN(), cp.backend.KeyBlockChain().CurrentBlockN())
-
-	} else {
-		log.Debug("Try to add existing candidate, ignored",
-			"local", local,
-			"candidate.number", candidate.KeyCandidate.Number.Uint64(),
-			"hash", candidate.Hash(),
-		)
 	}
-
 	return nil
 }
 
 func (cp *CandidatePool) CheckMinerMsgAck(address string, blockN uint64, keyblockN uint64) {
-	log.Debug("CheckMinerMsgAck", "address", address, "blockN", blockN, "keyblockN", keyblockN, "CurrentBlockN()", cp.backend.KeyBlockChain().CurrentBlockN())
+	log.Info("CheckMinerMsgAck", "address", address, "blockN", blockN, "keyblockN", keyblockN, "CurrentBlockN()", cp.backend.KeyBlockChain().CurrentBlockN())
 	if cp.backend.KeyBlockChain().CurrentBlockN() > keyblockN {
+
 		return
 	}
 	lastIndex := strings.LastIndex(address, ":")
 	ip := address[:lastIndex]
-	log.Debug("CheckMinerMsgAck", "ip", ip)
+	log.Info("CheckMinerMsgAck", "ip", ip)
 	if candidate, isExist := cp.candidates.FoundCandidateByIp(ip); isExist == true {
-		log.Debug("CheckMinerMsgAck broadcast")
-		// Broadcast to p2p network
-		go cp.feed.Send(candidate)
+		if exists := cp.candidates.Add(candidate); !exists {
+			log.Info("CandidatePool add new candidate",
+				"candidate.number", candidate.KeyCandidate.Number.Uint64(),
+				"pubkey", candidate.PubKey,
+				"hash", candidate.Hash(),
+			)
+			log.Info("CheckMinerMsgAck broadcast")
+			// Broadcast to p2p network
+			go cp.feed.Send(candidate)
+		} else {
+			log.Trace("Try to add existing candidate, ignored",
+				"candidate.number", candidate.KeyCandidate.Number.Uint64(),
+				"hash", candidate.Hash(),
+			)
+		}
+
 	}
 
 }
@@ -389,4 +432,5 @@ func (cp *CandidatePool) ClearCandidate(pubKey ed25519.PublicKey) {
 
 func (cp *CandidatePool) ClearObsolete(keyHeadNumber *big.Int) {
 	cp.candidates.ClearObsolete(keyHeadNumber)
+	cp.candidates.ClearObsoleteFromTemp(keyHeadNumber)
 }
