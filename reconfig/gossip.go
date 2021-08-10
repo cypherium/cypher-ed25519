@@ -23,6 +23,7 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/math"
+	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/params"
@@ -38,14 +39,15 @@ type serviceCallback interface {
 
 const Gossip_MSG = 8
 
-type retryMsg struct {
-	Address string
-	Msg     *networkMsg
+type heartBeatMsg struct {
+	BlockN uint64
+}
+type checkMinerMsg struct {
+	BlockN    uint64
+	KeyblockN uint64
+	AckFlag   uint64
 }
 
-type heartBeatMsg struct {
-	blockN uint64
-}
 type ackInfo struct {
 	ackTm     time.Time
 	sendTm    time.Time
@@ -70,10 +72,13 @@ type netService struct {
 	ackMap    map[string]*ackInfo
 	muIdMap   sync.Mutex
 
-	backend      serviceCallback
-	curBlockN    uint64
-	curKeyBlockN uint64
-	isStoping    bool
+	backend       serviceCallback
+	curBlockN     uint64
+	curKeyBlockN  uint64
+	isStoping     bool
+	candidatepool *core.CandidatePool
+	bc            *core.BlockChain
+	kbc           *core.KeyBlockChain
 }
 
 func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netService {
@@ -81,6 +86,8 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 		s := &netService{ServiceProcessor: rnet.NewServiceProcessor(c)}
 		s.RegisterProcessorFunc(network.RegisterMessage(&networkMsg{}), s.handleNetworkMsgAck)
 		s.RegisterProcessorFunc(network.RegisterMessage(&heartBeatMsg{}), s.handleHeartBeatMsgAck)
+		s.RegisterProcessorFunc(network.RegisterMessage(&checkMinerMsg{}), s.handleCheckMinerMsgAck)
+
 		return s, nil
 	}
 	rnet.RegisterNewService(sName, registerService)
@@ -96,6 +103,9 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	s.idDataMap = make(map[string]*common.Queue)
 	s.ackMap = make(map[string]*ackInfo)
 	s.backend = callback
+	s.candidatepool = conf.cph.CandidatePool()
+	s.bc = conf.cph.BlockChain()
+	s.kbc = conf.cph.KeyBlockChain()
 
 	return s
 }
@@ -110,6 +120,31 @@ func (s *netService) StartStop(isStart bool) {
 	}
 }
 
+//----------------------------------------------------------------------------------------------------
+func (s *netService) CheckMinerPort(addr string, blockN uint64, keyblockN uint64, ackFlag uint64) {
+	msg := &checkMinerMsg{BlockN: blockN, KeyblockN: keyblockN, AckFlag: ackFlag}
+	log.Info("CheckMinerPort", "addr", addr, "msg", msg)
+	si := network.NewServerIdentity(addr)
+	go s.SendRaw(si, msg, true)
+}
+
+func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
+	msg, ok := env.Msg.(*checkMinerMsg)
+	if !ok {
+		log.Error("handleCheckMinerMsgAck failed to cast to ")
+		return
+	}
+	si := env.ServerIdentity
+	address := si.Address.String()
+	log.Debug("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.BlockN, "keyblockN", msg.KeyblockN, "ackFlag", msg.AckFlag)
+	if msg.AckFlag == 111 {
+		s.CheckMinerPort(address, s.bc.CurrentBlockN(), s.kbc.CurrentBlockN(), 0)
+	} else {
+		s.candidatepool.CheckMinerMsgAck(address, msg.BlockN, msg.KeyblockN)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------
 func (s *netService) AdjustConnect(outAddress string) {
 	s.setIsRunning(outAddress, false)
 }
@@ -365,7 +400,7 @@ func (s *netService) heartBeat_Loop() {
 			continue
 		}
 		now := time.Now()
-		msg := &heartBeatMsg{blockN: atomic.LoadUint64(&s.curBlockN)}
+		msg := &heartBeatMsg{BlockN: atomic.LoadUint64(&s.curBlockN)}
 		for _, node := range mb.List {
 			if node.IsSelf() {
 				continue

@@ -118,11 +118,12 @@ func (self *worker) start() {
 		return
 	}
 	port, _ := strconv.Atoi(self.config.RnetPort)
-	err := netutil.VerifyConnectivity("udp", net.ParseIP("127.0.0.1").String(), port)
+	err := netutil.VerifyConnectivity("udp", net.ParseIP("127.0.0.1"), port)
 	if err != nil {
-		log.Error("|********************Your node haven't opened 7100 UDP consensus port.So POW work is not permitted********************|")
+		log.Error("Your node haven't opened UDP consensus port.So POW work is not to permit", "The port is", port)
 		return
 	}
+
 	atomic.StoreInt32(&self.running, 1)
 	self.keyHeadSub = self.cph.KeyBlockChain().SubscribeChainEvent(self.keyHeadCh)
 

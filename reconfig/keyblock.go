@@ -284,6 +284,56 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	return keyblock, mb, best, nil
 }
 
+func (keyS *keyService) getNextLeaderIndex(leaderIndex uint) uint {
+	mb := bftview.GetCurrentMember()
+	if mb == nil {
+		return 1
+	}
+
+	committeeSize := len(mb.List)
+	leaderIndex++
+	if leaderIndex >= uint(committeeSize) {
+		leaderIndex = 0
+	}
+	kbc := keyS.kbc
+	curblock := kbc.CurrentBlock()
+	curNumber := curblock.NumberU64()
+	if curNumber == 0 {
+		return leaderIndex
+	}
+
+	badNodes := make(map[string]bool)
+	badAddr := keyS.getBadAddress()
+	if badAddr != "" {
+		badNodes[badAddr] = true
+	}
+
+	for loopi := 0; loopi < 3; loopi++ {
+		if curblock.BlockType() == types.PaceReconfig || curblock.BlockType() == types.PacePowReconfig {
+			curblock := kbc.GetBlockByHash(curblock.ParentHash())
+			if curblock != nil {
+				badNodes[curblock.LeaderAddress()] = true
+			}
+		}
+	}
+
+	if len(badNodes) > 0 {
+		curNodes := kbc.GetCommitteeByNumber(curNumber)
+		for i, r := range curNodes {
+			if leaderIndex == uint(i) {
+				if badNodes[r.CoinBase] {
+					leaderIndex = uint(i) + 1
+					if leaderIndex == uint(committeeSize) {
+						leaderIndex = 0
+					}
+
+				}
+			}
+		}
+	}
+	return leaderIndex
+}
+
 func (keyS *keyService) getBadAddress() string {
 	mb := bftview.GetCurrentMember()
 	cmLen := len(mb.List)

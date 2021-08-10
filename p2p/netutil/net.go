@@ -324,11 +324,26 @@ func (s DistinctNetSet) String() string {
 }
 
 // VerifyConnectivity tries to connect to a remote host on a given
-func VerifyConnectivity(protocol, host string, port int) error {
-	conn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%d", host, port), 10*time.Second)
-	if err != nil {
-		return err
+func VerifyConnectivity(protocol string, host net.IP, port int) error {
+	if protocol == "tcp" {
+		conn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%d", host.String(), port), 10*time.Second)
+		if err != nil {
+			return err
+		}
+		conn.Close()
+		return nil
+	} else if protocol == "udp" {
+		addr, err := net.ResolveUDPAddr(protocol, host.String()+string(port))
+		if nil != err {
+			return err
+		}
+		conn, err := net.DialUDP(protocol, nil, addr)
+		if nil != err {
+			return err
+		}
+		conn.Close()
+		return nil
+
 	}
-	conn.Close()
-	return nil
+	return errors.New("wrong protocol type")
 }

@@ -129,3 +129,7 @@ func (reconf *Reconfig) Exceptions(blockNumber int64) []string {
 func (reconf *Reconfig) TakePartInNumberList(address common.Address, backCheckNumber int64) []string {
 	return reconf.service.TakePartInNumberList(address, backCheckNumber)
 }
+
+func (reconf *Reconfig) CheckMinerPort(addr string, blockN uint64, keyblockN uint64) {
+	reconf.service.netService.CheckMinerPort(addr, blockN, keyblockN, 111)
+}

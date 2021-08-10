@@ -418,7 +418,8 @@ func (s *Service) handleHotStuffMsg() {
 	for {
 		data := s.hotstuffMsgQ.PopFront()
 		if data == nil {
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
+			s.protocolMng.HandleMessage(&hotstuff.HotstuffMessage{Code: hotstuff.MsgTimer, Number: s.bc.CurrentBlockN()})
 			continue
 		}
 		msg := data.(*hotstuffMsg)
@@ -692,9 +693,9 @@ func (s *Service) setNextLeader(reconfigType uint8) {
 	defer s.muCurrentView.Unlock()
 
 	if reconfigType == types.PowReconfig {
-		s.currentView.LeaderIndex = s.kbc.GetNextLeaderIndex(0, nil)
+		s.currentView.LeaderIndex = s.keyService.getNextLeaderIndex(0)
 	} else {
-		s.currentView.LeaderIndex = s.kbc.GetNextLeaderIndex(s.currentView.LeaderIndex, nil)
+		s.currentView.LeaderIndex = s.keyService.getNextLeaderIndex(s.currentView.LeaderIndex)
 	}
 	s.currentView.ReconfigType = reconfigType
 	log.Info("setNextLeader", "type", reconfigType, "index", s.currentView.LeaderIndex)
@@ -877,11 +878,11 @@ func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber in
 }
 
 func (s *Service) SwitchOK() bool {
-	fromN := s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/3+1)
-	if fromN < 0 {
-		fromN = 0
+	fromN := int(s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/3+1))
+	if fromN <= 0 {
+		return true
 	}
-	keyblock := s.kbc.GetBlockByNumber(fromN)
+	keyblock := s.kbc.GetBlockByNumber(uint64(fromN))
 	if s.bc.CurrentBlockN()-keyblock.T_Number() > 0 {
 		return true
 	}

@@ -212,17 +212,12 @@ func (api *PrivateMinerAPI) Status() string {
 	} else {
 		s += "I'm common node."
 	}
-	if api.e.IsMining() {
+	running := api.e.IsMining() || api.e.reconfigIsRunning()
+	if running {
 		s += "is Running."
 	} else {
 		s += "Stopped."
 	}
-	if api.e.reconfigIsRunning() {
-		s += "&& in service."
-	} else {
-		s += "&& not in service."
-	}
-
 	return s
 }
 

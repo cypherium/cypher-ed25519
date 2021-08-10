@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"math/big"
+	"strings"
 	"sync"
 
 	"golang.org/x/crypto/ed25519"
@@ -14,14 +15,14 @@ import (
 
 	"strconv"
 
+	"net"
+
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/cphdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/pow"
-	"net"
 )
 
 var (
@@ -34,6 +35,7 @@ var (
 
 type candidateLookup struct {
 	all              map[common.Hash]*types.Candidate
+	temp             map[common.Hash]*types.Candidate
 	DisableIpEncrypt bool
 	lock             sync.Mutex
 	backend          Backend
@@ -42,6 +44,7 @@ type candidateLookup struct {
 func newCandidateLookup(cph Backend) *candidateLookup {
 	return &candidateLookup{
 		all:     make(map[common.Hash]*types.Candidate),
+		temp:    make(map[common.Hash]*types.Candidate),
 		backend: cph,
 	}
 }
@@ -160,6 +163,19 @@ func (t *candidateLookup) Add(c *types.Candidate) bool {
 	return false
 }
 
+func (t *candidateLookup) AddToTemp(c *types.Candidate) bool {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	if _, ok := t.temp[c.Hash()]; ok {
+		return true // already exists
+	}
+
+	t.temp[c.Hash()] = c
+
+	return false
+}
+
 // Remove deletes a candidate from the maintained map, returning whether the
 // candidate was found.
 func (t *candidateLookup) Remove(c *types.Candidate) bool {
@@ -186,6 +202,17 @@ func (t *candidateLookup) ClearObsolete(keyHeadNumber *big.Int) {
 	}
 }
 
+func (t *candidateLookup) ClearObsoleteFromTemp(keyHeadNumber *big.Int) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	//log.Info("Clear candidates older than", "number", keyHeadNumber.Uint64())
+	for k, v := range t.temp {
+		if keyHeadNumber.Cmp(v.KeyCandidate.Number) >= 0 {
+			delete(t.temp, k)
+		}
+	}
+}
 func (t *candidateLookup) ClearCandidate(pubKey ed25519.PublicKey) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
@@ -195,6 +222,17 @@ func (t *candidateLookup) ClearCandidate(pubKey ed25519.PublicKey) {
 		}
 	}
 }
+
+func (t *candidateLookup) ClearCandidateByIp(pubKey ed25519.PublicKey) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	for k, candidate := range t.all {
+		if string(pubKey) == candidate.PubKey {
+			delete(t.all, k)
+		}
+	}
+}
+
 func (t *candidateLookup) FoundCandidate(number *big.Int, pubKey string) bool {
 	t.lock.Lock()
 	defer t.lock.Unlock()
@@ -208,6 +246,20 @@ func (t *candidateLookup) FoundCandidate(number *big.Int, pubKey string) bool {
 	return false
 }
 
+func (t *candidateLookup) FoundCandidateByIp(ip string) (*types.Candidate, bool) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	for _, candidate := range t.temp {
+		log.Debug("FoundCandidateByIp", "ip", ip, "candidate.IP", net.IP(candidate.IP).String())
+		if ip == net.IP(candidate.IP).String() {
+			log.Debug("FoundCandidateByIp true")
+			return candidate, true
+		}
+	}
+	return nil, false
+}
+
 // CandidatePoolConfig are the configuration parameters of the transaction pool.
 type LocalTestIpConfig struct {
 	LocalTestIP string
@@ -219,14 +271,15 @@ type ExternalIpConfig struct {
 
 ///////////////////////////////////////////////
 type CandidatePool struct {
-	candidates *candidateLookup
-	mu         sync.Mutex
-	feed       event.Feed
-	scope      event.SubscriptionScope
-	txFeed     event.Feed
-	backend    Backend
-	mux        *event.TypeMux
-	db         cphdb.Database
+	candidates     *candidateLookup
+	mu             sync.Mutex
+	feed           event.Feed
+	scope          event.SubscriptionScope
+	txFeed         event.Feed
+	backend        Backend
+	mux            *event.TypeMux
+	db             cphdb.Database
+	CheckMinerPort func(addr string, blockN uint64, keyblockN uint64)
 }
 
 // Backend wraps all methods required for candidate pool.
@@ -254,12 +307,11 @@ func (cp *CandidatePool) loop() {
 		switch obj := ev.Data.(type) {
 		case RemoteCandidateEvent:
 			candidate := obj.Candidate
-			log.Debug("loop RemoteCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey, "IP", candidate.IP, "Port", candidate.Port)
+			log.Info("loop RemoteCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey, "IP", candidate.IP, "Port", candidate.Port)
 			err := cp.AddRemote(candidate, false)
 			if err != nil {
 				log.Error("loop RemoteCandidateEvent", "err", ErrCandidatePowVerificationFail)
 			}
-
 		}
 	}
 }
@@ -272,34 +324,47 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 		log.Error("CandidatePool.add is too low", "number", candidate.KeyCandidate.T_Number)
 		return errors.New("candidate's txBlockNumber is too low")
 	}
-	if exists := cp.candidates.Add(candidate); !exists {
-		/*
-			log.Info("CandidatePool add new candidate",
-				"local", local,
+
+	if exists := cp.candidates.AddToTemp(candidate); !exists {
+		log.Debug("CandidatePool AddToTemp ",
+			"local", local,
+			"candidate.number", candidate.KeyCandidate.Number.Uint64(),
+			"pubkey", candidate.PubKey,
+			"hash", candidate.Hash(),
+		)
+		cp.CheckMinerPort(net.IP(candidate.IP).String()+":"+strconv.Itoa(candidate.Port), cp.backend.BlockChain().CurrentBlockN(), cp.backend.KeyBlockChain().CurrentBlockN())
+	}
+	return nil
+}
+
+func (cp *CandidatePool) CheckMinerMsgAck(address string, blockN uint64, keyblockN uint64) {
+	log.Debug("CheckMinerMsgAck", "address", address, "blockN", blockN, "keyblockN", keyblockN, "CurrentBlockN()", cp.backend.KeyBlockChain().CurrentBlockN())
+	if cp.backend.KeyBlockChain().CurrentBlockN() > keyblockN {
+
+		return
+	}
+	lastIndex := strings.LastIndex(address, ":")
+	ip := address[:lastIndex]
+	log.Debug("CheckMinerMsgAck", "ip", ip)
+	if candidate, isExist := cp.candidates.FoundCandidateByIp(ip); isExist == true {
+		if exists := cp.candidates.Add(candidate); !exists {
+			log.Debug("CandidatePool add new candidate",
 				"candidate.number", candidate.KeyCandidate.Number.Uint64(),
 				"pubkey", candidate.PubKey,
 				"hash", candidate.Hash(),
 			)
-		*/
-		if local == false {
-
-			// if the candidate comes from network, we need to notify reconfig module which may start doing PBFT consensus
-			go cp.mux.Post(RemoteCandidateEvent{Candidate: candidate})
-
+			log.Debug("CheckMinerMsgAck broadcast")
+			// Broadcast to p2p network
+			go cp.feed.Send(candidate)
+		} else {
+			log.Trace("Try to add existing candidate, ignored",
+				"candidate.number", candidate.KeyCandidate.Number.Uint64(),
+				"hash", candidate.Hash(),
+			)
 		}
 
-		// Broadcast to p2p network
-		go cp.feed.Send(candidate)
-	} else {
-		//log.Info("Try to add existing candidate, ignored",
-		//	"local", local,
-		//	"candidate.number", candidate.KeyCandidate.Number.Uint64(),
-		//	"pubkey", hex.EncodeToString(candidate.PubKey),
-		//	"hash", candidate.Hash(),
-		//)
 	}
 
-	return nil
 }
 
 func (cp *CandidatePool) Content() []*types.Candidate {
@@ -354,11 +419,6 @@ func (cp *CandidatePool) verify(candidate *types.Candidate) error {
 		return ErrCandidateVersionLow
 	}
 
-	err = netutil.VerifyConnectivity("udp", net.IP(candidate.IP).String(), candidate.Port)
-	if err != nil {
-		log.Warn("candidate pool verify candidate's ip", "err", err)
-		return err
-	}
 	return nil
 }
 
@@ -372,4 +432,5 @@ func (cp *CandidatePool) ClearCandidate(pubKey ed25519.PublicKey) {
 
 func (cp *CandidatePool) ClearObsolete(keyHeadNumber *big.Int) {
 	cp.candidates.ClearObsolete(keyHeadNumber)
+	cp.candidates.ClearObsoleteFromTemp(keyHeadNumber)
 }

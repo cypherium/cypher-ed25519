@@ -343,7 +343,7 @@ func (committee *Committee) Add(r *common.Cnode, leaderIndex int, outAddress str
 			//log.Info("committee.Add", "outAddrI", outAddrI, "leaderIndex", leaderIndex)
 			outer = committee.List[leaderIndex-1]
 			committee.List[leaderIndex-1] = list0
-			if leaderIndex-1 == 0 && outAddrI > 0 {
+			if leaderIndex-1 == 0 && outAddrI > 0 && leaderIndex != outAddrI {
 				outer = committee.List[outAddrI]
 				committee.List[outAddrI] = list0
 			}
