@@ -326,7 +326,7 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 	}
 
 	if exists := cp.candidates.AddToTemp(candidate); !exists {
-		log.Info("CandidatePool AddToTemp ",
+		log.Debug("CandidatePool AddToTemp ",
 			"local", local,
 			"candidate.number", candidate.KeyCandidate.Number.Uint64(),
 			"pubkey", candidate.PubKey,
@@ -338,22 +338,22 @@ func (cp *CandidatePool) add(candidate *types.Candidate, local bool, isPlaintext
 }
 
 func (cp *CandidatePool) CheckMinerMsgAck(address string, blockN uint64, keyblockN uint64) {
-	log.Info("CheckMinerMsgAck", "address", address, "blockN", blockN, "keyblockN", keyblockN, "CurrentBlockN()", cp.backend.KeyBlockChain().CurrentBlockN())
+	log.Debug("CheckMinerMsgAck", "address", address, "blockN", blockN, "keyblockN", keyblockN, "CurrentBlockN()", cp.backend.KeyBlockChain().CurrentBlockN())
 	if cp.backend.KeyBlockChain().CurrentBlockN() > keyblockN {
 
 		return
 	}
 	lastIndex := strings.LastIndex(address, ":")
 	ip := address[:lastIndex]
-	log.Info("CheckMinerMsgAck", "ip", ip)
+	log.Debug("CheckMinerMsgAck", "ip", ip)
 	if candidate, isExist := cp.candidates.FoundCandidateByIp(ip); isExist == true {
 		if exists := cp.candidates.Add(candidate); !exists {
-			log.Info("CandidatePool add new candidate",
+			log.Debug("CandidatePool add new candidate",
 				"candidate.number", candidate.KeyCandidate.Number.Uint64(),
 				"pubkey", candidate.PubKey,
 				"hash", candidate.Hash(),
 			)
-			log.Info("CheckMinerMsgAck broadcast")
+			log.Debug("CheckMinerMsgAck broadcast")
 			// Broadcast to p2p network
 			go cp.feed.Send(candidate)
 		} else {
