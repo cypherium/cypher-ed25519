@@ -39,18 +39,13 @@ type serviceCallback interface {
 
 const Gossip_MSG = 8
 
-type retryMsg struct {
-	Address string
-	Msg     *networkMsg
-}
-
 type heartBeatMsg struct {
-	blockN uint64
+	BlockN uint64
 }
 type checkMinerMsg struct {
-	blockN    uint64
-	keyblockN uint64
-	isCheck   bool
+	BlockN    uint64
+	KeyblockN uint64
+	AckFlag   uint64
 }
 
 type ackInfo struct {
@@ -126,9 +121,9 @@ func (s *netService) StartStop(isStart bool) {
 }
 
 //----------------------------------------------------------------------------------------------------
-func (s *netService) CheckMinerPort(addr string, blockN uint64, keyblockN uint64, isCheck bool) {
-	log.Info("CheckMinerPort", "adddr", addr)
-	msg := &checkMinerMsg{blockN: blockN, keyblockN: keyblockN, isCheck: isCheck}
+func (s *netService) CheckMinerPort(addr string, blockN uint64, keyblockN uint64, ackFlag uint64) {
+	msg := &checkMinerMsg{BlockN: blockN, KeyblockN: keyblockN, AckFlag: ackFlag}
+	log.Info("CheckMinerPort", "addr", addr, "msg", msg)
 	si := network.NewServerIdentity(addr)
 	go s.SendRaw(si, msg, true)
 }
@@ -141,11 +136,11 @@ func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
 	}
 	si := env.ServerIdentity
 	address := si.Address.String()
-	log.Debug("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.blockN, "keyblockN", msg.keyblockN, "isCheck", msg.isCheck)
-	if msg.isCheck {
-		s.CheckMinerPort(address, s.bc.CurrentBlockN(), s.kbc.CurrentBlockN(), false)
+	log.Debug("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.BlockN, "keyblockN", msg.KeyblockN, "ackFlag", msg.AckFlag)
+	if msg.AckFlag == 111 {
+		s.CheckMinerPort(address, s.bc.CurrentBlockN(), s.kbc.CurrentBlockN(), 0)
 	} else {
-		s.candidatepool.CheckMinerMsgAck(address, msg.blockN, msg.keyblockN)
+		s.candidatepool.CheckMinerMsgAck(address, msg.BlockN, msg.KeyblockN)
 	}
 }
 
@@ -405,7 +400,7 @@ func (s *netService) heartBeat_Loop() {
 			continue
 		}
 		now := time.Now()
-		msg := &heartBeatMsg{blockN: atomic.LoadUint64(&s.curBlockN)}
+		msg := &heartBeatMsg{BlockN: atomic.LoadUint64(&s.curBlockN)}
 		for _, node := range mb.List {
 			if node.IsSelf() {
 				continue

@@ -131,5 +131,5 @@ func (reconf *Reconfig) TakePartInNumberList(address common.Address, backCheckNu
 }
 
 func (reconf *Reconfig) CheckMinerPort(addr string, blockN uint64, keyblockN uint64) {
-	reconf.service.netService.CheckMinerPort(addr, blockN, keyblockN, true)
+	reconf.service.netService.CheckMinerPort(addr, blockN, keyblockN, 111)
 }
