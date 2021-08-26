@@ -400,7 +400,7 @@ func (s *Cypherium) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Cypherium) Engine() pow.Engine                 { return s.engine }
 func (s *Cypherium) ChainDb() cphdb.Database            { return s.chainDb }
 func (s *Cypherium) IsListening() bool                  { return true } // Always listening
-func (s *Cypherium) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Cypherium) CypherVersion() int                 { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Cypherium) NetVersion() uint64                 { return s.networkID }
 func (s *Cypherium) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 func (s *Cypherium) CandidatePool() *core.CandidatePool { return s.candidatePool }

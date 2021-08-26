@@ -264,7 +264,7 @@ func (b *CphAPIBackend) Downloader() *downloader.Downloader {
 }
 
 func (b *CphAPIBackend) ProtocolVersion() int {
-	return b.cph.EthVersion()
+	return b.cph.CypherVersion()
 }
 
 func (b *CphAPIBackend) SuggestPrice(ctx context.Context) (*big.Int, error) {
