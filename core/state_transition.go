@@ -313,7 +313,7 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 	}
 	n := len(addresses)
 	if n < 4 {
-		log.Error("RewardCommites", "committee number", n)
+		log.Trace("RewardCommites", "committee number", n)
 		return
 	}
 
