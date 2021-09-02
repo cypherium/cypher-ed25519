@@ -1514,17 +1514,18 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 
 					// txNonce is the nonce of latest transaction which is sealed in block
 					txNonce, _ := s.b.GetPoolNonce(ctx, addrfrom)
-					fromIndex++;
-					toIndex++
-					delayValue:=delay
-					amount:=2*1000000000000000000
-					if delayValue==0{
-						amount=fromIndex*1000000000000000000
-						if fromIndex%toIndex==0{
-							amount=amount+toIndex/len(addresses)/2
-						}
+					randNumber:=toIndex+1
+					amount:= big.NewInt(int64(randNumber))
+					oneCypher:= big.NewInt(int64(params.Cpher))
+					amount.Mul(amount,oneCypher)
+					if fromIndex%randNumber==0{
+						extraRandNumber:=big.NewInt(int64(rand.Intn(len(addresses))+1))
+						extraRandNumber.Mul(extraRandNumber,oneCypher)
+						extraRandNumber.Div(extraRandNumber,big.NewInt(int64(randNumber)))
+						amount.Add(amount,extraRandNumber)
 					}
-					tx := types.NewTransaction(txNonce, addresses[toIndex], big.NewInt(int64(amount)), uint64(21000), big.NewInt(18100000000), []byte{})
+					log.Info("AutoTransaction", "fromIndex", fromIndex,"toIndex",toIndex,"amount",amount.Uint64())
+					tx := types.NewTransaction(txNonce, addresses[toIndex], amount, uint64(21000), big.NewInt(18100000000), []byte{})
 					signed, err := wallet.SignTx(account, tx, nil)
 					if err != nil {
 						log.Info("Failed to sign transaction", "sign error", err)
@@ -1539,8 +1540,9 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 
 						continue
 					}
-                    if delayValue==0{
-						delayValue=toIndex*1000
+					delayValue:=delay
+					if delayValue==0{
+						delayValue=randNumber*1000
 					}
 					time.Sleep(time.Duration(delayValue) * time.Millisecond)
 				}
@@ -1873,3 +1875,4 @@ func (s *PublicPowCandidateAPI) Content() []RPCCandidate {
 
 	return result
 }
+
