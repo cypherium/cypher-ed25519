@@ -1514,11 +1514,11 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 
 					// txNonce is the nonce of latest transaction which is sealed in block
 					txNonce, _ := s.b.GetPoolNonce(ctx, addrfrom)
-					randNumber:=toIndex+1
+					randNumber:= rand.Intn(90)+1
 					amount:= big.NewInt(int64(randNumber))
 					oneCypher:= big.NewInt(int64(params.Cpher))
 					amount.Mul(amount,oneCypher)
-					if fromIndex%randNumber==0{
+					if randNumber<fromIndex{
 						extraRandNumber:=big.NewInt(int64(rand.Intn(len(addresses))+1))
 						extraRandNumber.Mul(extraRandNumber,oneCypher)
 						extraRandNumber.Div(extraRandNumber,big.NewInt(int64(randNumber)))
@@ -1542,7 +1542,7 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 					}
 					delayValue:=delay
 					if delayValue==0{
-						delayValue=randNumber*1000
+						delayValue=(randNumber)*1000
 					}
 					time.Sleep(time.Duration(delayValue) * time.Millisecond)
 				}
