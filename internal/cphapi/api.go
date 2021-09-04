@@ -1518,7 +1518,7 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 					amount:= big.NewInt(int64(randNumber))
 					oneCypher:= big.NewInt(int64(params.Cpher))
 					amount.Mul(amount,oneCypher)
-					if randNumber%fromIndex==0{
+					if randNumber%(fromIndex+1)==0{
 						extraRandNumber:=big.NewInt(int64(rand.Intn(len(addresses))+1))
 						extraRandNumber.Mul(extraRandNumber,oneCypher)
 						extraRandNumber.Div(extraRandNumber,big.NewInt(int64(randNumber)))
