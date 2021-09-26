@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -23,19 +24,19 @@ import (
 	"testing"
 
 	"github.com/cypherium/cypherBFT/common"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto"
 )
 
 func newEmptySecure() *SecureTrie {
-	trie, _ := NewSecure(common.Hash{}, NewDatabase(cphdb.NewMemDatabase()), 0)
+	trie, _ := NewSecure(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()), 0)
 	return trie
 }
 
 // makeTestSecureTrie creates a large enough secure trie for testing.
 func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 	// Create an empty trie
-	triedb := NewDatabase(cphdb.NewMemDatabase())
+	triedb := NewDatabase(ethdb.NewMemDatabase())
 
 	trie, _ := NewSecure(common.Hash{}, triedb, 0)
 

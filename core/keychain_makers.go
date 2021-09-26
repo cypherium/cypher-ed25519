@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -21,7 +22,7 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/pow"
 	"golang.org/x/crypto/ed25519"
@@ -90,7 +91,7 @@ func (b *KeyBlockGen) OffsetTime(seconds int64) {
 // Blocks created by GenerateKeyChain do not contain valid proof of work
 // values. Inserting them into KeyBlockChain requires use of FakePow or
 // a similar non-validating proof of work implementation.
-func GenerateKeyChain(config *params.ChainConfig, parent *types.KeyBlock, engine pow.Engine, db cphdb.Database, n int, gen func(int, *KeyBlockGen)) []*types.KeyBlock {
+func GenerateKeyChain(config *params.ChainConfig, parent *types.KeyBlock, engine pow.Engine, db ethdb.Database, n int, gen func(int, *KeyBlockGen)) []*types.KeyBlock {
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -143,7 +144,7 @@ func makeKeyHeader(chain types.KeyChainReader, parent *types.KeyBlock, engine po
 }
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.
-func makeKeyHeaderChain(parent *types.KeyBlockHeader, n int, engine pow.Engine, db cphdb.Database, seed int) []*types.KeyBlockHeader {
+func makeKeyHeaderChain(parent *types.KeyBlockHeader, n int, engine pow.Engine, db ethdb.Database, seed int) []*types.KeyBlockHeader {
 	blocks := makeKeyBlockChain(types.NewKeyBlockWithHeader(parent), n, engine, db, seed)
 	headers := make([]*types.KeyBlockHeader, len(blocks))
 	for i, block := range blocks {
@@ -153,7 +154,7 @@ func makeKeyHeaderChain(parent *types.KeyBlockHeader, n int, engine pow.Engine, 
 }
 
 // makeBlockChain creates a deterministic chain of blocks rooted at parent.
-func makeKeyBlockChain(parent *types.KeyBlock, n int, engine pow.Engine, db cphdb.Database, seed int) []*types.KeyBlock {
+func makeKeyBlockChain(parent *types.KeyBlock, n int, engine pow.Engine, db ethdb.Database, seed int) []*types.KeyBlock {
 	blocks := GenerateKeyChain(params.TestChainConfig, parent, engine, db, n, func(i int, b *KeyBlockGen) {
 
 	})

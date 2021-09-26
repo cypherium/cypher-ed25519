@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -30,7 +31,7 @@ import (
 	"github.com/cypherium/cypherBFT/core/state"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/params"
@@ -124,7 +125,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 		return nil, UnsupportedForkError{subtest.Fork}
 	}
 	block := t.genesis(config).ToBlock(nil)
-	statedb := MakePreState(cphdb.NewMemDatabase(), t.json.Pre)
+	statedb := MakePreState(ethdb.NewMemDatabase(), t.json.Pre)
 
 	post := t.json.Post[subtest.Fork][subtest.Index]
 	msg, err := t.json.Tx.toMessage(post)
@@ -155,7 +156,7 @@ func (t *StateTest) gasLimit(subtest StateSubtest) uint64 {
 	return t.json.Tx.GasLimit[t.json.Post[subtest.Fork][subtest.Index].Indexes.Gas]
 }
 
-func MakePreState(db cphdb.Database, accounts core.GenesisAlloc) *state.StateDB {
+func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
 	sdb := state.NewDatabase(db)
 	statedb, _ := state.New(common.Hash{}, sdb)
 	for addr, a := range accounts {

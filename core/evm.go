@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -80,10 +81,6 @@ func isTransferLocked(db vm.StateDB, addr common.Address, balance *big.Int, amou
 // CanTransfer checks wether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
-	if isTransferLocked(db, addr, nil, amount) {
-		log.Info("Account locked", "address", addr)
-		return false
-	}
 	return db.GetBalance(addr).Cmp(amount) >= 0
 }
 

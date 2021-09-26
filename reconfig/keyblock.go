@@ -1,3 +1,19 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
 // Package reconfig implements Cypherium reconfiguration.
 package reconfig
 
@@ -17,28 +33,27 @@ import (
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/pow"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
+	"github.com/cypherium/cypherBFT/reconfig/hotstuff"
 )
 
 type keyService struct {
-	s                serviceI
-	muBestCandidate  sync.Mutex
-	bestCandidate    *types.Candidate
-	candidatepool    *core.CandidatePool
-	unconnectedNodes []string
-	badAddress       string
-	bc               *core.BlockChain
-	kbc              *core.KeyBlockChain
-	engine           pow.Engine
-	config           *params.ChainConfig
+	s               serviceI
+	muBestCandidate sync.Mutex
+	bestCandidate   *types.Candidate
+	candidatepool   *core.CandidatePool
+	bc              *core.BlockChain
+	kbc             *core.KeyBlockChain
+	engine          pow.Engine
+	config          *params.ChainConfig
 }
 
-func newKeyService(s serviceI, cph Backend, config *params.ChainConfig) *keyService {
+func newKeyService(s serviceI, eth Backend, config *params.ChainConfig) *keyService {
 	keyS := new(keyService)
 	keyS.s = s
-	keyS.candidatepool = cph.CandidatePool()
-	keyS.bc = cph.BlockChain()
-	keyS.kbc = cph.KeyBlockChain()
-	keyS.engine = cph.Engine()
+	keyS.candidatepool = eth.CandidatePool()
+	keyS.bc = eth.BlockChain()
+	keyS.kbc = eth.KeyBlockChain()
+	keyS.engine = eth.Engine()
 	keyS.config = config
 	keyS.kbc.ProcInsertDone = keyS.procKeyBlockDone
 	return keyS
@@ -73,7 +88,7 @@ func (keyS *keyService) decideNewKeyBlock(keyblock *types.KeyBlock, sig []byte, 
 }
 
 // Verify keyblock
-func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *types.Candidate, badAddr []string) error { //
+func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *types.Candidate) error { //
 	log.Info("@verifyKeyBlock", "number", keyblock.NumberU64())
 	kbc := keyS.kbc
 	if keyblock.LeaderPubKey() == bftview.GetServerInfo(bftview.PublicKey) {
@@ -179,8 +194,20 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 		if outer == nil {
 			return fmt.Errorf("keyblock verify failed, PowReconfig or PacePowReconfig should has outer")
 		}
-		if outer.CoinBase != keyblock.OutAddress() || outer.Public != keyblock.OutPubKey() {
-			return fmt.Errorf("keyblock verify failed, outer is not correct")
+		outAddress := keyblock.OutAddress(0)
+		isBadAddress := false
+		if outAddress[0] == '*' {
+			outAddress = outAddress[1:]
+			isBadAddress = true
+		}
+		if outer.CoinBase != outAddress || outer.Public != keyblock.OutPubKey() {
+			return fmt.Errorf("keyblock verify failed, outer is not correct,outer=%s,my outer=%s", outAddress, outer.CoinBase)
+		}
+		if isBadAddress {
+			badAddress := keyS.getBadAddress()
+			if outAddress != badAddress {
+				return fmt.Errorf("keyblock verify failed, outer is not correct,outer =%s, badAddress=%s", outAddress, badAddress)
+			}
 		}
 	}
 
@@ -189,27 +216,6 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 	}
 	if mb.In().CoinBase != keyblock.InAddress() || mb.In().Public != keyblock.InPubKey() {
 		return fmt.Errorf("keyblock verify failed, in is not correct")
-	}
-	if keyType == types.PowReconfig && len(badAddr) > 0 && badAddr[0] != "" {
-		badAddress := badAddr[0]
-		beFind := false
-		for _, addr := range keyS.unconnectedNodes {
-			if addr == badAddress {
-				beFind = true
-			}
-		}
-		if !beFind {
-			return fmt.Errorf("keyblock verify failed, bad address(%s) is not correct", badAddress)
-		}
-		if outer == nil {
-			return fmt.Errorf("keyblock verify failed, outer is not correct(nil)")
-		}
-		if outer.Address != badAddress {
-			return fmt.Errorf("keyblock verify failed, outer is not correct(not bad address)")
-		}
-		if keyblock.OutAddress() != outer.CoinBase {
-			return fmt.Errorf("keyblock verify failed, outer is not correct(coinbase)")
-		}
 	}
 
 	if bftview.LoadMember(keyblock.NumberU64(), keyblock.Hash(), true) == nil {
@@ -221,14 +227,14 @@ func (keyS *keyService) verifyKeyBlock(keyblock *types.KeyBlock, bestCandi *type
 }
 
 // Try to change committee and proposal a new keyblock
-func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderIndex uint) (*types.KeyBlock, *bftview.Committee, *types.Candidate, string, error) {
+func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderIndex uint) (*types.KeyBlock, *bftview.Committee, *types.Candidate, error) {
 	log.Info("tryProposalChangeCommittee", "tx number", keyS.bc.CurrentBlockN(), "reconfigType", reconfigType, "leaderIndex", leaderIndex)
 	curKeyBlock := keyS.kbc.CurrentBlock()
 	curKNumber := curKeyBlock.Number()
 	curKHash := curKeyBlock.Hash()
 	mb := bftview.GetCurrentMember()
 	if mb == nil {
-		return nil, nil, nil, "", fmt.Errorf("not found committee in keyblock number=%d", curKNumber)
+		return nil, nil, nil, fmt.Errorf("not found committee in keyblock number=%d", curKNumber)
 	}
 	mb = mb.Copy()
 
@@ -242,10 +248,9 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	}
 	var outerPublic, outerCoinBase string
 	best := keyS.getBestCandidate(false)
-	badAddress := keyS.getBadAddress()
 	if reconfigType == types.PowReconfig || reconfigType == types.PacePowReconfig {
 		if best == nil {
-			return nil, nil, nil, "", fmt.Errorf("best candidate is nil")
+			return nil, nil, nil, fmt.Errorf("best candidate is nil")
 		}
 		ck := best.KeyCandidate
 		header.Version, header.Time, header.Difficulty, header.Extra, header.MixDigest, header.Nonce = ck.Version, ck.Time, ck.Difficulty, ck.Extra, ck.MixDigest, ck.Nonce
@@ -254,11 +259,16 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 			CoinBase: best.Coinbase,
 			Public:   best.PubKey,
 		}
+
+		badAddress := keyS.getBadAddress()
 		outer := mb.Add(newNode, int(leaderIndex), badAddress)
 		if outer == nil { //not new add
-			return nil, nil, nil, "", fmt.Errorf("not new best candidate")
+			return nil, nil, nil, fmt.Errorf("not new best candidate")
 		}
 		outerPublic, outerCoinBase = outer.Public, outer.CoinBase
+		if badAddress != "" && outerCoinBase == badAddress {
+			outerCoinBase = "*" + outerCoinBase
+		}
 
 	} else { //exchange in internal
 		mb.Add(nil, int(leaderIndex), "")
@@ -269,9 +279,113 @@ func (keyS *keyService) tryProposalChangeCommittee(reconfigType uint8, leaderInd
 	header.T_Number = keyS.bc.CurrentBlockN()
 	keyblock := types.NewKeyBlock(header)
 	keyblock = keyblock.WithBody(mb.In().Public, mb.In().CoinBase, outerPublic, outerCoinBase, mb.Leader().Public, mb.Leader().CoinBase)
-	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey())
+	log.Info("tryProposalChangeCommittee", "committeeHash", header.CommitteeHash, "leader", keyblock.LeaderPubKey(), "outerCoinBase", outerCoinBase)
 	mb.Store(keyblock)
-	return keyblock, mb, best, badAddress, nil
+	return keyblock, mb, best, nil
+}
+
+func (keyS *keyService) getNextLeaderIndex(leaderIndex uint) uint {
+	mb := bftview.GetCurrentMember()
+	if mb == nil {
+		return 1
+	}
+
+	committeeSize := len(mb.List)
+	leaderIndex++
+	if leaderIndex >= uint(committeeSize) {
+		leaderIndex = 0
+	}
+	kbc := keyS.kbc
+	curblock := kbc.CurrentBlock()
+	curNumber := curblock.NumberU64()
+	if curNumber == 0 {
+		return leaderIndex
+	}
+
+	badNodes := make(map[string]bool)
+	badAddr := keyS.getBadAddress()
+	if badAddr != "" {
+		badNodes[badAddr] = true
+	}
+
+	for loopi := 0; loopi < 3; loopi++ {
+		if curblock.BlockType() == types.PaceReconfig || curblock.BlockType() == types.PacePowReconfig {
+			curblock := kbc.GetBlockByHash(curblock.ParentHash())
+			if curblock != nil {
+				badNodes[curblock.LeaderAddress()] = true
+			}
+		}
+	}
+
+	if len(badNodes) > 0 {
+		curNodes := kbc.GetCommitteeByNumber(curNumber)
+		for i, r := range curNodes {
+			if leaderIndex == uint(i) {
+				if badNodes[r.CoinBase] {
+					leaderIndex = uint(i) + 1
+					if leaderIndex == uint(committeeSize) {
+						leaderIndex = 0
+					}
+
+				}
+			}
+		}
+	}
+	return leaderIndex
+}
+
+func (keyS *keyService) getBadAddress() string {
+	mb := bftview.GetCurrentMember()
+	cmLen := len(mb.List)
+	exps := make(map[int]int)
+
+	fromN := keyS.kbc.CurrentBlock().T_Number() + 1
+	ToN := keyS.bc.CurrentBlockN()
+	if fromN > ToN {
+		return ""
+	}
+
+	for i := fromN; i <= ToN; i++ {
+		block := keyS.bc.GetBlockByNumber(uint64(i))
+		if block == nil {
+			return ""
+		}
+		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), cmLen)
+		if len(indexs) > 0 {
+			for j := 0; j < len(indexs); j++ {
+				exps[indexs[j]]++
+			}
+		}
+	}
+
+	genesisCm := keyS.config.GenCommittee
+	isGenesis := func(addr string) bool {
+		for _, r := range genesisCm {
+			if r.CoinBase == addr {
+				return true
+			}
+		}
+		return false
+	}
+
+	ii := 0
+	maxV := 0
+	for i := 0; i < cmLen; i++ {
+		v, ok := exps[i]
+		if !ok {
+			continue
+		}
+
+		if ToN-fromN < 10 && isGenesis(mb.List[i].CoinBase) {
+			v = v - 1
+		}
+
+		if v > maxV {
+			maxV = v
+			ii = i
+		}
+	}
+	return mb.List[ii].CoinBase
 }
 
 // Clear candidate in cache
@@ -281,14 +395,6 @@ func (keyS *keyService) clearCandidate() {
 
 	keyS.candidatepool.ClearObsolete(keyS.kbc.CurrentBlock().Number())
 	keyS.bestCandidate = nil
-}
-
-func (keyS *keyService) getBadAddress() string {
-
-	return keyS.badAddress
-}
-func (keyS *keyService) setUnconnectedNodes(nodes []string) {
-	keyS.unconnectedNodes = nodes
 }
 
 // Get the best candidate by lowest nonce
@@ -320,7 +426,7 @@ func (keyS *keyService) getBestCandidate(refresh bool) *types.Candidate {
 }
 
 // Set the best candidate by pow
-func (keyS *keyService) setBestCandidateAndBadAddress(bestCandidates []*types.Candidate, unConnected []string) {
+func (keyS *keyService) setBestCandidate(bestCandidates []*types.Candidate) {
 	bestNonce := uint64(math.MaxUint64)
 	best := keyS.getBestCandidate(true)
 	if best != nil {
@@ -335,26 +441,6 @@ func (keyS *keyService) setBestCandidateAndBadAddress(bestCandidates []*types.Ca
 			keyS.bestCandidate = cand
 			keyS.muBestCandidate.Unlock()
 		}
-	}
-	keyS.badAddress = ""
-	if unConnected == nil {
-		return
-	}
-
-	maxCount := 0
-	maxAddress := ""
-	m := make(map[string]int)
-	for _, addr := range unConnected {
-		m[addr] += 1
-		n := m[addr]
-		if n > maxCount {
-			maxCount = n
-			maxAddress = addr
-		}
-	}
-	committeeSize := len(keyS.kbc.Config().GenCommittee)
-	if maxCount >= (committeeSize+1)*2/3 {
-		keyS.badAddress = maxAddress
 	}
 }
 

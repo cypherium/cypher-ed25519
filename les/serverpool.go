@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -28,7 +29,7 @@ import (
 	"time"
 
 	"github.com/cypherium/cypherBFT/common/mclock"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/p2p"
 	"github.com/cypherium/cypherBFT/p2p/discover"
@@ -112,7 +113,7 @@ type registerReq struct {
 // known light server nodes. It received discovered nodes, stores statistics about
 // known nodes and takes care of always having enough good quality servers connected.
 type serverPool struct {
-	db     cphdb.Database
+	db     ethdb.Database
 	dbKey  []byte
 	server *p2p.Server
 	quit   chan struct{}
@@ -140,7 +141,7 @@ type serverPool struct {
 }
 
 // newServerPool creates a new serverPool instance
-func newServerPool(db cphdb.Database, quit chan struct{}, wg *sync.WaitGroup) *serverPool {
+func newServerPool(db ethdb.Database, quit chan struct{}, wg *sync.WaitGroup) *serverPool {
 	pool := &serverPool{
 		db:           db,
 		quit:         quit,

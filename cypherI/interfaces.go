@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -102,11 +103,11 @@ type SyncProgress struct {
 	CurrentKeyBlock  uint64 // Current key block number where sync is at
 	HighestKeyBlock  uint64 // Highest alleged key block number in the chain
 
-	StartingTxBlock uint64 // Block number where sync began
-	CurrentTxBlock  uint64 // Current block number where sync is at
-	HighestTxBlock  uint64 // Highest alleged block number in the chain
-	PulledTxStates  uint64 // Number of state trie entries already downloaded
-	KnownTxStates   uint64 // Total number of state trie entries known about
+	StartingBlock uint64 // Block number where sync began
+	CurrentBlock  uint64 // Current block number where sync is at
+	HighestBlock  uint64 // Highest alleged block number in the chain
+	PulledStates  uint64 // Number of state trie entries already downloaded
+	KnownStates   uint64 // Total number of state trie entries known about
 }
 
 // ChainSyncReader wraps access to the node's current sync status. If there's no

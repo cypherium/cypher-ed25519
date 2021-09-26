@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
@@ -21,7 +22,7 @@ import (
 	"sync"
 
 	"github.com/cypherium/cypherBFT/common"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/rlp"
 )
@@ -106,7 +107,7 @@ func (db *NodeSet) NodeList() NodeList {
 }
 
 // Store writes the contents of the set to the given database
-func (db *NodeSet) Store(target cphdb.Putter) {
+func (db *NodeSet) Store(target ethdb.Putter) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -115,11 +116,11 @@ func (db *NodeSet) Store(target cphdb.Putter) {
 	}
 }
 
-// NodeList stores an ordered list of trie nodes. It implements cphdb.Putter.
+// NodeList stores an ordered list of trie nodes. It implements ethdb.Putter.
 type NodeList []rlp.RawValue
 
 // Store writes the contents of the list to the given database
-func (n NodeList) Store(db cphdb.Putter) {
+func (n NodeList) Store(db ethdb.Putter) {
 	for _, node := range n {
 		db.Put(crypto.Keccak256(node), node)
 	}

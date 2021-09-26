@@ -24,7 +24,7 @@ import (
 	"github.com/cypherium/cypherBFT/accounts"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/log"
 )
 
@@ -46,7 +46,7 @@ func (l *AuditLogger) New(ctx context.Context) (accounts.Account, error) {
 	return l.api.New(ctx)
 }
 
-func (l *AuditLogger) SignTransaction(ctx context.Context, args SendTxArgs, methodSelector *string) (*cphapi.SignTransactionResult, error) {
+func (l *AuditLogger) SignTransaction(ctx context.Context, args SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
 	sel := "<nil>"
 	if methodSelector != nil {
 		sel = *methodSelector

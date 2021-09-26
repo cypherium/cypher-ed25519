@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -31,9 +32,9 @@ import (
 	"github.com/cypherium/cypherBFT/core/state"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 	"github.com/cypherium/cypherBFT/rlp"
 )
 
@@ -98,7 +99,7 @@ func (t *BlockTest) Run() error {
 	}
 
 	// import pre accounts & construct test genesis block & state root
-	db := cphdb.NewMemDatabase()
+	db := ethdb.NewMemDatabase()
 	gblock, err := t.genesis(config).Commit(db)
 	if err != nil {
 		return err
@@ -110,7 +111,7 @@ func (t *BlockTest) Run() error {
 		return fmt.Errorf("genesis block state root does not match test: computed=%x, test=%x", gblock.Root().Bytes()[:6], t.json.Genesis.StateRoot[:6])
 	}
 
-	chain, err := core.NewBlockChain(db, nil, config, cphash.NewShared(), vm.Config{})
+	chain, err := core.NewBlockChain(db, nil, config, ethash.NewShared(), vm.Config{})
 	if err != nil {
 		return err
 	}

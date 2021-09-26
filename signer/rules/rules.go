@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/cypherium/cypherBFT/common"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/signer/core"
 	"github.com/cypherium/cypherBFT/signer/rules/deps"
@@ -235,7 +235,7 @@ func (r *rulesetUI) OnSignerStartup(info core.StartupInfo) {
 	}
 }
 
-func (r *rulesetUI) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (r *rulesetUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	jsonTx, err := json.Marshal(tx)
 	if err != nil {
 		log.Warn("failed marshalling transaction", "tx", tx)

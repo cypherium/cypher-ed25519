@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -257,6 +258,24 @@ func TestDistinctNetSetAddRemove(t *testing.T) {
 	}
 
 	if err := quick.Check(fn, cfg); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestVerifyConnectivity(t *testing.T) {
+	protocol := "udp"
+	err := VerifyConnectivity(protocol, parseIP("127.0.0.1"), 7100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protocol = "tcp"
+	err = VerifyConnectivity(protocol, parseIP("127.0.0.1"), 8000)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = VerifyConnectivity(protocol, parseIP("127.0.0.1"), 6000)
+	if err != nil {
 		t.Fatal(err)
 	}
 }

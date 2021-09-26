@@ -127,7 +127,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TxPoolDisabledGASFlag,
 			utils.TxPoolEnabledJVMFlag,
 			utils.TxPoolEnabledEVMFlag,
-			utils.PowRangeModeFlag,
 		},
 	},
 	{
@@ -189,7 +188,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.MiningEnabledFlag,
 			utils.MinerThreadsFlag,
-			utils.CpherbaseFlag,
 			utils.TargetGasLimitFlag,
 			utils.GasPriceFlag,
 			utils.ExtraDataFlag,

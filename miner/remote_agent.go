@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -27,7 +28,7 @@ import (
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/pow"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 )
 
 type hashrate struct {
@@ -116,7 +117,7 @@ func (a *RemoteAgent) GetWork() ([3]string, error) {
 		candidate := a.currentWork.candidate
 
 		res[0] = candidate.HashNoNonce().Hex()
-		seedHash := cphash.SeedHash(candidate.KeyCandidate.Number.Uint64())
+		seedHash := ethash.SeedHash(candidate.KeyCandidate.Number.Uint64())
 		res[1] = common.BytesToHash(seedHash).Hex()
 		// Calculate the "target" to be returned to the external miner
 		n := big.NewInt(1)

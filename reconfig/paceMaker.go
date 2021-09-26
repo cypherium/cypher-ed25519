@@ -1,3 +1,19 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
 package reconfig
 
 import (
@@ -18,6 +34,7 @@ var maxPaceMakerTime time.Time
 type paceMakerTimer struct {
 	sync.Mutex
 	startTime     time.Time
+	lastKeyTime   time.Time
 	beStop        bool
 	beClose       bool
 	service       serviceI
@@ -28,13 +45,14 @@ type paceMakerTimer struct {
 	kbc           *core.KeyBlockChain
 }
 
-func newPaceMakerTimer(config *params.ChainConfig, s serviceI, cph Backend) *paceMakerTimer {
+func newPaceMakerTimer(config *params.ChainConfig, s serviceI, eth Backend) *paceMakerTimer {
 	maxPaceMakerTime = time.Now().AddDate(100, 0, 0) //100 years
 	vt := &paceMakerTimer{
 		service:       s,
-		txPool:        cph.TxPool(),
-		candidatepool: cph.CandidatePool(),
+		txPool:        eth.TxPool(),
+		candidatepool: eth.CandidatePool(),
 		startTime:     maxPaceMakerTime,
+		lastKeyTime:   time.Now(),
 		beStop:        true,
 		beClose:       false,
 		config:        config,
@@ -49,8 +67,15 @@ func (t *paceMakerTimer) start() error {
 	t.Lock()
 	defer t.Unlock()
 	if t.beStop { //first
-		if t.txPool.PendingCount() > 0 {
+		if t.txPool.PendingCount() > 0 && t.service.SwitchOK() {
 			t.startTime = time.Now()
+		} else {
+			now := time.Now()
+			diff := now.Sub(t.lastKeyTime)
+			if diff > params.KeyBlockTimeout {
+				t.startTime = time.Now()
+				log.Debug("paceMakerTimer keyblock", "startTime", t.startTime)
+			}
 		}
 	} else {
 		t.startTime = time.Now()
@@ -93,22 +118,26 @@ func (t *paceMakerTimer) loopTimer() {
 			return
 		}
 
-		if beStop {
+		if beStop || startTime == maxPaceMakerTime {
 			continue
 		}
+
 		now := time.Now()
 		diff := now.Sub(startTime)
 		if diff > params.AckTimeout && now.Sub(t.service.LeaderAckTime()) > params.AckTimeout && bftview.IamMember() >= 0 {
+			log.Warn("paceMakerTimer Viewchange AckTimeout")
 			t.setNextLeader(false)
 			t.service.ResetLeaderAckTime()
 		} else if diff > params.PaceMakerTimeout /**time.Duration(retryNumber+1)*/ && bftview.IamMember() >= 0 { //timeout
-			log.Warn("Viewchange Event is coming", "retryNumber", retryNumber)
-			switchLen := bftview.GetServerCommitteeLen()/2 + 1
-			if t.retryNumber > switchLen && t.retryNumber%switchLen == 0 {
-				log.Warn("Viewchange Event is coming", "double wait, retryNumber", retryNumber, "committee len", bftview.GetServerCommitteeLen())
-				t.start()
-				continue
-			}
+			log.Warn("paceMakerTimer Viewchange PaceMakerTimeout Event is coming", "retryNumber", retryNumber)
+			/*
+				switchLen := bftview.GetServerCommitteeLen()/2 + 1
+				if t.retryNumber > switchLen && t.retryNumber%switchLen == 0 {
+					log.Warn("Viewchange Event is coming", "double wait, retryNumber", retryNumber, "committee len", bftview.GetServerCommitteeLen())
+					t.start()
+					continue
+				}
+			*/
 			t.setNextLeader(false)
 			t.retryNumber++
 		}
@@ -139,7 +168,11 @@ var m_totalTxs int
 var m_tps10StartTm time.Time
 
 // Event for new block done
-func (t *paceMakerTimer) procBlockDone(curBlock *types.Block, curKeyBlock *types.KeyBlock) {
+func (t *paceMakerTimer) procBlockDone(curBlock *types.Block, curKeyBlock *types.KeyBlock, isKeyBlock bool) {
+	if isKeyBlock {
+		t.lastKeyTime = time.Now()
+		log.Debug("paceMakerTimer keyblock done", "lastKeyTime", t.lastKeyTime)
+	}
 	if curBlock != nil {
 		if t.config.EnabledTPS {
 			txs := len(curBlock.Transactions())

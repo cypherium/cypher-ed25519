@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -25,7 +26,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -47,7 +47,7 @@ const (
 	tcpKeepAliveInterval = 30 * time.Second
 	defaultDialTimeout   = 10 * time.Second // used when dialing if the context has no deadline
 	defaultWriteTimeout  = 10 * time.Second // used for calls if the context has no deadline
-	subscribeTimeout     = 5 * time.Second  // overall timeout cph_subscribe, rpc_modules calls
+	subscribeTimeout     = 5 * time.Second  // overall timeout eth_subscribe, rpc_modules calls
 )
 
 const (
@@ -118,7 +118,8 @@ type Client struct {
 
 	// for dispatch
 	close       chan struct{}
-	didQuit     chan struct{}                  // closed when client quits
+	closing     chan struct{}                  // closed when client is quitting
+	didClose    chan struct{}                  // closed when client quits
 	reconnected chan net.Conn                  // where write/reconnect sends the new connection
 	readErr     chan error                     // errors from read
 	readResp    chan []*jsonrpcMessage         // valid messages from read
@@ -132,7 +133,7 @@ type requestOp struct {
 	ids  []json.RawMessage
 	err  error
 	resp chan *jsonrpcMessage // receives up to len(ids) responses
-	sub  *ClientSubscription  // only set for CphSubscribe requests
+	sub  *ClientSubscription  // only set for EthSubscribe requests
 }
 
 func (op *requestOp) wait(ctx context.Context) (*jsonrpcMessage, error) {
@@ -181,45 +182,6 @@ func DialContext(ctx context.Context, rawurl string) (*Client, error) {
 	}
 }
 
-type StdIOConn struct{}
-
-func (io StdIOConn) Read(b []byte) (n int, err error) {
-	return os.Stdin.Read(b)
-}
-
-func (io StdIOConn) Write(b []byte) (n int, err error) {
-	return os.Stdout.Write(b)
-}
-
-func (io StdIOConn) Close() error {
-	return nil
-}
-
-func (io StdIOConn) LocalAddr() net.Addr {
-	return &net.UnixAddr{Name: "stdio", Net: "stdio"}
-}
-
-func (io StdIOConn) RemoteAddr() net.Addr {
-	return &net.UnixAddr{Name: "stdio", Net: "stdio"}
-}
-
-func (io StdIOConn) SetDeadline(t time.Time) error {
-	return &net.OpError{Op: "set", Net: "stdio", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
-}
-
-func (io StdIOConn) SetReadDeadline(t time.Time) error {
-	return &net.OpError{Op: "set", Net: "stdio", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
-}
-
-func (io StdIOConn) SetWriteDeadline(t time.Time) error {
-	return &net.OpError{Op: "set", Net: "stdio", Source: nil, Addr: nil, Err: errors.New("deadline not supported")}
-}
-func DialStdIO(ctx context.Context) (*Client, error) {
-	return newClient(ctx, func(_ context.Context) (net.Conn, error) {
-		return StdIOConn{}, nil
-	})
-}
-
 func newClient(initctx context.Context, connectFunc func(context.Context) (net.Conn, error)) (*Client, error) {
 	conn, err := connectFunc(initctx)
 	if err != nil {
@@ -231,7 +193,8 @@ func newClient(initctx context.Context, connectFunc func(context.Context) (net.C
 		isHTTP:      isHTTP,
 		connectFunc: connectFunc,
 		close:       make(chan struct{}),
-		didQuit:     make(chan struct{}),
+		closing:     make(chan struct{}),
+		didClose:    make(chan struct{}),
 		reconnected: make(chan net.Conn),
 		readErr:     make(chan error),
 		readResp:    make(chan []*jsonrpcMessage),
@@ -268,8 +231,8 @@ func (c *Client) Close() {
 	}
 	select {
 	case c.close <- struct{}{}:
-		<-c.didQuit
-	case <-c.didQuit:
+		<-c.didClose
+	case <-c.didClose:
 	}
 }
 
@@ -304,7 +267,7 @@ func (c *Client) CallContext(ctx context.Context, result interface{}, method str
 		return err
 	}
 
-	// dispatch has accepted the request and will close the channel it when it quits.
+	// dispatch has accepted the request and will close the channel when it quits.
 	switch resp, err := op.wait(ctx); {
 	case err != nil:
 		return err
@@ -390,9 +353,9 @@ func (c *Client) BatchCallContext(ctx context.Context, b []BatchElem) error {
 	return err
 }
 
-// CphSubscribe registers a subscripion under the "cph" namespace.
-func (c *Client) CphSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
-	return c.Subscribe(ctx, "cph", channel, args...)
+// EthSubscribe registers a subscripion under the "eth" namespace.
+func (c *Client) EthSubscribe(ctx context.Context, channel interface{}, args ...interface{}) (*ClientSubscription, error) {
+	return c.Subscribe(ctx, "eth", channel, args...)
 }
 
 // ShhSubscribe registers a subscripion under the "shh" namespace.
@@ -469,7 +432,9 @@ func (c *Client) send(ctx context.Context, op *requestOp, msg interface{}) error
 		// This can happen if the client is overloaded or unable to keep up with
 		// subscription notifications.
 		return ctx.Err()
-	case <-c.didQuit:
+	case <-c.closing:
+		return ErrClientQuit
+	case <-c.didClose:
 		return ErrClientQuit
 	}
 }
@@ -487,6 +452,7 @@ func (c *Client) write(ctx context.Context, msg interface{}) error {
 	}
 	c.writeConn.SetWriteDeadline(deadline)
 	err := json.NewEncoder(c.writeConn).Encode(msg)
+	c.writeConn.SetWriteDeadline(time.Time{})
 	if err != nil {
 		c.writeConn = nil
 	}
@@ -503,7 +469,7 @@ func (c *Client) reconnect(ctx context.Context) error {
 	case c.reconnected <- newconn:
 		c.writeConn = newconn
 		return nil
-	case <-c.didQuit:
+	case <-c.didClose:
 		newconn.Close()
 		return ErrClientQuit
 	}
@@ -521,8 +487,9 @@ func (c *Client) dispatch(conn net.Conn) {
 		requestOpLock = c.requestOp // nil while the send lock is held
 		reading       = true        // if true, a read loop is running
 	)
-	defer close(c.didQuit)
+	defer close(c.didClose)
 	defer func() {
+		close(c.closing)
 		c.closeRequestOps(ErrClientQuit)
 		conn.Close()
 		if reading {
@@ -657,7 +624,7 @@ func (c *Client) handleResponse(msg *jsonrpcMessage) {
 		return
 	}
 	// For subscription responses, start the subscription if the server
-	// indicates success. CphSubscribe gets unblocked in either case through
+	// indicates success. EthSubscribe gets unblocked in either case through
 	// the op.resp channel.
 	defer close(op.resp)
 	if msg.Error != nil {
@@ -703,7 +670,7 @@ func (c *Client) read(conn net.Conn) error {
 
 // Subscriptions.
 
-// A ClientSubscription represents a subscription established through CphSubscribe.
+// A ClientSubscription represents a subscription established through EthSubscribe.
 type ClientSubscription struct {
 	client    *Client
 	etype     reflect.Type

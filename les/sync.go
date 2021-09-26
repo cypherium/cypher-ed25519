@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -21,7 +22,7 @@ import (
 	"time"
 
 	"github.com/cypherium/cypherBFT/core/rawdb"
-	"github.com/cypherium/cypherBFT/cph/downloader"
+	"github.com/cypherium/cypherBFT/eth/downloader"
 	"github.com/cypherium/cypherBFT/light"
 )
 

@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
@@ -24,7 +25,7 @@ import (
 	"github.com/cypherium/cypherBFT/common/math"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/params"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 )
 
 //go:generate gencodec -type DifficultyTest -field-override difficultyTestMarshaling -out gen_difficultytest.go
@@ -56,7 +57,7 @@ func (test *DifficultyTest) Run(config *params.ChainConfig) error {
 		UncleHash:  test.UncleHash,
 	}
 
-	actual := cphash.CalcDifficulty(config, test.CurrentTimestamp.Uint64(), parent)
+	actual := ethash.CalcDifficulty(config, test.CurrentTimestamp.Uint64(), parent)
 	exp := test.CurrentDifficulty
 
 	if actual.Cmp(exp) != 0 {

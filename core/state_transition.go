@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -241,7 +242,7 @@ func (st *StateTransition) TransitionDb(onlyGas bool, header *types.Header) (ret
 	return ret, st.gasUsed(), vmerr != nil, err
 }
 
-func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header, blockReward uint64) {
+func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header, blockReward uint64, beNewVer bool) {
 	bRewardAll := false
 	//if header.BlockType == types.IsKeyBlockType {
 	//		bRewardAll = true
@@ -255,8 +256,9 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 		log.Error("RewardCommites", "not found parent header hash", header.ParentHash)
 		return
 	}
+
 	keyHash := pBlock.GetKeyHash()
-	if header.KeyHash != keyHash {
+	if !beNewVer && header.KeyHash != keyHash {
 		kheader := bc.GetKeyChainReader().GetHeaderByHash(header.KeyHash)
 		if kheader.HasNewNode() {
 			kNumber := kheader.NumberU64()
@@ -289,7 +291,7 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 	} else {
 		mycommittee := &bftview.Committee{List: cnodes}
 		pubs := mycommittee.ToBlsPublicKeys(keyHash)
-		exceptions := hotstuff.MaskToException(pBlock.Exceptions(), pubs)
+		exceptions := hotstuff.MaskToException(pBlock.Exceptions(), pubs, beNewVer)
 		for i, pub := range pubs {
 			isException := false
 			for _, exp := range exceptions {
@@ -311,6 +313,7 @@ func RewardCommites(bc types.ChainReader, state vm.StateDB, header *types.Header
 	}
 	n := len(addresses)
 	if n < 4 {
+		log.Error("RewardCommites", "committee number", n)
 		return
 	}
 

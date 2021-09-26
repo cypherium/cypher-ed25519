@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -27,8 +28,8 @@ import (
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cph"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/eth"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/les/flowcontrol"
 	"github.com/cypherium/cypherBFT/light"
 	"github.com/cypherium/cypherBFT/log"
@@ -38,7 +39,7 @@ import (
 )
 
 type LesServer struct {
-	config          *cph.Config
+	config          *eth.Config
 	protocolManager *ProtocolManager
 	fcManager       *flowcontrol.ClientManager // nil if our node is client only
 	fcCostStats     *requestCostStats
@@ -50,16 +51,16 @@ type LesServer struct {
 	chtIndexer, bloomTrieIndexer *core.ChainIndexer
 }
 
-func NewLesServer(cph *cph.Cypherium, config *cph.Config) (*LesServer, error) {
+func NewLesServer(cph *eth.Cypherium, config *eth.Config) (*LesServer, error) {
 	quitSync := make(chan struct{})
-	pm, err := NewProtocolManager(cph.BlockChain().Config(), false, ServerProtocolVersions, config.NetworkId, cph.EventMux(), cph.Engine(), newPeerSet(), cph.BlockChain(), cph.TxPool(), cph.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
+	pm, err := NewProtocolManager(eth.BlockChain().Config(), false, ServerProtocolVersions, config.NetworkId, eth.EventMux(), eth.Engine(), newPeerSet(), eth.BlockChain(), eth.TxPool(), eth.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
 	if err != nil {
 		return nil, err
 	}
 
 	lesTopics := make([]discv5.Topic, len(AdvertiseProtocolVersions))
 	for i, pv := range AdvertiseProtocolVersions {
-		lesTopics[i] = lesTopic(cph.BlockChain().Genesis().Hash(), pv)
+		lesTopics[i] = lesTopic(eth.BlockChain().Genesis().Hash(), pv)
 	}
 
 	srv := &LesServer{
@@ -67,8 +68,8 @@ func NewLesServer(cph *cph.Cypherium, config *cph.Config) (*LesServer, error) {
 		protocolManager:  pm,
 		quitSync:         quitSync,
 		lesTopics:        lesTopics,
-		chtIndexer:       light.NewChtIndexer(cph.ChainDb(), false),
-		bloomTrieIndexer: light.NewBloomTrieIndexer(cph.ChainDb(), false),
+		chtIndexer:       light.NewChtIndexer(eth.ChainDb(), false),
+		bloomTrieIndexer: light.NewBloomTrieIndexer(eth.ChainDb(), false),
 	}
 	logger := log.New()
 
@@ -91,7 +92,7 @@ func NewLesServer(cph *cph.Cypherium, config *cph.Config) (*LesServer, error) {
 		logger.Info("Loaded bloom trie", "section", bloomTrieLastSection, "head", bloomTrieSectionHead, "root", bloomTrieRoot)
 	}
 
-	srv.chtIndexer.Start(cph.BlockChain())
+	srv.chtIndexer.Start(eth.BlockChain())
 	pm.server = srv
 
 	srv.defParams = &flowcontrol.ServerParams{
@@ -99,7 +100,7 @@ func NewLesServer(cph *cph.Cypherium, config *cph.Config) (*LesServer, error) {
 		MinRecharge: 50000,
 	}
 	srv.fcManager = flowcontrol.NewClientManager(uint64(config.LightServ), 10, 1000000000)
-	srv.fcCostStats = newCostStats(cph.ChainDb())
+	srv.fcCostStats = newCostStats(eth.ChainDb())
 	return srv, nil
 }
 
@@ -225,7 +226,7 @@ func linRegFromBytes(data []byte) *linReg {
 
 type requestCostStats struct {
 	lock  sync.RWMutex
-	db    cphdb.Database
+	db    ethdb.Database
 	stats map[uint64]*linReg
 }
 
@@ -236,7 +237,7 @@ type requestCostStatsRlp []struct {
 
 var rcStatsKey = []byte("_requestCostStats")
 
-func newCostStats(db cphdb.Database) *requestCostStats {
+func newCostStats(db ethdb.Database) *requestCostStats {
 	stats := make(map[uint64]*linReg)
 	for _, code := range reqList {
 		stats[code] = &linReg{cnt: 100}

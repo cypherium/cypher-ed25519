@@ -31,7 +31,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/crypto"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/rlp"
 )
@@ -43,7 +43,7 @@ type ExternalAPI interface {
 	// New request to create a new account
 	New(ctx context.Context) (accounts.Account, error)
 	// SignTransaction request to sign the specified transaction
-	SignTransaction(ctx context.Context, args SendTxArgs, methodSelector *string) (*cphapi.SignTransactionResult, error)
+	SignTransaction(ctx context.Context, args SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error)
 	// Sign - request to sign the given data (plus prefix)
 	Sign(ctx context.Context, addr common.MixedcaseAddress, data hexutil.Bytes) (hexutil.Bytes, error)
 	// EcRecover - request to perform ecrecover
@@ -75,7 +75,7 @@ type SignerUI interface {
 	ShowInfo(message string)
 	// OnApprovedTx notifies the UI about a transaction having been successfully signed.
 	// This method can be used by a UI to keep track of e.g. how much has been sent to a particular recipient.
-	OnApprovedTx(tx cphapi.SignTransactionResult)
+	OnApprovedTx(tx ethapi.SignTransactionResult)
 	// OnSignerStartup is invoked when the signer boots, and tells the UI info about external API location and version
 	// information
 	OnSignerStartup(info StartupInfo)
@@ -312,7 +312,7 @@ func logDiff(original *SignTxRequest, new *SignTxResponse) bool {
 }
 
 // SignTransaction signs the given Transaction and returns it both as json and rlp-encoded form
-func (api *SignerAPI) SignTransaction(ctx context.Context, args SendTxArgs, methodSelector *string) (*cphapi.SignTransactionResult, error) {
+func (api *SignerAPI) SignTransaction(ctx context.Context, args SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
 	var (
 		err    error
 		result SignTxResponse
@@ -357,7 +357,7 @@ func (api *SignerAPI) SignTransaction(ctx context.Context, args SendTxArgs, meth
 	}
 
 	rlpdata, err := rlp.EncodeToBytes(signedTx)
-	response := cphapi.SignTransactionResult{Raw: rlpdata, Tx: signedTx}
+	response := ethapi.SignTransactionResult{Raw: rlpdata, Tx: signedTx}
 
 	// Finally, send the signed tx to the UI
 	api.UI.OnApprovedTx(response)
@@ -405,7 +405,7 @@ func (api *SignerAPI) Sign(ctx context.Context, addr common.MixedcaseAddress, da
 }
 
 // EcRecover returns the address for the Account that was used to create the signature.
-// Note, this function is compatible with cph_sign and personal_sign. As such it recovers
+// Note, this function is compatible with eth_sign and personal_sign. As such it recovers
 // the address of:
 // hash = keccak256("\x19Cphereum Signed Message:\n"${message length}${message})
 // addr = ecrecover(hash, signature)
@@ -442,7 +442,7 @@ func SignHash(data []byte) ([]byte, string) {
 	return crypto.Keccak256([]byte(msg)), msg
 }
 
-// Export returns encrypted private key associated with the given address in web3 keystore format.
+// Export returns encrypted private key associated with the given address in web3c keystore format.
 func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.RawMessage, error) {
 	res, err := api.UI.ApproveExport(&ExportRequest{Address: addr, Meta: MetadataFromContext(ctx)})
 
@@ -464,7 +464,7 @@ func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.Raw
 }
 
 // Import tries to import the given keyJSON in the local keystore. The keyJSON data is expected to be
-// in web3 keystore format. It will decrypt the keyJSON with the given passphrase and on successful
+// in web3c keystore format. It will decrypt the keyJSON with the given passphrase and on successful
 // decryption it will encrypt the key with the given newPassphrase and store it in the keystore.
 func (api *SignerAPI) Import(ctx context.Context, keyJSON json.RawMessage) (Account, error) {
 	be := api.am.Backends(keystore.KeyStoreType)

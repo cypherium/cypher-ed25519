@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -43,7 +44,7 @@ Service implementations can open LevelDB databases through the service context. 
 node chooses the file system location of each database. If the node is configured to run
 without a data directory, databases are opened in memory instead.
 
-Node also creates the shared store of encrypted Cypherium account keys. Services can access
+Node also creates the shared store of encrypted Ethereum account keys. Services can access
 the account manager through the service context.
 
 

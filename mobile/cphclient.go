@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -22,17 +23,17 @@ import (
 	"math/big"
 
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphclient"
+	"github.com/cypherium/cypherBFT/ethclient"
 )
 
 // CphereumClient provides access to the Cypherium APIs.
 type CphereumClient struct {
-	client *cphclient.Client
+	client *ethclient.Client
 }
 
 // NewCphereumClient connects a client to the given URL.
 func NewCphereumClient(rawurl string) (client *CphereumClient, _ error) {
-	rawClient, err := cphclient.Dial(rawurl)
+	rawClient, err := ethclient.Dial(rawurl)
 	return &CphereumClient{rawClient}, err
 }
 

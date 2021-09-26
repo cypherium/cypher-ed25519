@@ -1,3 +1,19 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
 package reconfig
 
 import (
@@ -8,7 +24,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/params"
@@ -20,8 +36,8 @@ import (
 type Reconfig struct {
 	config  *params.ChainConfig
 	engine  pow.Engine
-	db      cphdb.Database // Low level persistent database to store final content in
-	cph     Backend
+	db      ethdb.Database // Low level persistent database to store final content in
+	eth     Backend
 	service *Service
 	//	service *Service1
 
@@ -55,53 +71,25 @@ type serviceI interface {
 	sendNewViewMsg(curN uint64)
 	LeaderAckTime() time.Time
 	ResetLeaderAckTime()
+	SwitchOK() bool
 }
 
 //NewReconfig call by backend
-func NewReconfig(db cphdb.Database, cph Backend, config *params.ChainConfig, mux *event.TypeMux, engine pow.Engine, extIP net.IP) *Reconfig {
-	reconfig := &Reconfig{mux: mux, cph: cph, config: config, engine: engine, db: db}
+func NewReconfig(db ethdb.Database, eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine pow.Engine, extIP net.IP) *Reconfig {
+	reconfig := &Reconfig{mux: mux, eth: eth, config: config, engine: engine, db: db}
 
 	reconfig.service = newService("cypherBFTService", reconfig)
-	//reconfig.service = newService1("cypherBFTService", reconfig)
-
-	bftview.SetCommitteeConfig(db, cph.KeyBlockChain(), reconfig.service)
-	reconfig.service.pacetMakerTimer = newPaceMakerTimer(config, reconfig.service, cph)
+	bftview.SetCommitteeConfig(db, eth.KeyBlockChain(), reconfig.service)
+	reconfig.service.pacetMakerTimer = newPaceMakerTimer(config, reconfig.service, eth)
 	go reconfig.service.pacetMakerTimer.loopTimer()
 
-	//reconfig.reconfigSub = mux.Subscribe(core.NewCandidateEvent{}, core.KeyChainHeadEvent{})
-	//go reconfig.update()
-
 	reconfig.txsCh = make(chan core.NewTxsEvent, 1024)
-	reconfig.txsSub = cph.TxPool().SubscribeNewTxsEvent(reconfig.txsCh)
+	reconfig.txsSub = eth.TxPool().SubscribeNewTxsEvent(reconfig.txsCh)
 	go reconfig.txsEventLoop()
 
 	return reconfig
 }
 
-/*
-func (reconf *Reconfig) update() {
-	for ev := range reconf.reconfigSub.Chan() {
-		if !reconf.service.isRunning() {
-			continue
-		}
-
-		switch obj := ev.Data.(type) {
-
-		case core.KeyChainHeadEvent:
-			keyblock := obj.KeyBlock
-			log.Info("reconfig recived KeyChainHeadEvent", "keyblock number", keyblock.NumberU64())
-
-		case core.NewCandidateEvent:
-			//log.Info("NewCandidateEvent", "candidate.number", obj.Candidate.KeyCandidate.Number.Uint64(), "candidate.PubKey", obj.Candidate.PubKey)
-			//reconf.service.clearCandidate(obj.Candidate)
-
-		default:
-
-		}
-	}
-	log.Info("quit Reconfig.update")
-}
-*/
 // Monitoring new txs Event
 func (reconf *Reconfig) txsEventLoop() {
 	for {
@@ -132,4 +120,16 @@ func (reconf *Reconfig) Stop() {
 //ReconfigIsRunning call by backend
 func (reconf *Reconfig) ReconfigIsRunning() bool {
 	return reconf.service.isRunning(1)
+}
+
+func (reconf *Reconfig) Exceptions(blockNumber int64) []string {
+	return reconf.service.Exceptions(blockNumber)
+}
+
+func (reconf *Reconfig) TakePartInNumberList(address common.Address, backCheckNumber int64) []string {
+	return reconf.service.TakePartInNumberList(address, backCheckNumber)
+}
+
+func (reconf *Reconfig) CheckMinerPort(addr string, blockN uint64, keyblockN uint64) {
+	reconf.service.netService.CheckMinerPort(addr, blockN, keyblockN, 111)
 }

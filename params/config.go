@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -31,12 +32,12 @@ var (
 	TxChainBadHashes    = map[common.Hash]bool{}
 
 	// AllCphashProtocolChanges contains every protocol change (EIPs) introduced
-	// and accepted by the Cypherium core developers into the Cphash pow.
+	// and accepted by the Cypherium core developers into the Ethash pow.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCphashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", nil, false, 0, big.NewInt(0), 0, 0}
-	TestChainConfig          = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", nil, false, 0, big.NewInt(0), 0, 0}
+	AllCphashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", nil, false, big.NewInt(0), 0, 0}
+	TestChainConfig          = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(CphashConfig), nil, "", nil, false, big.NewInt(0), 0, 0}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -63,12 +64,11 @@ type ChainConfig struct {
 	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
 
 	// Various consensus engines
-	Cphash           *CphashConfig    `json:"cphash,omitempty"`
+	Ethash           *CphashConfig    `json:"ethash,omitempty"`
 	Clique           *CliqueConfig    `json:"clique,omitempty"`
-	OnetPort         string           `json:"onetport,omitempty"`
+	RnetPort         string           `json:"rnetport,omitempty"`
 	GenCommittee     GenesisCommittee `json:"committee"      gencodec:"required"`
 	EnabledTPS       bool
-	PowRangeMode     uint
 	ReconfigBlock    *big.Int `json:"reconfigBlock,omitempty"`
 	ReconfigStrategy int      `json:"reconfigStrategy,omitempty"`
 	Master           int      `json:"master,omitempty"`
@@ -81,7 +81,7 @@ type CphashConfig struct{}
 
 // String implements the stringer interface, returning the consensus engine details.
 func (c *CphashConfig) String() string {
-	return "cphash"
+	return "ethash"
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -99,8 +99,8 @@ func (c *CliqueConfig) String() string {
 func (c *ChainConfig) String() string {
 	var engine interface{}
 	switch {
-	case c.Cphash != nil:
-		engine = c.Cphash
+	case c.Ethash != nil:
+		engine = c.Ethash
 	case c.Clique != nil:
 		engine = c.Clique
 	default:

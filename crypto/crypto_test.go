@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -26,6 +27,7 @@ import (
 	"reflect"
 	"testing"
 
+	"fmt"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 )
@@ -247,4 +249,22 @@ func TestPythonIntegration(t *testing.T) {
 
 	t.Logf("msg: %x, privkey: %s sig: %x\n", msg0, kh, sig0)
 	t.Logf("msg: %x, privkey: %s sig: %x\n", msg1, kh, sig1)
+}
+
+func TestCyperBech32(t *testing.T) {
+	sAddr := "bed616d842d152a5d0bac4c45c6ae98d06414c0b"
+	testAddr := common.HexToAddress(sAddr)
+	cypherAddress, err := CyperBech32Encode(testAddr)
+	if err != nil {
+		t.Errorf("encode cypher fail %v", err)
+	}
+
+	fmt.Println("TestCyperBech32 encode address", cypherAddress)
+
+	addr, err := CyperBech32Decode(cypherAddress)
+	if err != nil {
+		t.Errorf("decode cypher addr fail %v", err)
+	}
+
+	fmt.Printf("TestCyperBech32 decode address %s\n\r", addr.String())
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphclient"
+	"github.com/cypherium/cypherBFT/ethclient"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/rlp"
 	"github.com/hashicorp/golang-lru"
@@ -72,7 +72,7 @@ func testCache() {
 	}
 }
 func main() {
-	client, err := cphclient.Dial(remote)
+	client, err := ethclient.Dial(remote)
 	if err != nil {
 		fmt.Println("Dial failed", err)
 		return
@@ -198,7 +198,7 @@ out:
 }
 
 func main1() {
-	client, err := cphclient.Dial(remote)
+	client, err := ethclient.Dial(remote)
 	if err != nil {
 		fmt.Println("Dial failed", err)
 		return

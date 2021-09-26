@@ -1,3 +1,19 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
 package reconfig
 
 import (
@@ -7,13 +23,14 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/math"
+	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet"
-	"github.com/cypherium/cypherBFT/onet/network"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 	"github.com/cypherium/cypherBFT/rlp"
+	"github.com/cypherium/cypherBFT/rnet"
+	"github.com/cypherium/cypherBFT/rnet/network"
 )
 
 type serviceCallback interface {
@@ -22,14 +39,15 @@ type serviceCallback interface {
 
 const Gossip_MSG = 8
 
-type retryMsg struct {
-	Address string
-	Msg     *networkMsg
+type heartBeatMsg struct {
+	BlockN uint64
+}
+type checkMinerMsg struct {
+	BlockN    uint64
+	KeyblockN uint64
+	AckFlag   uint64
 }
 
-type heartBeatMsg struct {
-	blockN uint64
-}
 type ackInfo struct {
 	ackTm     time.Time
 	sendTm    time.Time
@@ -42,8 +60,8 @@ type msgHeadInfo struct {
 }
 
 type netService struct {
-	*onet.ServiceProcessor // We need to embed the ServiceProcessor, so that incoming messages are correctly handled.
-	server                 *onet.Server
+	*rnet.ServiceProcessor // We need to embed the ServiceProcessor, so that incoming messages are correctly handled.
+	server                 *rnet.Server
 	serverAddress          string
 	serverID               string
 	gossipMsg              map[common.Hash]*msgHeadInfo
@@ -54,22 +72,27 @@ type netService struct {
 	ackMap    map[string]*ackInfo
 	muIdMap   sync.Mutex
 
-	backend      serviceCallback
-	curBlockN    uint64
-	curKeyBlockN uint64
-	isStoping    bool
+	backend       serviceCallback
+	curBlockN     uint64
+	curKeyBlockN  uint64
+	isStoping     bool
+	candidatepool *core.CandidatePool
+	bc            *core.BlockChain
+	kbc           *core.KeyBlockChain
 }
 
 func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netService {
-	registerService := func(c *onet.Context) (onet.Service, error) {
-		s := &netService{ServiceProcessor: onet.NewServiceProcessor(c)}
+	registerService := func(c *rnet.Context) (rnet.Service, error) {
+		s := &netService{ServiceProcessor: rnet.NewServiceProcessor(c)}
 		s.RegisterProcessorFunc(network.RegisterMessage(&networkMsg{}), s.handleNetworkMsgAck)
 		s.RegisterProcessorFunc(network.RegisterMessage(&heartBeatMsg{}), s.handleHeartBeatMsgAck)
+		s.RegisterProcessorFunc(network.RegisterMessage(&checkMinerMsg{}), s.handleCheckMinerMsgAck)
+
 		return s, nil
 	}
-	onet.RegisterNewService(sName, registerService)
-	address := conf.cph.ExtIP().String() + ":" + conf.config.OnetPort
-	server := onet.NewKcpServer(address)
+	rnet.RegisterNewService(sName, registerService)
+	address := conf.eth.ExtIP().String() + ":" + conf.config.RnetPort
+	server := rnet.NewKcpServer(address)
 	s := server.Service(sName).(*netService)
 	s.server = server
 	s.serverID = address
@@ -80,6 +103,9 @@ func newNetService(sName string, conf *Reconfig, callback serviceCallback) *netS
 	s.idDataMap = make(map[string]*common.Queue)
 	s.ackMap = make(map[string]*ackInfo)
 	s.backend = callback
+	s.candidatepool = conf.eth.CandidatePool()
+	s.bc = conf.eth.BlockChain()
+	s.kbc = conf.eth.KeyBlockChain()
 
 	return s
 }
@@ -94,6 +120,31 @@ func (s *netService) StartStop(isStart bool) {
 	}
 }
 
+//----------------------------------------------------------------------------------------------------
+func (s *netService) CheckMinerPort(addr string, blockN uint64, keyblockN uint64, ackFlag uint64) {
+	msg := &checkMinerMsg{BlockN: blockN, KeyblockN: keyblockN, AckFlag: ackFlag}
+	log.Info("CheckMinerPort", "addr", addr, "msg", msg)
+	si := network.NewServerIdentity(addr)
+	go s.SendRaw(si, msg, true)
+}
+
+func (s *netService) handleCheckMinerMsgAck(env *network.Envelope) {
+	msg, ok := env.Msg.(*checkMinerMsg)
+	if !ok {
+		log.Error("handleCheckMinerMsgAck failed to cast to ")
+		return
+	}
+	si := env.ServerIdentity
+	address := si.Address.String()
+	log.Debug("handleCheckMinerMsgAck Recv", "from address", address, "blockN", msg.BlockN, "keyblockN", msg.KeyblockN, "ackFlag", msg.AckFlag)
+	if msg.AckFlag == 111 {
+		s.CheckMinerPort(address, s.bc.CurrentBlockN(), s.kbc.CurrentBlockN(), 0)
+	} else {
+		s.candidatepool.CheckMinerMsgAck(address, msg.BlockN, msg.KeyblockN)
+	}
+}
+
+//----------------------------------------------------------------------------------------------------
 func (s *netService) AdjustConnect(outAddress string) {
 	s.setIsRunning(outAddress, false)
 }
@@ -172,7 +223,7 @@ func (s *netService) broadcast(fromAddr string, msg *networkMsg) {
 
 	mblist := mb.List
 	n := len(mblist)
-	seedIndexs := math.GetRandIntArray(n, (n*4/10)+1)
+	seedIndexs := math.GetRandIntArray(n, n/2+1)
 	for i, _ := range seedIndexs {
 		if mblist[i].Address == "" {
 			continue
@@ -192,9 +243,11 @@ func (s *netService) SendRawData(address string, msg *networkMsg) error {
 
 	s.setIsRunning(address, true)
 	s.muIdMap.Lock()
-	q, _ := s.idDataMap[address]
+	q, ok := s.idDataMap[address]
 	s.muIdMap.Unlock()
-	q.PushBack(msg)
+	if ok && q != nil {
+		q.PushBack(msg)
+	}
 	//	log.Info("SendRawData", "to address", address, "msg", msg)
 	return nil
 }
@@ -347,7 +400,7 @@ func (s *netService) heartBeat_Loop() {
 			continue
 		}
 		now := time.Now()
-		msg := &heartBeatMsg{blockN: atomic.LoadUint64(&s.curBlockN)}
+		msg := &heartBeatMsg{BlockN: atomic.LoadUint64(&s.curBlockN)}
 		for _, node := range mb.List {
 			if node.IsSelf() {
 				continue

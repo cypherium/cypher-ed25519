@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	ipcAPIs  = "reconfig:1.0 manualreconfig:1.0 admin:1.0 debug:1.0 cph:1.0 miner:1.0 net:1.0 personal:1.0 rpc:1.0 shh:1.0 txpool:1.0 web3:1.0"
-	httpAPIs = "cph:1.0 net:1.0 rpc:1.0 web3:1.0"
+	ipcAPIs  = "reconfig:1.0 manualreconfig:1.0 admin:1.0 debug:1.0 cph:1.0 miner:1.0 net:1.0 personal:1.0 rpc:1.0 shh:1.0 txpool:1.0 web3c:1.0"
+	httpAPIs = "cph:1.0 net:1.0 rpc:1.0 web3c:1.0"
 )
 
 // Tests that a node embedded within a console can be started up properly and
@@ -128,7 +128,6 @@ func testAttachWelcome(t *testing.T, cypher *testgcph, endpoint, apis string) {
 	attach.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	attach.SetTemplateFunc("gover", runtime.Version)
 	attach.SetTemplateFunc("gcphver", func() string { return params.Version })
-	attach.SetTemplateFunc("cpherbase", func() string { return cypher.Cpherbase })
 	attach.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
 	attach.SetTemplateFunc("ipc", func() bool { return strings.HasPrefix(endpoint, "ipc") })
 	attach.SetTemplateFunc("datadir", func() string { return cypher.Datadir })

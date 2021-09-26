@@ -15,12 +15,13 @@ import (
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
+	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/pow"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 )
 
 const (
@@ -70,9 +71,9 @@ type worker struct {
 	agents map[Agent]struct{}
 	recv   chan *Result
 
-	cph     Backend
+	eth     Backend
 	chain   *core.KeyBlockChain // todo: should be the key block
-	chainDb cphdb.Database
+	chainDb ethdb.Database
 
 	pubKey    ed25519.PublicKey
 	coinBase  common.Address
@@ -87,16 +88,16 @@ type worker struct {
 	running int32 // The indicator whether the pow engine is running or not.
 }
 
-func newWorker(config *params.ChainConfig, engine pow.Engine, cph Backend, mux *event.TypeMux, candidatePool *core.CandidatePool, extIP net.IP) *worker {
+func newWorker(config *params.ChainConfig, engine pow.Engine, eth Backend, mux *event.TypeMux, candidatePool *core.CandidatePool, extIP net.IP) *worker {
 	worker := &worker{
 		config:        config,
 		engine:        engine,
-		cph:           cph,
+		eth:           eth,
 		mux:           mux,
 		keyHeadCh:     make(chan core.KeyChainHeadEvent, chainHeadChanSize),
-		chainDb:       cph.ChainDb(),
+		chainDb:       eth.ChainDb(),
 		recv:          make(chan *Result, resultQueueSize),
-		chain:         cph.KeyBlockChain(),
+		chain:         eth.KeyBlockChain(),
 		agents:        make(map[Agent]struct{}),
 		IP:            make(net.IP, len(extIP)),
 		candidatePool: candidatePool,
@@ -116,9 +117,15 @@ func (self *worker) start() {
 	if atomic.LoadInt32(&self.running) == 1 {
 		return
 	}
+	port, _ := strconv.Atoi(self.config.RnetPort)
+	err := netutil.VerifyConnectivity("udp", net.ParseIP("127.0.0.1"), port)
+	if err != nil {
+		log.Error("Your node haven't opened UDP consensus port.So POW work is not to permit", "The port is", port)
+		return
+	}
 
 	atomic.StoreInt32(&self.running, 1)
-	self.keyHeadSub = self.cph.KeyBlockChain().SubscribeChainEvent(self.keyHeadCh)
+	self.keyHeadSub = self.eth.KeyBlockChain().SubscribeChainEvent(self.keyHeadCh)
 
 	go self.autoCommit()
 
@@ -208,7 +215,7 @@ func (self *worker) wait() {
 				}
 			}
 
-			if cphash.Mode(self.engine.PowMode()) == cphash.ModeLocalMock {
+			if ethash.Mode(self.engine.PowMode()) == ethash.ModeLocalMock {
 				self.LocalMockAutoTrigNextTermPow(candidate)
 			}
 
@@ -247,12 +254,12 @@ func (self *worker) commitNewWork() {
 	defer self.currentMu.Unlock()
 	tstart := time.Now()
 	keyBlock := self.chain.CurrentBlock() // todo: current keybBlock
-	txBlock := self.cph.BlockChain().CurrentBlock()
+	txBlock := self.eth.BlockChain().CurrentBlock()
 	if txBlock.NumberU64() < keyBlock.T_Number() {
 		log.Error("worker.commitNewWork is too low", "number", txBlock.NumberU64())
 		return
 	}
-	if cphash.Mode(self.engine.PowMode()) != cphash.ModeLocalMock {
+	if ethash.Mode(self.engine.PowMode()) != ethash.ModeLocalMock {
 		if self.candidatePool.FoundCandidate(keyBlock.Number(), string(self.pubKey)) {
 			log.Trace("Found existing candidate of head key block")
 			return
@@ -269,9 +276,9 @@ func (self *worker) commitNewWork() {
 		time.Sleep(wait)
 	}
 
-	port, _ := strconv.Atoi(self.config.OnetPort)
+	port, _ := strconv.Atoi(self.config.RnetPort)
 	candidate := types.NewCandidate(keyBlock.Hash(), nil, keyBlock.Number().Uint64()+uint64(1), txBlock.NumberU64(), nil, self.IP, common.HexString(self.pubKey), self.coinBase.String(), port)
-	committeeSize := len(self.cph.KeyBlockChain().CurrentCommittee())
+	committeeSize := len(self.eth.KeyBlockChain().CurrentCommittee())
 
 	if err := self.engine.PrepareCandidate(self.chain, candidate, committeeSize); err != nil {
 		log.Error("Failed to prepare candidate for mining", "err", err)

@@ -25,7 +25,7 @@ import (
 	"sync"
 
 	"github.com/cypherium/cypherBFT/common"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/crypto/ssh/terminal"
@@ -234,7 +234,7 @@ func (ui *CommandlineUI) ShowInfo(message string) {
 	fmt.Printf("Info: %v\n", message)
 }
 
-func (ui *CommandlineUI) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (ui *CommandlineUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	fmt.Printf("Transaction signed:\n ")
 	spew.Dump(tx.Tx)
 }

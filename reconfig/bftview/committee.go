@@ -1,3 +1,20 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
+// Package bftview implements Cypherium committee common operation functions.
 package bftview
 
 import (
@@ -10,7 +27,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/log"
@@ -60,7 +77,7 @@ type committeeCache struct {
 }
 
 type CommitteeConfig struct {
-	db               cphdb.Database
+	db               ethdb.Database
 	keyblockchain    KeyBlockChainInterface
 	service          ServiceInterface
 	serverInfo       ServerInfo
@@ -75,7 +92,7 @@ const CommitteeCacheSize = 10
 
 var m_config CommitteeConfig
 
-func SetCommitteeConfig(db cphdb.Database, keyblockchain KeyBlockChainInterface, service ServiceInterface) {
+func SetCommitteeConfig(db ethdb.Database, keyblockchain KeyBlockChainInterface, service ServiceInterface) {
 	m_config.db = db
 	m_config.keyblockchain = keyblockchain
 	m_config.service = service
@@ -115,6 +132,7 @@ func GetServerInfo(infoType ServerInfoType) string {
 	return ""
 }
 
+// load committee by keyblock number, needIP is for ignore ip address
 func LoadMember(kNumber uint64, hash common.Hash, needIP bool) *Committee {
 	m_config.muCommitteeCache.Lock()
 	c, ok := m_config.cacheCommittee[hash]
@@ -170,7 +188,7 @@ func GetCurrentMember() *Committee {
 	curBlock := m_config.keyblockchain.CurrentBlock()
 	c := LoadMember(curBlock.NumberU64(), curBlock.Hash(), true)
 	if c == nil {
-		log.Error("Committee.GetCurrent", "Roster or list is nil, keyblock number", curBlock.NumberU64())
+		//log.Error("Committee.GetCurrent", "Roster or list is nil, keyblock number", curBlock.NumberU64())
 		return nil
 	}
 	return c
@@ -193,6 +211,7 @@ func IamLeader(leaderIndex uint) bool {
 	return false
 }
 
+// return the member's index in current committee
 func IamMember() int {
 	myPubKey := GetServerInfo(PublicKey)
 	if myPubKey == "" {
@@ -297,6 +316,7 @@ func (committee *Committee) Copy() *Committee {
 	return p
 }
 
+// Add member node to committee, one in and one out
 func (committee *Committee) Add(r *common.Cnode, leaderIndex int, outAddress string) *common.Cnode {
 	n := len(committee.List)
 	leader := committee.List[leaderIndex]
@@ -307,19 +327,23 @@ func (committee *Committee) Add(r *common.Cnode, leaderIndex int, outAddress str
 				return nil
 			}
 		}
+		if outAddress != "" && outAddress[0] == '*' {
+			outAddress = outAddress[1:]
+		}
 		outAddrI := 0
 		isIp := strings.Contains(outAddress, ".")
 		var outer *common.Cnode
 		if leaderIndex > 0 {
 			for i := leaderIndex; i < n-1; i++ {
 				committee.List[i] = committee.List[i+1]
-				if outAddress != "" && outAddrI != 0 && ((isIp && committee.List[i].Address == outAddress) || (!isIp && committee.List[i].CoinBase == outAddress)) {
+				if outAddress != "" && outAddrI == 0 && ((isIp && committee.List[i].Address == outAddress) || (!isIp && committee.List[i].CoinBase == outAddress)) {
 					outAddrI = i
 				}
 			}
+			//log.Info("committee.Add", "outAddrI", outAddrI, "leaderIndex", leaderIndex)
 			outer = committee.List[leaderIndex-1]
 			committee.List[leaderIndex-1] = list0
-			if leaderIndex-1 == 0 && outAddrI > 0 {
+			if leaderIndex-1 == 0 && outAddrI > 0 && leaderIndex != outAddrI {
 				outer = committee.List[outAddrI]
 				committee.List[outAddrI] = list0
 			}
@@ -462,10 +486,10 @@ func GetCommittee(newNode *common.Cnode, keyblock *types.KeyBlock, needIp bool) 
 			return nil, nil
 		}
 		mb = parentMb.Copy()
-		outer = mb.Add(newNode, int(index), keyblock.OutAddress())
+		outer = mb.Add(newNode, int(index), keyblock.OutAddress(1))
 	} else {
 		mb = parentMb.Copy()
-		outer = mb.Add(nil, int(index), keyblock.OutAddress())
+		outer = mb.Add(nil, int(index), keyblock.OutAddress(1))
 	}
 	return mb, outer
 }
@@ -495,7 +519,7 @@ func ReadCommittee(keyBlockNumber uint64, hash common.Hash) *Committee {
 	}
 	data, _ := m_config.db.Get(rawdb.CommitteeKey(keyBlockNumber, hash))
 	if len(data) == 0 {
-		log.Error("ReadCommittee", "read data is empty", "")
+		log.Warn("ReadCommittee", "read data is empty", "")
 		return nil
 	}
 	cm := new(Committee)

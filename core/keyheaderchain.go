@@ -7,7 +7,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/hashicorp/golang-lru"
 )
@@ -15,7 +15,7 @@ import (
 type KeyHeaderChain struct {
 	config *params.ChainConfig
 
-	chainDb       cphdb.Database
+	chainDb       ethdb.Database
 	genesisHeader *types.KeyBlockHeader
 
 	currentHeader     atomic.Value // Current head of the header chain (may be above the block chain!)
@@ -28,7 +28,7 @@ type KeyHeaderChain struct {
 	procInterrupt func() bool
 }
 
-func NewKeyHeaderChain(chainDb cphdb.Database, config *params.ChainConfig, procInterrupt func() bool) (*KeyHeaderChain, error) {
+func NewKeyHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, procInterrupt func() bool) (*KeyHeaderChain, error) {
 	headerCache, _ := lru.New(headerCacheLimit)
 	tdCache, _ := lru.New(tdCacheLimit)
 	numberCache, _ := lru.New(numberCacheLimit)

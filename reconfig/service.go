@@ -1,7 +1,25 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
 package reconfig
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -12,9 +30,9 @@ import (
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/onet/network"
 	"github.com/cypherium/cypherBFT/reconfig/bftview"
 	"github.com/cypherium/cypherBFT/reconfig/hotstuff"
+	"github.com/cypherium/cypherBFT/rnet/network"
 )
 
 type committeeInfo struct {
@@ -95,11 +113,11 @@ func newService(sName string, conf *Reconfig) *Service {
 	s := new(Service)
 	s.netService = newNetService(sName, conf, s)
 
-	s.txService = newTxService(s, conf.cph, conf.config)
-	s.keyService = newKeyService(s, conf.cph, conf.config)
+	s.txService = newTxService(s, conf.eth, conf.config)
+	s.keyService = newKeyService(s, conf.eth, conf.config)
 
-	s.bc = conf.cph.BlockChain()
-	s.kbc = conf.cph.KeyBlockChain()
+	s.bc = conf.eth.BlockChain()
+	s.kbc = conf.eth.KeyBlockChain()
 	s.lastCmInfoMap = make(map[common.Hash]*cachedCommitteeInfo)
 
 	s.msgCh1 = make(chan committeeMsg, 10)
@@ -137,7 +155,7 @@ func (s *Service) OnNewView(data []byte, extraes [][]byte) error { //buf is snap
 		}
 		bestCandidates = append(bestCandidates, cand)
 	}
-	s.keyService.setBestCandidateAndBadAddress(bestCandidates, nil)
+	s.keyService.setBestCandidate(bestCandidates)
 
 	return nil
 }
@@ -219,12 +237,12 @@ func (s *Service) OnPropose(isKeyBlock bool, state []byte, extra []byte) error {
 
 	if isKeyBlock {
 		var kblock *types.KeyBlock
-		if kState != nil {
-			kblock = types.DecodeToKeyBlock(kState)
+		if state != nil {
+			kblock = types.DecodeToKeyBlock(state)
 			log.Info("OnPropose", "keyNumber", kblock.NumberU64())
 		}
 		if kblock != nil {
-			err := s.keyService.verifyKeyBlock(kblock, types.DecodeToCandidate(extra), nil)
+			err := s.keyService.verifyKeyBlock(kblock, types.DecodeToCandidate(extra))
 			if err != nil {
 				log.Error("verify keyblock", "number", kblock.NumberU64(), "err", err)
 				return err
@@ -236,8 +254,8 @@ func (s *Service) OnPropose(isKeyBlock bool, state []byte, extra []byte) error {
 		}
 	} else {
 		var block *types.Block
-		if tState != nil {
-			block = types.DecodeToBlock(tState)
+		if state != nil {
+			block = types.DecodeToBlock(state)
 			log.Info("OnPropose", "txNumber", block.NumberU64())
 		}
 		if block != nil {
@@ -299,7 +317,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 	s.muCurrentView.Unlock()
 
 	if reconfigType > 0 {
-		keyblock, mb, bestCandi, _, err := s.keyService.tryProposalChangeCommittee(reconfigType, leaderIndex)
+		keyblock, mb, bestCandi, err := s.keyService.tryProposalChangeCommittee(reconfigType, leaderIndex)
 		if err == nil && keyblock != nil && mb != nil {
 			kbuf := keyblock.EncodeToBytes()
 			if bestCandi != nil {
@@ -314,7 +332,7 @@ func (s *Service) Propose() (e error, kState []byte, tState []byte, extra []byte
 	}
 	data, err := s.txService.tryProposalNewBlock(types.IsTxBlockType)
 	if err != nil {
-		log.Error("tryProposalNewBlock", "error", err)
+		log.Warn("tryProposalNewBlock", "error", err)
 		return err, nil, nil, nil
 	}
 	proposeOK = true
@@ -400,7 +418,8 @@ func (s *Service) handleHotStuffMsg() {
 	for {
 		data := s.hotstuffMsgQ.PopFront()
 		if data == nil {
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
+			s.protocolMng.HandleMessage(&hotstuff.HotstuffMessage{Code: hotstuff.MsgTimer, Number: s.bc.CurrentBlockN()})
 			continue
 		}
 		msg := data.(*hotstuffMsg)
@@ -587,7 +606,7 @@ func (s *Service) updateCommittee(keyBlock *types.KeyBlock) bool {
 func (s *Service) Committee_OnStored(keyblock *types.KeyBlock, mb *bftview.Committee) {
 	log.Debug("store committee", "keyNumber", keyblock.NumberU64(), "ip0", mb.List[0].Address, "ipn", mb.List[len(mb.List)-1].Address)
 	if keyblock.HasNewNode() && keyblock.NumberU64() == s.kbc.CurrentBlockN() {
-		s.netService.AdjustConnect(keyblock.OutAddress())
+		s.netService.AdjustConnect(keyblock.OutAddress(1))
 	}
 }
 
@@ -674,9 +693,9 @@ func (s *Service) setNextLeader(reconfigType uint8) {
 	defer s.muCurrentView.Unlock()
 
 	if reconfigType == types.PowReconfig {
-		s.currentView.LeaderIndex = s.kbc.GetNextLeaderIndex(0, nil)
+		s.currentView.LeaderIndex = s.keyService.getNextLeaderIndex(0)
 	} else {
-		s.currentView.LeaderIndex = s.kbc.GetNextLeaderIndex(s.currentView.LeaderIndex, nil)
+		s.currentView.LeaderIndex = s.keyService.getNextLeaderIndex(s.currentView.LeaderIndex)
 	}
 	s.currentView.ReconfigType = reconfigType
 	log.Info("setNextLeader", "type", reconfigType, "index", s.currentView.LeaderIndex)
@@ -686,10 +705,12 @@ func (s *Service) setNextLeader(reconfigType uint8) {
 }
 
 func (s *Service) procBlockDone(txBlock *types.Block, keyblock *types.KeyBlock) {
+	beKeyBlock := true
 	if keyblock == nil {
+		beKeyBlock = false
 		keyblock = s.kbc.CurrentBlock()
 	}
-	s.pacetMakerTimer.procBlockDone(txBlock, keyblock)
+	s.pacetMakerTimer.procBlockDone(txBlock, keyblock, beKeyBlock)
 	keyblockN := keyblock.NumberU64()
 	var blockN uint64
 	if txBlock == nil {
@@ -725,9 +746,9 @@ func (s *Service) stop() {
 
 func (s *Service) isRunning(flag int) bool {
 	//log all status
-	if flag == 1 {
-		go s.printAllStatus()
-	}
+	//	if flag == 1 {
+	//		go s.printAllStatus()
+	//	}
 	return atomic.LoadInt32(&s.runningState) == 1
 }
 
@@ -765,17 +786,105 @@ func (s *Service) ResetLeaderAckTime() {
 	}
 }
 
-/*
-func (s *Service) MakeupData(data *hotstuff.StateSign) []byte {
-	if data.Type == hotstuff.TxState {
-		block := types.DecodeToBlock(data.State)
-		block.SetSignature(data.Sign, data.Mask)
-		return block.EncodeToBytes()
-	} else if data.Type == hotstuff.KeyState {
-		block := types.DecodeToKeyBlock(data.State)
-		block.SetSignature(data.Sign, data.Mask)
-		return block.EncodeToBytes()
+func (s *Service) Exceptions(blockNumber int64) []string {
+	block := s.bc.GetBlockByNumber(uint64(blockNumber))
+	if block == nil {
+		return nil
 	}
-	return nil
+	cm := s.kbc.GetCommitteeByHash(block.GetKeyHash())
+	if cm == nil {
+		return nil
+	}
+	indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), len(cm))
+	if indexs == nil {
+		return nil
+	}
+	var exs []string
+	for _, i := range indexs {
+		exs = append(exs, cm[i].CoinBase)
+	}
+	return exs
 }
-*/
+
+func (s *Service) TakePartInNumberList(address common.Address, checkKeyNumber int64) []string {
+	coinbase := strings.ToLower(address.String())
+	coinbase = coinbase[2:] //del 0x
+	if checkKeyNumber < 0 || uint64(checkKeyNumber) > s.kbc.CurrentBlockN() {
+		return nil
+	}
+
+	keyNumber := uint64(checkKeyNumber)
+	keyblock := s.kbc.GetBlockByNumber(keyNumber)
+	if keyblock == nil {
+		return nil
+	}
+	c := bftview.LoadMember(keyNumber, keyblock.Hash(), false)
+	if c == nil {
+		return nil
+	}
+	isMember := false
+	memberI := 0
+	for i, r := range c.List {
+		ss := strings.ToLower(r.CoinBase)
+		if strings.HasPrefix(ss, "0x") {
+			ss = ss[2:]
+		}
+		if ss == coinbase {
+			isMember = true
+			memberI = i
+			break
+		}
+	}
+	if !isMember {
+		return nil
+	}
+	var takePartInNumberList []string
+
+	fromN := keyblock.T_Number() + 1
+	toN := uint64(0)
+	if keyNumber == s.kbc.CurrentBlockN() {
+		toN = s.bc.CurrentBlockN()
+	} else {
+		nextkeyblock := s.kbc.GetBlockByNumber(keyNumber + 1)
+		toN = nextkeyblock.T_Number()
+	}
+	if toN < fromN {
+		return nil
+	}
+	n := len(c.List)
+	for i := fromN; i <= toN; i++ {
+		block := s.bc.GetBlockByNumber(i)
+		if block == nil {
+			return nil
+		}
+		indexs := hotstuff.MaskToExceptionIndexs(block.Exceptions(), n)
+		if indexs == nil {
+			takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(int64(i), 10))
+			continue
+		}
+		isException := false
+		for _, j := range indexs {
+			if j == memberI {
+				isException = true
+				break
+			}
+		}
+		if !isException {
+			takePartInNumberList = append(takePartInNumberList, strconv.FormatInt(int64(i), 10))
+		}
+	}
+
+	return takePartInNumberList
+}
+
+func (s *Service) SwitchOK() bool {
+	fromN := int(s.kbc.CurrentBlockN() - uint64(bftview.GetServerCommitteeLen()/3+1))
+	if fromN <= 0 {
+		return true
+	}
+	keyblock := s.kbc.GetBlockByNumber(uint64(fromN))
+	if s.bc.CurrentBlockN()-keyblock.T_Number() > 0 {
+		return true
+	}
+	return false
+}

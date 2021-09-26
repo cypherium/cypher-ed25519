@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -25,10 +26,10 @@ import (
 	"path/filepath"
 
 	"github.com/cypherium/cypherBFT/core"
-	"github.com/cypherium/cypherBFT/cph"
-	"github.com/cypherium/cypherBFT/cph/downloader"
-	"github.com/cypherium/cypherBFT/cphclient"
-	"github.com/cypherium/cypherBFT/cphstats"
+	"github.com/cypherium/cypherBFT/eth"
+	"github.com/cypherium/cypherBFT/eth/downloader"
+	"github.com/cypherium/cypherBFT/ethclient"
+	"github.com/cypherium/cypherBFT/ethstats"
 	"github.com/cypherium/cypherBFT/internal/debug"
 	"github.com/cypherium/cypherBFT/les"
 	"github.com/cypherium/cypherBFT/node"
@@ -155,7 +156,7 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 	}
 	// Register the Cypherium protocol if requested
 	if config.CphereumEnabled {
-		cphConf := cph.DefaultConfig
+		cphConf := eth.DefaultConfig
 		cphConf.Genesis = genesis
 		cphConf.SyncMode = downloader.LightSync
 		cphConf.NetworkId = uint64(config.CphereumNetworkID)
@@ -171,7 +172,7 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 				var lesServ *les.LightCphereum
 				ctx.Service(&lesServ)
 
-				return cphstats.New(config.CphereumNetStats, nil, lesServ)
+				return ethstats.New(config.CphereumNetStats, nil, lesServ)
 			}); err != nil {
 				return nil, fmt.Errorf("netstats init: %v", err)
 			}
@@ -205,7 +206,7 @@ func (n *Node) GetCphereumClient() (client *CphereumClient, _ error) {
 	if err != nil {
 		return nil, err
 	}
-	return &CphereumClient{cphclient.NewClient(rpc)}, nil
+	return &CphereumClient{ethclient.NewClient(rpc)}, nil
 }
 
 // GetNodeInfo gathers and returns a collection of metadata known about the host.

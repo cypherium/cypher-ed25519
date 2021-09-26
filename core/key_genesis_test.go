@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
@@ -23,9 +24,9 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/rawdb"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -54,14 +55,14 @@ func TestSetupKeyGenesis(t *testing.T) {
 	oldcustomg.Config = &params.ChainConfig{HomesteadBlock: big.NewInt(2)}
 	tests := []struct {
 		name       string
-		fn         func(cphdb.Database) (*params.ChainConfig, common.Hash, error)
+		fn         func(ethdb.Database) (*params.ChainConfig, common.Hash, error)
 		wantConfig *params.ChainConfig
 		wantHash   common.Hash
 		wantErr    error
 	}{
 		{
 			name: "genesis without ChainConfig",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				return SetupGenesisKeyBlock(db, new(KeyGenesis))
 			},
 			wantErr:    errKeyGenesisNoConfig,
@@ -69,7 +70,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 		},
 		{
 			name: "no block in DB, genesis == nil",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				return SetupGenesisKeyBlock(db, nil)
 			},
 			wantHash:   params.MainnetGenesisHash,
@@ -77,7 +78,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 		},
 		{
 			name: "mainnet block in DB, genesis == nil",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				DefaultGenesisKeyBlock().MustCommit(db)
 				return SetupGenesisKeyBlock(db, nil)
 			},
@@ -86,7 +87,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 		},
 		{
 			name: "custom block in DB, genesis == nil",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
 				return SetupGenesisKeyBlock(db, nil)
 			},
@@ -95,7 +96,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 		},
 		{
 			name: "custom block in DB, genesis == testnet",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
 				return SetupGenesisKeyBlock(db, DefaultTestnetGenesisKeyBlock())
 			},
@@ -105,7 +106,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 		},
 		{
 			name: "compatible config in DB",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				oldcustomg.MustCommit(db)
 				return SetupGenesisKeyBlock(db, &customg)
 			},
@@ -114,15 +115,15 @@ func TestSetupKeyGenesis(t *testing.T) {
 		},
 		{
 			name: "incompatible config in DB",
-			fn: func(db cphdb.Database) (*params.ChainConfig, common.Hash, error) {
+			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				// Commit the 'old' genesis block with Homestead transition at #2.
 				// Advance to block #4, past the transition block of customg.
 				genesis := oldcustomg.MustCommit(db)
 
-				bc, _ := NewKeyBlockChain(db, nil, oldcustomg.Config, cphash.NewFullFaker())
+				bc, _ := NewKeyBlockChain(db, nil, oldcustomg.Config, ethash.NewFullFaker())
 				defer bc.Stop()
 
-				blocks := GenerateKeyChain(oldcustomg.Config, genesis, cphash.NewFaker(), db, 4, nil)
+				blocks := GenerateKeyChain(oldcustomg.Config, genesis, ethash.NewFaker(), db, 4, nil)
 				bc.InsertChain(blocks) // This should return a compatibility error.
 				bc.CurrentBlock()
 
@@ -140,7 +141,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		db := cphdb.NewMemDatabase()
+		db := ethdb.NewMemDatabase()
 		config, hash, err := test.fn(db)
 		// Check the return values.
 		if !reflect.DeepEqual(err, test.wantErr) {

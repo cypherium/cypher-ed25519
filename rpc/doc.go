@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -58,7 +59,7 @@ An example server which uses the JSON codec:
 	return a + b
  }
 
- func (s *CalculatorService Div(a, b int) (int, error) {
+ func (s *CalculatorService) Div(a, b int) (int, error) {
 	if b == 0 {
 		return 0, errors.New("divide by zero")
 	}

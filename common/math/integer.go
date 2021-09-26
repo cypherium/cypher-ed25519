@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
@@ -102,12 +103,12 @@ func SafeMul(x, y uint64) (uint64, bool) {
 
 // GetRandIntArray returns int array with no repeat
 func GetRandIntArray(max int, num int) map[int]bool {
-	if num > max/2 {
-		num = max / 2
+	if num > max-1 {
+		num = max - 1
 	}
 	a := make(map[int]bool)
 	rand.Seed(time.Now().UnixNano())
-	maxLoop := num * 5
+	maxLoop := num * 10
 	for i := 0; i < maxLoop; i++ {
 		a[rand.Intn(max)] = true
 		if len(a) == num {

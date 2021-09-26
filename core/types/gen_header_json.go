@@ -54,7 +54,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Root        *common.Hash `json:"stateRoot"        gencodec:"required"`
 		TxHash      *common.Hash `json:"transactionsRoot" gencodec:"required"`
 		ReceiptHash *common.Hash `json:"receiptsRoot"     gencodec:"required"`
-		//Bloom       *Bloom          `json:"logsBloom"        gencodec:"required"`
 		Number    *hexutil.Big    `json:"number"           gencodec:"required"`
 		GasLimit  *hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
 		GasUsed   *hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
@@ -87,9 +86,6 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'receiptsRoot' for Header")
 	}
 	h.ReceiptHash = *dec.ReceiptHash
-	// if dec.Bloom == nil {
-	// 	return errors.New("missing required field 'logsBloom' for Header")
-	// }
 	if dec.Number == nil {
 		return errors.New("missing required field 'number' for Header")
 	}

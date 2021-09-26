@@ -34,11 +34,11 @@ import (
 	"github.com/cypherium/cypherBFT/common/fdlimit"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/core/state"
-	"github.com/cypherium/cypherBFT/cph"
-	"github.com/cypherium/cypherBFT/cph/downloader"
-	"github.com/cypherium/cypherBFT/cph/gasprice"
-	"github.com/cypherium/cypherBFT/cphdb"
-	"github.com/cypherium/cypherBFT/cphstats"
+	"github.com/cypherium/cypherBFT/eth"
+	"github.com/cypherium/cypherBFT/eth/downloader"
+	"github.com/cypherium/cypherBFT/eth/gasprice"
+	"github.com/cypherium/cypherBFT/ethdb"
+	"github.com/cypherium/cypherBFT/ethstats"
 	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/metrics"
@@ -50,7 +50,7 @@ import (
 	"github.com/cypherium/cypherBFT/p2p/nat"
 	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/params"
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -123,7 +123,7 @@ var (
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
-		Value: cph.DefaultConfig.NetworkId,
+		Value: eth.DefaultConfig.NetworkId,
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
@@ -158,7 +158,7 @@ var (
 		Name:  "light",
 		Usage: "Enable light client mode (replaced by --syncmode)",
 	}
-	defaultSyncMode = cph.DefaultConfig.SyncMode
+	defaultSyncMode = eth.DefaultConfig.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
@@ -177,41 +177,41 @@ var (
 	LightPeersFlag = cli.IntFlag{
 		Name:  "lightpeers",
 		Usage: "Maximum number of LES client peers",
-		Value: cph.DefaultConfig.LightPeers,
+		Value: eth.DefaultConfig.LightPeers,
 	}
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
 	}
-	// Cphash settings
+	// Ethash settings
 	CphashCacheDirFlag = DirectoryFlag{
-		Name:  "cphash.cachedir",
-		Usage: "Directory to store the cphash verification caches (default = inside the datadir)",
+		Name:  "ethash.cachedir",
+		Usage: "Directory to store the ethash verification caches (default = inside the datadir)",
 	}
 	CphashCachesInMemoryFlag = cli.IntFlag{
-		Name:  "cphash.cachesinmem",
-		Usage: "Number of recent cphash caches to keep in memory (16MB each)",
-		Value: cph.DefaultConfig.Cphash.CachesInMem,
+		Name:  "ethash.cachesinmem",
+		Usage: "Number of recent ethash caches to keep in memory (16MB each)",
+		Value: eth.DefaultConfig.Ethash.CachesInMem,
 	}
 	CphashCachesOnDiskFlag = cli.IntFlag{
-		Name:  "cphash.cachesondisk",
-		Usage: "Number of recent cphash caches to keep on disk (16MB each)",
-		Value: cph.DefaultConfig.Cphash.CachesOnDisk,
+		Name:  "ethash.cachesondisk",
+		Usage: "Number of recent ethash caches to keep on disk (16MB each)",
+		Value: eth.DefaultConfig.Ethash.CachesOnDisk,
 	}
 	CphashDatasetDirFlag = DirectoryFlag{
-		Name:  "cphash.dagdir",
-		Usage: "Directory to store the cphash mining DAGs (default = inside home folder)",
-		Value: DirectoryString{cph.DefaultConfig.Cphash.DatasetDir},
+		Name:  "ethash.dagdir",
+		Usage: "Directory to store the ethash mining DAGs (default = inside home folder)",
+		Value: DirectoryString{eth.DefaultConfig.Ethash.DatasetDir},
 	}
 	CphashDatasetsInMemoryFlag = cli.IntFlag{
-		Name:  "cphash.dagsinmem",
-		Usage: "Number of recent cphash mining DAGs to keep in memory (1+GB each)",
-		Value: cph.DefaultConfig.Cphash.DatasetsInMem,
+		Name:  "ethash.dagsinmem",
+		Usage: "Number of recent ethash mining DAGs to keep in memory (1+GB each)",
+		Value: eth.DefaultConfig.Ethash.DatasetsInMem,
 	}
 	CphashDatasetsOnDiskFlag = cli.IntFlag{
-		Name:  "cphash.dagsondisk",
-		Usage: "Number of recent cphash mining DAGs to keep on disk (1+GB each)",
-		Value: cph.DefaultConfig.Cphash.DatasetsOnDisk,
+		Name:  "ethash.dagsondisk",
+		Usage: "Number of recent ethash mining DAGs to keep on disk (1+GB each)",
+		Value: eth.DefaultConfig.Ethash.DatasetsOnDisk,
 	}
 	// Transaction pool settings
 	TxPoolNoLocalsFlag = cli.BoolFlag{
@@ -231,37 +231,37 @@ var (
 	TxPoolPriceLimitFlag = cli.Uint64Flag{
 		Name:  "txpool.pricelimit",
 		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
-		Value: cph.DefaultConfig.TxPool.PriceLimit,
+		Value: eth.DefaultConfig.TxPool.PriceLimit,
 	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
 		Usage: "Price bump percentage to replace an already existing transaction",
-		Value: cph.DefaultConfig.TxPool.PriceBump,
+		Value: eth.DefaultConfig.TxPool.PriceBump,
 	}
 	TxPoolAccountSlotsFlag = cli.Uint64Flag{
 		Name:  "txpool.accountslots",
 		Usage: "Minimum number of executable transaction slots guaranteed per account",
-		Value: cph.DefaultConfig.TxPool.AccountSlots,
+		Value: eth.DefaultConfig.TxPool.AccountSlots,
 	}
 	TxPoolGlobalSlotsFlag = cli.Uint64Flag{
 		Name:  "txpool.globalslots",
 		Usage: "Maximum number of executable transaction slots for all accounts",
-		Value: cph.DefaultConfig.TxPool.GlobalSlots,
+		Value: eth.DefaultConfig.TxPool.GlobalSlots,
 	}
 	TxPoolAccountQueueFlag = cli.Uint64Flag{
 		Name:  "txpool.accountqueue",
 		Usage: "Maximum number of non-executable transaction slots permitted per account",
-		Value: cph.DefaultConfig.TxPool.AccountQueue,
+		Value: eth.DefaultConfig.TxPool.AccountQueue,
 	}
 	TxPoolGlobalQueueFlag = cli.Uint64Flag{
 		Name:  "txpool.globalqueue",
 		Usage: "Maximum number of non-executable transaction slots for all accounts",
-		Value: cph.DefaultConfig.TxPool.GlobalQueue,
+		Value: eth.DefaultConfig.TxPool.GlobalQueue,
 	}
 	TxPoolLifetimeFlag = cli.DurationFlag{
 		Name:  "txpool.lifetime",
 		Usage: "Maximum amount of time non-executable transaction are queued",
-		Value: cph.DefaultConfig.TxPool.Lifetime,
+		Value: eth.DefaultConfig.TxPool.Lifetime,
 	}
 	TxPoolEnabledTPSFlag = cli.BoolFlag{
 		Name:  "tps",
@@ -282,11 +282,6 @@ var (
 	IpEncryptDisableFlag = cli.IntFlag{
 		Name:  "ipencdis",
 		Usage: "Ip encrypt Disable",
-		Value: 0,
-	}
-	PowRangeModeFlag = cli.IntFlag{ //0 for stable time pow,1 for wave rang
-		Name:  "powrangemode",
-		Usage: "Pow range",
 		Value: 0,
 	}
 	LocalTestIpConfig = cli.StringFlag{
@@ -330,15 +325,10 @@ var (
 		Usage: "Target gas limit sets the artificial target gas floor for the blocks to mine",
 		Value: params.GenesisGasLimit,
 	}
-	CpherbaseFlag = cli.StringFlag{
-		Name:  "cpherbase",
-		Usage: "Public address for block mining rewards (default = first account created)",
-		Value: "0",
-	}
 	GasPriceFlag = BigFlag{
 		Name:  "gasprice",
 		Usage: "Minimal gas price to accept for mining a transactions",
-		Value: cph.DefaultConfig.GasPrice,
+		Value: eth.DefaultConfig.GasPrice,
 	}
 	ExtraDataFlag = cli.StringFlag{
 		Name:  "extradata",
@@ -368,8 +358,8 @@ var (
 	}
 	// Logging and debug settings
 	CphStatsURLFlag = cli.StringFlag{
-		Name:  "cphstats",
-		Usage: "Reporting URL of a cphstats service (nodename:secret@host:port)",
+		Name:  "ethstats",
+		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
 	}
 	FakePoWFlag = cli.BoolFlag{
 		Name:  "fakepow",
@@ -518,20 +508,20 @@ var (
 	GpoBlocksFlag = cli.IntFlag{
 		Name:  "gpoblocks",
 		Usage: "Number of recent blocks to check for gas prices",
-		Value: cph.DefaultConfig.GPO.Blocks,
+		Value: eth.DefaultConfig.GPO.Blocks,
 	}
 	GpoPercentileFlag = cli.IntFlag{
 		Name:  "gpopercentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
-		Value: cph.DefaultConfig.GPO.Percentile,
+		Value: eth.DefaultConfig.GPO.Percentile,
 	}
 	//Committee debug flags
-	OnetDebugFlag = cli.IntFlag{
-		Name:  "onetdebug",
-		Usage: "Onet debug level",
+	RnetDebugFlag = cli.IntFlag{
+		Name:  "rnetdebug",
+		Usage: "Rnet debug level",
 	}
-	OnetPortFlag = cli.StringFlag{
-		Name:  "onetport",
+	RnetPortFlag = cli.StringFlag{
+		Name:  "rnetport",
 		Usage: "port of listen",
 		Value: "7002",
 	}
@@ -917,8 +907,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -992,24 +980,43 @@ func SetLocalTestTestIpSw(ctx *cli.Context, cfg *core.LocalTestIpConfig) {
 	}
 }
 
-func setCphash(ctx *cli.Context, cfg *cph.Config) {
+func SetExternalIp(ctx *cli.Context, cfg *node.Config, cphcg *eth.Config) {
+	if ctx.GlobalIsSet(NATFlag.Name) {
+		natif, err := nat.Parse(ctx.GlobalString(NATFlag.Name))
+		if err != nil {
+			Fatalf("Option %s: %v", NATFlag.Name, err)
+		} else {
+			if natif != nil {
+				if ext, err := cfg.P2P.NAT.ExternalIP(); err == nil {
+					cphcg.ExternalIp = ext.String()
+				}
+			} else {
+				cphcg.ExternalIp = "none"
+			}
+		}
+
+	}
+
+}
+
+func setCphash(ctx *cli.Context, cfg *eth.Config) {
 	if ctx.GlobalIsSet(CphashCacheDirFlag.Name) {
-		cfg.Cphash.CacheDir = ctx.GlobalString(CphashCacheDirFlag.Name)
+		cfg.Ethash.CacheDir = ctx.GlobalString(CphashCacheDirFlag.Name)
 	}
 	if ctx.GlobalIsSet(CphashDatasetDirFlag.Name) {
-		cfg.Cphash.DatasetDir = ctx.GlobalString(CphashDatasetDirFlag.Name)
+		cfg.Ethash.DatasetDir = ctx.GlobalString(CphashDatasetDirFlag.Name)
 	}
 	if ctx.GlobalIsSet(CphashCachesInMemoryFlag.Name) {
-		cfg.Cphash.CachesInMem = ctx.GlobalInt(CphashCachesInMemoryFlag.Name)
+		cfg.Ethash.CachesInMem = ctx.GlobalInt(CphashCachesInMemoryFlag.Name)
 	}
 	if ctx.GlobalIsSet(CphashCachesOnDiskFlag.Name) {
-		cfg.Cphash.CachesOnDisk = ctx.GlobalInt(CphashCachesOnDiskFlag.Name)
+		cfg.Ethash.CachesOnDisk = ctx.GlobalInt(CphashCachesOnDiskFlag.Name)
 	}
 	if ctx.GlobalIsSet(CphashDatasetsInMemoryFlag.Name) {
-		cfg.Cphash.DatasetsInMem = ctx.GlobalInt(CphashDatasetsInMemoryFlag.Name)
+		cfg.Ethash.DatasetsInMem = ctx.GlobalInt(CphashDatasetsInMemoryFlag.Name)
 	}
 	if ctx.GlobalIsSet(CphashDatasetsOnDiskFlag.Name) {
-		cfg.Cphash.DatasetsOnDisk = ctx.GlobalInt(CphashDatasetsOnDiskFlag.Name)
+		cfg.Ethash.DatasetsOnDisk = ctx.GlobalInt(CphashDatasetsOnDiskFlag.Name)
 	}
 }
 
@@ -1052,7 +1059,7 @@ func checkExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 // SetCphhConfig applies cph-related command line flags to the config.
-func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
+func SetCphhConfig(ctx *cli.Context, cfg *eth.Config) {
 	// Avoid conflicting network flags
 	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
 	checkExclusive(ctx, FastSyncFlag, LightModeFlag, SyncModeFlag)
@@ -1065,7 +1072,7 @@ func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
 	SetLocalTestTestIpSw(ctx, &cfg.LocalTestConfig)
 	setCphash(ctx, cfg)
 
-	cfg.OnetPort = ctx.GlobalString(OnetPortFlag.Name)
+	cfg.RnetPort = ctx.GlobalString(RnetPortFlag.Name)
 
 	switch {
 	case ctx.GlobalIsSet(SyncModeFlag.Name):
@@ -1083,10 +1090,6 @@ func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
 	}
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
-	}
-	if ctx.GlobalIsSet(PowRangeModeFlag.Name) {
-		cfg.PowRangeMode = ctx.GlobalUint(PowRangeModeFlag.Name)
-
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
@@ -1125,9 +1128,9 @@ func SetCphhConfig(ctx *cli.Context, stack *node.Node, cfg *cph.Config) {
 }
 
 // RegisterCphService adds an Cypherium client to the stack.
-func RegisterCphService(stack *node.Node, cfg *cph.Config) {
+func RegisterCphService(stack *node.Node, cfg *eth.Config) {
 	err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		fullNode, err := cph.New(ctx, cfg)
+		fullNode, err := eth.New(ctx, cfg)
 		return fullNode, err
 	})
 	if err != nil {
@@ -1140,10 +1143,10 @@ func RegisterCphService(stack *node.Node, cfg *cph.Config) {
 func RegisterCphStatsService(stack *node.Node, url string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both cph and les services
-		var cphServ *cph.Cypherium
+		var cphServ *eth.Cypherium
 		ctx.Service(&cphServ)
 
-		return cphstats.New(url, cphServ)
+		return ethstats.New(url, cphServ)
 	}); err != nil {
 		Fatalf("Failed to register the Cypherium Stats service: %v", err)
 	}
@@ -1177,7 +1180,7 @@ func SetupMetrics(ctx *cli.Context) {
 }
 
 // MakeChainDatabase open an LevelDB using the flags passed to the client and will hard crash if it fails.
-func MakeChainDatabase(ctx *cli.Context, stack *node.Node) cphdb.Database {
+func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 	var (
 		cache   = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 		handles = makeDatabaseHandles()

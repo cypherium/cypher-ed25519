@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -28,7 +29,7 @@ import (
 	"github.com/cypherium/cypherBFT/common/math"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/log"
 
 	"github.com/cypherium/cypherBFT/params"
@@ -139,7 +140,7 @@ func (e *KeyGenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisKeyBlock(db cphdb.Database, genesis *GenesisKey) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisKeyBlock(db ethdb.Database, genesis *GenesisKey) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllCphashProtocolChanges, common.Hash{}, errKeyGenesisNoConfig
 	}
@@ -212,7 +213,7 @@ func (g *GenesisKey) configOrDefault(ghash common.Hash) *params.ChainConfig {
 
 // ToBlock creates the genesis block and writes state of a genesis specification
 // to the given database (or discards it if nil).
-func (g *GenesisKey) ToBlock(db cphdb.Database) *types.KeyBlock {
+func (g *GenesisKey) ToBlock(db ethdb.Database) *types.KeyBlock {
 
 	head := &types.KeyBlockHeader{
 		Version:    g.Version,
@@ -246,7 +247,7 @@ func (g *GenesisKey) ToBlock(db cphdb.Database) *types.KeyBlock {
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
-func (g *GenesisKey) Commit(db cphdb.Database) (*types.KeyBlock, error) {
+func (g *GenesisKey) Commit(db ethdb.Database) (*types.KeyBlock, error) {
 	config := g.Config
 	if config == nil {
 		//config = params.AllCphashProtocolChanges
@@ -284,7 +285,7 @@ func (g *GenesisKey) Commit(db cphdb.Database) (*types.KeyBlock, error) {
 
 // MustCommit writes the genesis block and state to db, panicking on error.
 // The block is committed as the head of key block.
-func (g *GenesisKey) MustCommit(db cphdb.Database) *types.KeyBlock {
+func (g *GenesisKey) MustCommit(db ethdb.Database) *types.KeyBlock {
 	block, err := g.Commit(db)
 	if err != nil {
 		panic(err)

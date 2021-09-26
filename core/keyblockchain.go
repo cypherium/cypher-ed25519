@@ -15,7 +15,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/params"
@@ -31,7 +31,7 @@ var (
 
 type KeyBlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
-	db          cphdb.Database      // Low level persistent database to store final content in
+	db          ethdb.Database      // Low level persistent database to store final content in
 
 	khc *KeyHeaderChain
 	//chainFeed     event.Feed
@@ -72,7 +72,7 @@ type KeyBlockChain struct {
 
 // NewKeyBlockChain returns a fully initialised key block chain using information
 // available in the database.
-func NewKeyBlockChain(cph Backend, db cphdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine pow.Engine, mux *event.TypeMux) (*KeyBlockChain, error) {
+func NewKeyBlockChain(cph Backend, db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine pow.Engine, mux *event.TypeMux) (*KeyBlockChain, error) {
 	blockCache, _ := lru.New(blockCacheLimit)
 	futureBlocks, _ := lru.New(maxFutureBlocks)
 	badBlocks, _ := lru.New(badBlockLimit)
@@ -650,62 +650,4 @@ func (kbc *KeyBlockChain) GetCommitteeByNumber(kNumber uint64) []*common.Cnode {
 	}
 	log.Warn("GetCommitteeByNumber not found committee", "number", kNumber)
 	return nil
-}
-
-func (kbc *KeyBlockChain) GetNextLeaderIndex(leaderIndex uint, unconnectNodes []string) uint {
-	committeeSize := len(kbc.Config().GenCommittee)
-	leaderIndex++
-	if leaderIndex >= uint(committeeSize) {
-		leaderIndex = 0
-	}
-	curblock := kbc.CurrentBlock()
-	curNumber := curblock.NumberU64()
-	if curNumber == 0 {
-		return leaderIndex
-	}
-
-	badPubs := make(map[string]bool)
-	n := curNumber
-	for loopi := 0; loopi < 10; loopi++ {
-		if curblock.BlockType() == types.PaceReconfig || curblock.BlockType() == types.PacePowReconfig {
-			leaderPub := curblock.LeaderPubKey()
-			cnodes := kbc.GetCommitteeByNumber(n - 1)
-			for i, r := range cnodes {
-				if r.Public == leaderPub {
-					if i > 0 {
-						badPubs[cnodes[i-1].Public] = true
-					}
-					break
-				}
-			}
-		}
-		n--
-		if n == 0 {
-			break
-		}
-		curblock = kbc.GetBlockByNumber(n)
-	}
-
-	if len(badPubs) > 0 {
-		curNodes := kbc.GetCommitteeByNumber(curNumber)
-		for i, r := range curNodes {
-			if leaderIndex == uint(i) {
-				beUnconnect := false
-				for _, addr := range unconnectNodes {
-					if addr == r.Address {
-						beUnconnect = true
-						break
-					}
-				}
-				if badPubs[r.Public] || beUnconnect {
-					leaderIndex = uint(i) + 1
-					if leaderIndex == uint(committeeSize) {
-						leaderIndex = 0
-					}
-
-				}
-			}
-		}
-	}
-	return leaderIndex
 }

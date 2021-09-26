@@ -21,7 +21,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/rpc"
 )
@@ -98,7 +98,7 @@ func (ui *StdIOUI) ShowInfo(message string) {
 		log.Info("Error calling 'ShowInfo'", "exc", err.Error(), "msg", message)
 	}
 }
-func (ui *StdIOUI) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (ui *StdIOUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	err := ui.dispatch("OnApprovedTx", tx, nil)
 	if err != nil {
 		log.Info("Error calling 'OnApprovedTx'", "exc", err.Error(), "tx", tx)

@@ -26,7 +26,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/signer/core"
 	"github.com/cypherium/cypherBFT/signer/storage"
 )
@@ -109,7 +109,7 @@ func (alwaysDenyUI) ShowInfo(message string) {
 	panic("implement me")
 }
 
-func (alwaysDenyUI) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (alwaysDenyUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	panic("implement me")
 }
 
@@ -238,7 +238,7 @@ func (d *dummyUI) ShowInfo(message string) {
 	d.calls = append(d.calls, "ShowInfo")
 }
 
-func (d *dummyUI) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (d *dummyUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	d.calls = append(d.calls, "OnApprovedTx")
 }
 func (d *dummyUI) OnSignerStartup(info core.StartupInfo) {
@@ -268,7 +268,7 @@ func TestForwarding(t *testing.T) {
 	r.ShowInfo("test")
 
 	//This one is not forwarded
-	r.OnApprovedTx(cphapi.SignTransactionResult{})
+	r.OnApprovedTx(ethapi.SignTransactionResult{})
 
 	expCalls := 8
 	if len(ui.calls) != expCalls {
@@ -490,7 +490,7 @@ func TestLimitWindow(t *testing.T) {
 		}
 		// Create a dummy signed transaction
 
-		response := cphapi.SignTransactionResult{
+		response := ethapi.SignTransactionResult{
 			Tx:  dummySigned(v),
 			Raw: common.Hex2Bytes("deadbeef"),
 		}
@@ -550,7 +550,7 @@ func (d *dontCallMe) ShowInfo(message string) {
 	d.t.Fatalf("Did not expect next-handler to be called")
 }
 
-func (d *dontCallMe) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (d *dontCallMe) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	d.t.Fatalf("Did not expect next-handler to be called")
 }
 

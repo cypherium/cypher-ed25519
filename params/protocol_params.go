@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -24,15 +25,15 @@ import (
 )
 
 const (
-	KeyblockPerTxBlocks = 360
-	GapTxBlocks         = KeyblockPerTxBlocks + 2
-	MaxTxCountPerBlock  = 1024
-	PaceMakerTimeout    = 2 * time.Minute
-	AckTimeout          = 35 * time.Second
-	HeatBeatTimeout     = 10 * time.Second
-
-	KeyBlock_Reward = 1e+18 // Block reward in wei for successfully mining a block
-	TxBlock_Reward  = 2e+17 // Block reward in wei for successfully mining a block
+	KeyblockPerTxBlocks  = 360
+	MaxTxCountPerBlock   = 1024
+	AckTimeout           = 30 * time.Second
+	HeatBeatTimeout      = 10 * time.Second
+	PaceMakerTimeout     = 3 * time.Minute
+	KeyBlockTimeout      = 28 * time.Minute
+	KeyBlock_Reward      = 1e+18 // Block reward in wei for successfully mining a block
+	CheckBackNumber      = 10
+	CollectQuorumTimeout = 8 * time.Second
 )
 
 var (
@@ -95,25 +96,19 @@ const (
 	Bn256ScalarMulGas       uint64 = 40000  // Gas needed for an elliptic curve scalar multiplication
 	Bn256PairingBaseGas     uint64 = 100000 // Base price for an elliptic curve pairing check
 	Bn256PairingPerPointGas uint64 = 80000  // Per-point price for an elliptic curve pairing check
-	DifficultyFactor               = 10
 	TxDataGas               uint64 = 100
 )
 
 var (
-	DifficultyBoundDivisor = big.NewInt(3072)                      // The bound divisor of the difficulty, used in the update calculations.
-	GenesisDifficulty      = big.NewInt(131072 * DifficultyFactor) // Difficulty of the Genesis block.
-	MinimumDifficulty      = big.NewInt(131072 * DifficultyFactor) // The minimum that the difficulty may ever be.
-	DurationLimit          = big.NewInt(13 * DifficultyFactor)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
+	DifficultyBoundDivisor = big.NewInt(3072)    // The bound divisor of the difficulty, used in the update calculations.
+	GenesisDifficulty      = big.NewInt(1310720) // Difficulty of the Genesis block.
+	MinimumDifficulty      = big.NewInt(1310720) // The minimum that the difficulty may ever be.
+	DurationLimit          = big.NewInt(130)     // The decision boundary on the blocktime duration used to determine whether difficulty should go up or not.
 
 	DisableGAS = false
-	DisableJVM = true
-	DisableEVM = true
+	DisableJVM = false
+	DisableEVM = false
 
-	WhiteAddressList = []common.Address{
-		common.HexToAddress("0x228555de367154a128348950d3dee915bc79c423"),
-		common.HexToAddress("0x1fb04bf782066314d159462de8ec87fc960fd082"),
-		common.HexToAddress("0xc9c56377d4ef2b0fd016d308346d5ad375cbddb9"),
-		common.HexToAddress("0x99f5e5ae5cb7c0ad7b9758bc0f469e1a8844cbfe"),
-		common.HexToAddress("0x216fd89ea77b220e71e439e76f4873e63b5c6c69"),
-	}
+	WhiteAddressList        = []common.Address{}
+	ForkFeeBlock     uint64 = 13270
 )

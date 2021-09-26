@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -454,9 +455,9 @@ func TestProtocolGather(t *testing.T) {
 		Count int
 		Maker InstrumentingWrapper
 	}{
-		"Zero Protocols":  {0, InstrumentedServiceMakerA},
-		"Single Protocol": {1, InstrumentedServiceMakerB},
-		"Many Protocols":  {25, InstrumentedServiceMakerC},
+		"zero": {0, InstrumentedServiceMakerA},
+		"one":  {1, InstrumentedServiceMakerB},
+		"many": {10, InstrumentedServiceMakerC},
 	}
 	for id, config := range services {
 		protocols := make([]p2p.Protocol, config.Count)
@@ -480,7 +481,7 @@ func TestProtocolGather(t *testing.T) {
 	defer stack.Stop()
 
 	protocols := stack.Server().Protocols
-	if len(protocols) != 26 {
+	if len(protocols) != 11 {
 		t.Fatalf("mismatching number of protocols launched: have %d, want %d", len(protocols), 26)
 	}
 	for id, config := range services {

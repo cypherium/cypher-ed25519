@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -28,10 +29,10 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core"
-	"github.com/cypherium/cypherBFT/cph"
+	"github.com/cypherium/cypherBFT/eth"
 	"github.com/cypherium/cypherBFT/internal/jsre"
 	"github.com/cypherium/cypherBFT/node"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 )
 
 const (
@@ -75,7 +76,7 @@ func (p *hookedPrompter) SetWordCompleter(completer WordCompleter) {}
 type tester struct {
 	workspace string
 	stack     *node.Node
-	cypherium *cph.Cypherium
+	cypherium *eth.Cypherium
 	console   *Console
 	input     *hookedPrompter
 	output    *bytes.Buffer
@@ -83,7 +84,7 @@ type tester struct {
 
 // newTester creates a test environment based on which the console can operate.
 // Please ensure you call Close() on the returned tester to avoid leaks.
-func newTester(t *testing.T, confOverride func(*cph.Config)) *tester {
+func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	// Create a temporary storage for the node keys and initialize it
 	workspace, err := ioutil.TempDir("", "console-tester-")
 	if err != nil {
@@ -95,17 +96,16 @@ func newTester(t *testing.T, confOverride func(*cph.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
-	cphConf := &cph.Config{
-		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-		Cpherbase: common.HexToAddress(testAddress),
-		Cphash: cphash.Config{
-			PowMode: cphash.ModeTest,
+	cphConf := &eth.Config{
+		Genesis: core.DeveloperGenesisBlock(15, common.Address{}),
+		Ethash: ethash.Config{
+			PowMode: ethash.ModeTest,
 		},
 	}
 	if confOverride != nil {
 		confOverride(cphConf)
 	}
-	if err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return cph.New(ctx, cphConf) }); err != nil {
+	if err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return eth.New(ctx, cphConf) }); err != nil {
 		t.Fatalf("failed to register Cypherium protocol: %v", err)
 	}
 	// Start the node and assemble the JavaScript console around it
@@ -131,7 +131,7 @@ func newTester(t *testing.T, confOverride func(*cph.Config)) *tester {
 		t.Fatalf("failed to create JavaScript console: %v", err)
 	}
 	// Create the final tester and return
-	var cypherium *cph.Cypherium
+	var cypherium *eth.Cypherium
 	stack.Service(&cypherium)
 
 	return &tester{

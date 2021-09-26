@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -123,6 +124,16 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
+// Protected returns whether the transaction is protected from replay protection.
+func (tx *Transaction) ValidateV() bool {
+	chainid:=tx.ChainId().Int64()
+	mulV:=chainid*2+35
+	if tx.data.V.Int64()>mulV{
+		return false
+	}else{
+		return true
+	}
+}
 
 // Protected returns whether the transaction is protected from replay protection.
 func (tx *Transaction) Protected() bool {
@@ -132,11 +143,13 @@ func (tx *Transaction) Protected() bool {
 func isProtectedV(V *big.Int) bool {
 	if V.BitLen() <= 8 {
 		v := V.Uint64()
-		return v != 27 && v != 28
+		if v==27||v==28{
+			return false
+		}
 	}
-	// anything not 27 or 28 are considered unprotected
 	return true
 }
+
 
 // EncodeRLP implements rlp.Encoder
 func (tx *Transaction) EncodeRLP(w io.Writer) error {
@@ -154,7 +167,7 @@ func (tx *Transaction) DecodeRLP(s *rlp.Stream) error {
 	return err
 }
 
-// MarshalJSON encodes the web3 RPC transaction format.
+// MarshalJSON encodes the web3c RPC transaction format.
 func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	hash := tx.Hash()
 	data := tx.data
@@ -162,7 +175,7 @@ func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	return data.MarshalJSON()
 }
 
-// UnmarshalJSON decodes the web3 RPC transaction format.
+// UnmarshalJSON decodes the web3c RPC transaction format.
 func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	var dec txdata
 	if err := dec.UnmarshalJSON(input); err != nil {
@@ -182,14 +195,15 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
-func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
-func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
-func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
-func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
-func (tx *Transaction) Version() uint64    { return tx.data.Version }
-func (tx *Transaction) SenderKey() []byte  { return tx.data.SenderKey }
-func (tx *Transaction) CheckNonce() bool   { return true }
+func (tx *Transaction) Data() []byte        { return common.CopyBytes(tx.data.Payload) }
+func (tx *Transaction) Gas() uint64         { return tx.data.GasLimit }
+func (tx *Transaction) GasPrice() *big.Int  { return new(big.Int).Set(tx.data.Price) }
+func (tx *Transaction) GasPriceU64() uint64 { return tx.data.Price.Uint64() }
+func (tx *Transaction) Value() *big.Int     { return new(big.Int).Set(tx.data.Amount) }
+func (tx *Transaction) Nonce() uint64       { return tx.data.AccountNonce }
+func (tx *Transaction) Version() uint64     { return tx.data.Version }
+func (tx *Transaction) SenderKey() []byte   { return tx.data.SenderKey }
+func (tx *Transaction) CheckNonce() bool    { return true }
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.

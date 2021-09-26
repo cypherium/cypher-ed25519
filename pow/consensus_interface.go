@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
@@ -51,8 +52,6 @@ type Engine interface {
 
 	CalcKeyBlockDifficulty(chain types.KeyChainReader, time uint64, parent *types.KeyBlockHeader) *big.Int
 	PowMode() uint
-	PowRangeMode() uint
-	ReleaseVM()
 }
 
 // PoW is a consensus engine based on proof-of-work.

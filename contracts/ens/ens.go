@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -149,6 +150,38 @@ func (self *ENS) Resolve(name string) (common.Hash, error) {
 	}
 
 	return common.BytesToHash(ret[:]), nil
+}
+
+// Addr is a non-transactional call that returns the address associated with a name.
+func (self *ENS) Addr(name string) (common.Address, error) {
+	node := EnsNode(name)
+
+	resolver, err := self.getResolver(node)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	ret, err := resolver.Addr(node)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return common.BytesToAddress(ret[:]), nil
+}
+
+// SetAddress sets the address associated with a name. Only works if the caller
+// owns the name, and the associated resolver implements a `setAddress` function.
+func (self *ENS) SetAddr(name string, addr common.Address) (*types.Transaction, error) {
+	node := EnsNode(name)
+
+	resolver, err := self.getResolver(node)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := self.TransactOpts
+	opts.GasLimit = 200000
+	return resolver.Contract.SetAddr(&opts, node, addr)
 }
 
 // Register registers a new domain name for the caller, making them the owner of the new name.

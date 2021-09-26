@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/cypherium/cypherBFT/cmd/utils"
-	"github.com/cypherium/cypherBFT/cph"
+	"github.com/cypherium/cypherBFT/eth"
 	"github.com/cypherium/cypherBFT/params"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -32,11 +32,11 @@ var (
 	//	makecacheCommand = cli.Command{
 	//		Action:    utils.MigrateFlags(makecache),
 	//		Name:      "makecache",
-	//		Usage:     "Generate cphash verification cache (for testing)",
+	//		Usage:     "Generate ethash verification cache (for testing)",
 	//		ArgsUsage: "<blockNum> <outputDir>",
 	//		Category:  "MISCELLANEOUS COMMANDS",
 	//		Description: `
-	//The makecache command generates an cphash cache in <outputDir>.
+	//The makecache command generates an ethash cache in <outputDir>.
 	//
 	//This command exists to support the system testing project.
 	//Regular users do not need to execute it.
@@ -45,11 +45,11 @@ var (
 	//	makedagCommand = cli.Command{
 	//		Action:    utils.MigrateFlags(makedag),
 	//		Name:      "makedag",
-	//		Usage:     "Generate cphash mining DAG (for testing)",
+	//		Usage:     "Generate ethash mining DAG (for testing)",
 	//		ArgsUsage: "<blockNum> <outputDir>",
 	//		Category:  "MISCELLANEOUS COMMANDS",
 	//		Description: `
-	//The makedag command generates an cphash DAG in <outputDir>.
+	//The makedag command generates an ethash DAG in <outputDir>.
 	//
 	//This command exists to support the system testing project.
 	//Regular users do not need to execute it.
@@ -75,11 +75,11 @@ The output of this command is supposed to be machine-readable.
 	setupCommand = cli.Command{
 		Action:    utils.MigrateFlags(setup),
 		Name:      "setup",
-		Usage:     "Generate cphash verification cache (for testing)",
+		Usage:     "Generate ethash verification cache (for testing)",
 		ArgsUsage: "<blockNum> <outputDir>",
 		Category:  "MISCELLANEOUS COMMANDS",
 		Description: `
-The setup command generates an cphash cache in <outputDir>.
+The setup command generates an ethash cache in <outputDir>.
 
 This command exists to support the system testing project.
 Regular users do not need to execute it.
@@ -87,7 +87,7 @@ Regular users do not need to execute it.
 	}
 )
 
-// makecache generates an cphash verification cache into the provided folder.
+// makecache generates an ethash verification cache into the provided folder.
 //func makecache(ctx *cli.Context) error {
 //	args := ctx.Args()
 //	if len(args) != 2 {
@@ -97,12 +97,12 @@ Regular users do not need to execute it.
 //	if err != nil {
 //		utils.Fatalf("Invalid block number: %v", err)
 //	}
-//	cphash.MakeCache(block, args[1])
+//	ethash.MakeCache(block, args[1])
 //
 //	return nil
 //}
 
-// makedag generates an cphash mining DAG into the provided folder.
+// makedag generates an ethash mining DAG into the provided folder.
 //func makedag(ctx *cli.Context) error {
 //	args := ctx.Args()
 //	if len(args) != 2 {
@@ -112,7 +112,7 @@ Regular users do not need to execute it.
 //	if err != nil {
 //		utils.Fatalf("Invalid block number: %v", err)
 //	}
-//	cphash.MakeDataset(block, args[1])
+//	ethash.MakeDataset(block, args[1])
 //
 //	return nil
 //}
@@ -124,8 +124,8 @@ func version(ctx *cli.Context) error {
 		fmt.Println("Git Commit:", gitCommit)
 	}
 	fmt.Println("Architecture:", runtime.GOARCH)
-	fmt.Println("Protocol Versions:", cph.ProtocolVersions)
-	fmt.Println("Network Id:", cph.DefaultConfig.NetworkId)
+	fmt.Println("Protocol Versions:", eth.ProtocolVersions)
+	fmt.Println("Network Id:", eth.DefaultConfig.NetworkId)
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("Operating System:", runtime.GOOS)
 	fmt.Printf("GOPATH=%s\n", os.Getenv("GOPATH"))

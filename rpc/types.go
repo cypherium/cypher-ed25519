@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -23,8 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/cypherium/cypherBFT/common/hexutil"
-	"gopkg.in/fatih/set.v0"
 )
 
 // API describes the set of methods offered over the RPC interface
@@ -73,7 +74,7 @@ type Server struct {
 
 	run      int32
 	codecsMu sync.Mutex
-	codecs   *set.Set
+	codecs   mapset.Set
 }
 
 // rpcRequest represents a raw incoming RPC request

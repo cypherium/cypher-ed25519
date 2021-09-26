@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -121,14 +122,14 @@ func (c *Console) init(preload []string) error {
 	if err := c.jsre.Compile("bignumber.js", jsre.BigNumber_JS); err != nil {
 		return fmt.Errorf("bignumber.js: %v", err)
 	}
-	if err := c.jsre.Compile("web3.js", jsre.Web3_JS); err != nil {
+	if err := c.jsre.Compile("web3.js", jsre.Web3c_JS); err != nil {
 		return fmt.Errorf("web3.js: %v", err)
 	}
-	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
-		return fmt.Errorf("web3 require: %v", err)
+	if _, err := c.jsre.Run("var Web3c = require('web3c');"); err != nil {
+		return fmt.Errorf("web3c require: %v", err)
 	}
-	if _, err := c.jsre.Run("var web3 = new Web3(jeth);"); err != nil {
-		return fmt.Errorf("web3 provider: %v", err)
+	if _, err := c.jsre.Run("var web3c = new Web3c(jeth);"); err != nil {
+		return fmt.Errorf("web3c provider: %v", err)
 	}
 	// Load the supported APIs into the JavaScript runtime environment
 	apis, err := c.client.SupportedModules()
@@ -138,7 +139,7 @@ func (c *Console) init(preload []string) error {
 	// flatten := "var cph = web3.cph; var personal = web3.personal; "
 	flatten := "var personal = web3.personal; var cph = web3.cph; var miner = web3.miner;"
 	for api := range apis {
-		if api == "web3" {
+		if api == "web3c" {
 			continue // manually mapped or ignore
 		}
 		if file, ok := web3ext.Modules[api]; ok {
@@ -156,7 +157,7 @@ func (c *Console) init(preload []string) error {
 		return fmt.Errorf("namespace flattening: %v", err)
 	}
 	// Initialize the global name register (disabled for now)
-	//c.jsre.Run(`var GlobalRegistrar = cph.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
+	//c.jsre.Run(`var GlobalRegistrar = eth.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
 
 	// If the console is in interactive mode, instrument password related methods to query the user
 	if c.prompter != nil {
@@ -167,8 +168,8 @@ func (c *Console) init(preload []string) error {
 		}
 		// Override the openWallet, unlockAccount, newAccount and sign methods since
 		// these require user interaction. Assign these method in the Console the
-		// original web3 callbacks. These will be called by the jeth.* methods after
-		// they got the password from the user and send the original web3 request to
+		// original web3c callbacks. These will be called by the jeth.* methods after
+		// they got the password from the user and send the original web3c request to
 		// the backend.
 		if obj := personal.Object(); obj != nil { // make sure the personal api is enabled over the interface
 			if _, err = c.jsre.Run(`jeth.openWallet = personal.openWallet;`); err != nil {
@@ -264,15 +265,15 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		return "", nil, ""
 	}
 	// Chunck data to relevant part for autocompletion
-	// E.g. in case of nested lines cph.getBalance(cph.coinb<tab><tab>
+	// E.g. in case of nested lines eth.getBalance(eth.coinb<tab><tab>
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
 		if line[start] == '.' || (line[start] >= 'a' && line[start] <= 'z') || (line[start] >= 'A' && line[start] <= 'Z') {
 			continue
 		}
-		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
-		if start >= 3 && line[start-3:start] == "web3" {
+		// Handle web3c in a special way (i.e. other numbers aren't auto completed)
+		if start >= 3 && line[start-3:start] == "web3c" {
 			start -= 3
 			continue
 		}
@@ -290,7 +291,7 @@ func (c *Console) Welcome() {
 	fmt.Fprintf(c.printer, "Welcome to the Cypher JavaScript console!\n\n")
 	// c.jsre.Run(`
 	// 	console.log("instance: " + web3.version.node);
-	// 	console.log("at block: " + cph.blockNumber + " (" + new Date(1000 * cph.getBlock(cph.blockNumber).timestamp) + ")");
+	// 	console.log("at block: " + eth.blockNumber + " (" + new Date(1000 * eth.getBlock(eth.blockNumber).timestamp) + ")");
 	// 	console.log(" datadir: " + admin.datadir);
 	// `)
 	// // List all the supported modules for the user to call

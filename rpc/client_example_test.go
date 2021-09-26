@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -28,10 +29,10 @@ import (
 // In this example, our client whishes to track the latest 'block number'
 // known to the server. The server supports two methods:
 //
-// cph_getBlockByNumber("latest", {})
+// eth_getBlockByNumber("latest", {})
 //    returns the latest block object.
 //
-// cph_subscribe("newBlocks")
+// eth_subscribe("newBlocks")
 //    creates a subscription which fires block objects when new blocks arrive.
 
 type Block struct {
@@ -66,7 +67,7 @@ func subscribeBlocks(client *rpc.Client, subch chan Block) {
 	defer cancel()
 
 	// Subscribe to new blocks.
-	sub, err := client.CphSubscribe(ctx, subch, "newBlocks")
+	sub, err := client.EthSubscribe(ctx, subch, "newBlocks")
 	if err != nil {
 		fmt.Println("subscribe error:", err)
 		return
@@ -75,7 +76,7 @@ func subscribeBlocks(client *rpc.Client, subch chan Block) {
 	// The connection is established now.
 	// Update the channel with the current block.
 	var lastBlock Block
-	if err := client.CallContext(ctx, &lastBlock, "cph_getBlockByNumber", "latest"); err != nil {
+	if err := client.CallContext(ctx, &lastBlock, "eth_getBlockByNumber", "latest"); err != nil {
 		fmt.Println("can't get latest block:", err)
 		return
 	}

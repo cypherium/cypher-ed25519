@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -19,7 +20,7 @@
 This key store behaves as KeyStorePlain with the difference that
 the private key is encrypted and on disk uses another JSON encoding.
 
-The crypto is documented at https://github.com/cypherium/wiki/wiki/Web3-Secret-Storage-Definition
+The crypto is documented at https://github.com/cypherium/wiki/wiki/Web3c-Secret-Storage-Definition
 
 */
 

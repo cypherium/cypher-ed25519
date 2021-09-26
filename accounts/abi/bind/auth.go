@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -39,7 +40,7 @@ func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewKeyedTransactor(key.PrivateKey), nil
+	return NewKeyedTransactor(key.PrivateKey), nil, xxxxx
 }
 
 // NewKeyedTransactor is a utility method to easily create a transaction signer

@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -29,13 +30,13 @@ import (
 	"github.com/cypherium/cypherBFT/core/bloombits"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cph"
-	"github.com/cypherium/cypherBFT/cph/downloader"
-	"github.com/cypherium/cypherBFT/cph/filters"
-	"github.com/cypherium/cypherBFT/cph/gasprice"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/eth"
+	"github.com/cypherium/cypherBFT/eth/downloader"
+	"github.com/cypherium/cypherBFT/eth/filters"
+	"github.com/cypherium/cypherBFT/eth/gasprice"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/light"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/node"
@@ -47,7 +48,7 @@ import (
 )
 
 type LightCphereum struct {
-	config *cph.Config
+	config *eth.Config
 
 	odr         *LesOdr
 	relay       *LesTxRelay
@@ -63,7 +64,7 @@ type LightCphereum struct {
 	reqDist         *requestDistributor
 	retriever       *retrieveManager
 	// DB interfaces
-	chainDb cphdb.Database // Block chain database
+	chainDb ethdb.Database // Block chain database
 
 	bloomRequests                              chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer, chtIndexer, bloomTrieIndexer *core.ChainIndexer
@@ -75,13 +76,13 @@ type LightCphereum struct {
 	accountManager *accounts.Manager
 
 	networkId     uint64
-	netRPCService *cphapi.PublicNetAPI
+	netRPCService *ethapi.PublicNetAPI
 
 	wg sync.WaitGroup
 }
 
-func New(ctx *node.ServiceContext, config *cph.Config) (*LightCphereum, error) {
-	chainDb, err := cph.CreateDB(ctx, config, "lightchaindata")
+func New(ctx *node.ServiceContext, config *eth.Config) (*LightCphereum, error) {
+	chainDb, err := eth.CreateDB(ctx, config, "lightchaindata")
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func New(ctx *node.ServiceContext, config *cph.Config) (*LightCphereum, error) {
 		shutdownChan:     make(chan bool),
 		networkId:        config.NetworkId,
 		bloomRequests:    make(chan chan *bloombits.Retrieval),
-		bloomIndexer:     cph.NewBloomIndexer(chainDb, light.BloomTrieFrequency),
+		bloomIndexer:     eth.NewBloomIndexer(chainDb, light.BloomTrieFrequency),
 		chtIndexer:       light.NewChtIndexer(chainDb, true),
 		bloomTrieIndexer: light.NewBloomTrieIndexer(chainDb, true),
 	}
@@ -153,12 +154,7 @@ func lesTopic(genesisHash common.Hash, protocolVersion uint) discv5.Topic {
 
 type LightDummyAPI struct{}
 
-// Cpherbase is the address that mining rewards will be send to
-func (s *LightDummyAPI) Cpherbase() (common.Address, error) {
-	return common.Address{}, fmt.Errorf("not supported")
-}
-
-// Coinbase is the address that mining rewards will be send to (alias for Cpherbase)
+// Coinbase is the address that mining rewards will be send to
 func (s *LightDummyAPI) Coinbase() (common.Address, error) {
 	return common.Address{}, fmt.Errorf("not supported")
 }
@@ -176,19 +172,19 @@ func (s *LightDummyAPI) Mining() bool {
 // APIs returns the collection of RPC services the cypherium package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *LightCphereum) APIs() []rpc.API {
-	return append(cphapi.GetAPIs(s.ApiBackend), []rpc.API{
+	return append(ethapi.GetAPIs(s.ApiBackend), []rpc.API{
 		{
-			Namespace: "cph",
+			Namespace: "eth",
 			Version:   "1.0",
 			Service:   &LightDummyAPI{},
 			Public:    true,
 		}, {
-			Namespace: "cph",
+			Namespace: "eth",
 			Version:   "1.0",
 			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
 		}, {
-			Namespace: "cph",
+			Namespace: "eth",
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.ApiBackend, true),
 			Public:    true,
@@ -223,7 +219,7 @@ func (s *LightCphereum) Protocols() []p2p.Protocol {
 func (s *LightCphereum) Start(srvr *p2p.Server) error {
 	s.startBloomHandlers()
 	log.Warn("Light client mode is an experimental feature")
-	s.netRPCService = cphapi.NewPublicNetAPI(srvr, s.networkId)
+	s.netRPCService = ethapi.NewPublicNetAPI(srvr, s.networkId)
 	// clients are searching for the first advertised protocol in the list
 	protocolVersion := AdvertiseProtocolVersions[0]
 	s.serverPool.start(srvr, lesTopic(s.blockchain.Genesis().Hash(), protocolVersion))

@@ -46,10 +46,10 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cph"
-	"github.com/cypherium/cypherBFT/cph/downloader"
-	"github.com/cypherium/cypherBFT/cphclient"
-	"github.com/cypherium/cypherBFT/cphstats"
+	"github.com/cypherium/cypherBFT/eth"
+	"github.com/cypherium/cypherBFT/eth/downloader"
+	"github.com/cypherium/cypherBFT/ethclient"
+	"github.com/cypherium/cypherBFT/ethstats"
 	"github.com/cypherium/cypherBFT/les"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/node"
@@ -67,7 +67,7 @@ var (
 	cphPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode cnode URLs to seed with")
 	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Cypherium protocol")
-	statsFlag   = flag.String("cphstats", "", "Cphstats network monitoring auth string")
+	statsFlag   = flag.String("ethstats", "", "Cphstats network monitoring auth string")
 
 	netnameFlag = flag.String("faucet.name", "", "Network name to assign to the faucet")
 	payoutFlag  = flag.Int("faucet.amount", 1, "Number of Cphers to pay out per user request")
@@ -193,7 +193,7 @@ type request struct {
 type faucet struct {
 	config *params.ChainConfig // Chain configurations for signing
 	stack  *node.Node          // Cypherium protocol stack
-	client *cphclient.Client   // Client connection to the Cypherium chain
+	client *ethclient.Client   // Client connection to the Cypherium chain
 	index  []byte              // Index page to serve up on the web
 
 	keystore *keystore.KeyStore // Keystore containing the single signer
@@ -229,7 +229,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	}
 	// Assemble the Cypherium light client protocol
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		cfg := cph.DefaultConfig
+		cfg := eth.DefaultConfig
 		cfg.SyncMode = downloader.LightSync
 		cfg.NetworkId = network
 		cfg.Genesis = genesis
@@ -237,12 +237,12 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 	}); err != nil {
 		return nil, err
 	}
-	// Assemble the cphstats monitoring and reporting service'
+	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			var serv *les.LightCphereum
 			ctx.Service(&serv)
-			return cphstats.New(stats, nil, serv)
+			return ethstats.New(stats, nil, serv)
 		}); err != nil {
 			return nil, err
 		}
@@ -261,7 +261,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 		stack.Stop()
 		return nil, err
 	}
-	client := cphclient.NewClient(api)
+	client := ethclient.NewClient(api)
 
 	return &faucet{
 		config:   genesis.Config,

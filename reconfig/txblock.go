@@ -1,3 +1,19 @@
+// Copyright 2017 The cypherBFT Authors
+// This file is part of the cypherBFT library.
+//
+// The cypherBFT library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The cypherBFT library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+
 // Package reconfig implements Cypherium reconfiguration.
 package reconfig
 
@@ -24,12 +40,12 @@ type txService struct {
 	config *params.ChainConfig
 }
 
-func newTxService(s serviceI, cph Backend, config *params.ChainConfig) *txService {
+func newTxService(s serviceI, eth Backend, config *params.ChainConfig) *txService {
 	txS := new(txService)
 	txS.s = s
-	txS.bc = cph.BlockChain()
-	txS.kbc = cph.KeyBlockChain()
-	txS.txPool = cph.TxPool()
+	txS.bc = eth.BlockChain()
+	txS.kbc = eth.KeyBlockChain()
+	txS.txPool = eth.TxPool()
 	txS.config = config
 	txS.bc.ProcInsertDone = txS.procBlockDone
 	return txS
@@ -163,14 +179,14 @@ func (txS *txService) packageTxs(blockType uint8) *types.Block {
 
 	signer := types.NewEIP155Signer(txS.config.ChainID)
 	txs := types.NewTransactionsByPriceAndNonce(signer, pending)
-	okTxs, receipts, useGas := txS.commitTransactions(signer, txs, header, state)
+	okTxs, receipts, useGas, totalGas := txS.commitTransactions(signer, txs, header, state)
 	tcount := len(okTxs)
 	if tcount == 0 {
 		log.Error("packageTxs okTxs is empty")
 		return nil
 	}
 
-	block, err := bc.Processor.Finalize(false, header, state, okTxs, receipts)
+	block, err := bc.Processor.Finalize(false, header, state, okTxs, receipts, totalGas)
 	if err != nil {
 		log.Error("packageTxs", "Failed to finalize block for sealing", err)
 		return nil
@@ -209,9 +225,10 @@ func packageHeader(keyHash common.Hash, parent *types.Block, state *state.StateD
 }
 
 // Apply transactions
-func (txS *txService) commitTransactions(signer types.Signer, txs *types.TransactionsByPriceAndNonce, header *types.Header, state *state.StateDB) (types.Transactions, []*types.Receipt, uint64) {
+func (txS *txService) commitTransactions(signer types.Signer, txs *types.TransactionsByPriceAndNonce, header *types.Header, state *state.StateDB) (types.Transactions, []*types.Receipt, uint64, uint64) {
 	var (
-		useGas uint64
+		useGas   uint64
+		totalGas uint64
 		//	coalescedLogs []*types.Log
 		failedTxs types.Transactions
 		okTxs     types.Transactions
@@ -260,6 +277,7 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 			receipts = append(receipts, receipt)
 			//??coalescedLogs = append(coalescedLogs, receipt.Logs...)
 			useGas += gas
+			totalGas += gas * tx.GasPriceU64()
 			tcount++
 			if tcount > params.MaxTxCountPerBlock {
 				break
@@ -291,5 +309,5 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 			}(cpy, tcount)
 		}
 	*/
-	return okTxs, receipts, useGas
+	return okTxs, receipts, useGas, totalGas
 }

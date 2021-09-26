@@ -28,7 +28,7 @@ import (
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/cypherium/cypherBFT/cmd/utils"
-	"github.com/cypherium/cypherBFT/cph"
+	"github.com/cypherium/cypherBFT/eth"
 	"github.com/cypherium/cypherBFT/node"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/naoina/toml"
@@ -73,7 +73,7 @@ type cphstatsConfig struct {
 }
 
 type gcphConfig struct {
-	Cph cph.Config
+	Cph eth.Config
 	//	Shh       whisper.Config
 	Node     node.Config
 	Cphstats cphstatsConfig
@@ -98,8 +98,8 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit, "")
-	cfg.HTTPModules = append(cfg.HTTPModules, "cph", "shh")
-	cfg.WSModules = append(cfg.WSModules, "cph", "shh")
+	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "shh")
+	cfg.WSModules = append(cfg.WSModules, "eth", "shh")
 	cfg.IPCPath = "cypher.ipc"
 	return cfg
 }
@@ -107,7 +107,7 @@ func defaultNodeConfig() node.Config {
 func makeConfigNode(ctx *cli.Context) (*node.Node, gcphConfig) {
 	// Load defaults.
 	cfg := gcphConfig{
-		Cph: cph.DefaultConfig,
+		Cph: eth.DefaultConfig,
 		//		Shh:       whisper.DefaultConfig,
 		Node: defaultNodeConfig(),
 	}
@@ -121,16 +121,15 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gcphConfig) {
 
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
+	utils.SetExternalIp(ctx, &cfg.Node, &cfg.Cph)
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
-	utils.SetCphhConfig(ctx, stack, &cfg.Cph)
+	utils.SetCphhConfig(ctx, &cfg.Cph)
 	if ctx.GlobalIsSet(utils.CphStatsURLFlag.Name) {
 		cfg.Cphstats.URL = ctx.GlobalString(utils.CphStatsURLFlag.Name)
 	}
-
-	//	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	return stack, cfg
 }
 

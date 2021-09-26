@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -28,7 +29,7 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/cph"
+	"github.com/cypherium/cypherBFT/eth"
 	"github.com/cypherium/cypherBFT/les/flowcontrol"
 	"github.com/cypherium/cypherBFT/light"
 	"github.com/cypherium/cypherBFT/p2p"
@@ -102,8 +103,8 @@ func (p *peer) queueSend(f func()) {
 }
 
 // Info gathers and returns a collection of metadata known about a peer.
-func (p *peer) Info() *cph.PeerInfo {
-	return &cph.PeerInfo{
+func (p *peer) Info() *eth.PeerInfo {
+	return &eth.PeerInfo{
 		Version:    p.version,
 		Difficulty: p.Td(),
 		Head:       fmt.Sprintf("%x", p.Head()),

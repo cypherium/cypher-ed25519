@@ -1,3 +1,4 @@
+// Copyright 2015 The go-ethereum Authors
 // Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
@@ -48,13 +49,13 @@ func (cph *LightCphereum) startBloomHandlers() {
 		go func() {
 			for {
 				select {
-				case <-cph.shutdownChan:
+				case <-eth.shutdownChan:
 					return
 
-				case request := <-cph.bloomRequests:
+				case request := <-eth.bloomRequests:
 					task := <-request
 					task.Bitsets = make([][]byte, len(task.Sections))
-					compVectors, err := light.GetBloomBits(task.Context, cph.odr, task.Bit, task.Sections)
+					compVectors, err := light.GetBloomBits(task.Context, eth.odr, task.Bit, task.Sections)
 					if err == nil {
 						for i := range task.Sections {
 							if blob, err := bitutil.DecompressBytes(compVectors[i], int(light.BloomTrieFrequency/8)); err == nil {

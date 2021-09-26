@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -78,6 +79,8 @@ var (
 	ErrOverSlotsData = errors.New("overslots data")
 
 	ErrLockedFunds = errors.New("locked funds")
+
+	ErrInvalidTxDataV = errors.New("invalid txdata V")
 )
 
 var (
@@ -174,8 +177,8 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 		log.Warn("Sanitizing invalid txpool price bump", "provided", conf.PriceBump, "updated", DefaultTxPoolConfig.PriceBump)
 		conf.PriceBump = DefaultTxPoolConfig.PriceBump
 	}
-	//conf.Journal = ""
-	//conf.NoLocals = true
+	conf.NoLocals = true
+	conf.Journal = ""
 	return conf
 }
 
@@ -350,17 +353,10 @@ func (pool *TxPool) lockedReset(oldHead, newHead *types.Header) {
 
 // reset retrieves the current state of the blockchain and ensures the content
 // of the transaction pool is valid with regard to the chain state.
-//var m_oldHead *types.Header
-
 func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	// If we're reorging an old state, reinject all dropped transactions
 	var reinject types.Transactions
-	/*
-		if oldHead == nil {
-			oldHead = m_oldHead
-		}
-		m_oldHead = newHead
-	*/
+
 	if oldHead != nil && oldHead.Hash() != newHead.ParentHash {
 		// If the reorg is too deep, avoid doing it (will happen during fast sync)
 		oldNum := oldHead.Number.Uint64()
@@ -584,11 +580,6 @@ func (pool *TxPool) PendingCount() int {
 
 func (pool *TxPool) PostChainHeadEvent() {
 	pool.chainHeadCh <- ChainHeadEvent{Block: pool.chain.CurrentBlock()}
-
-	//log.Info("TxPool PostChainHeadEvent end")
-	//pool.RemoveBatch(block.Transactions())
-	//pool.lockedReset(nil, block.Header())
-	//pool.chainHeadCh <- ChainHeadEvent{Block: block}
 }
 
 // local retrieves all currently known local transactions, groupped by origin
@@ -647,10 +638,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		log.Trace("ErrInsufficientFunds", "balance", balance.Uint64(), "cost", amount.Uint64())
 		return ErrInsufficientFunds
 	}
-	if isTransferLocked(pool.currentState, from, balance, amount) {
-		log.Trace("ErrLockedFunds", "balance", balance.Uint64(), "cost", amount.Uint64())
-		return ErrLockedFunds
-	}
+
 	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil)
 	if err != nil {
 		return err
@@ -658,6 +646,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Gas() < intrGas {
 		log.Trace("Intrinsic Gas too low", "gas", tx.Gas(), "Intrinsic", intrGas)
 		return ErrIntrinsicGas
+	}
+	if !tx.ValidateV() {
+	//	return ErrInvalidTxDataV
 	}
 	return nil
 }
@@ -686,9 +677,11 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		return false, err
 	}
 	//pool.LogTxMsg("txpool.add", "hash", tx.Hash())
-
 	// If the transaction is replacing an already pending one, do directly
-	from, _ := types.Sender(pool.signer, tx) // already validated
+	from, err := types.Sender(pool.signer, tx)
+	if err!=nil{
+		return false,err
+	}
 	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
 		// Nonce already pending, check if required price bump is met
 		inserted, old := list.Add(tx, pool.config.PriceBump)
@@ -706,9 +699,6 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		pool.all.Add(tx)
 		pool.priced.Put(tx)
 		pool.journalTx(from, tx)
-
-		//pool.LogTxMsg("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
-
 		// We've directly injected a replacement transaction, notify subsystems
 		go pool.txFeed.Send(NewTxsEvent{types.Transactions{tx}})
 
@@ -718,7 +708,6 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	replace, err := pool.enqueueTx(hash, tx)
 	if err != nil {
 		//log.Warn("txpool.add enqueueTx", "hash", tx.Hash(), "err", err)
-		//pool.LogTxMsg("txpool.add enqueueTx", "hash", tx.Hash(), "err", err)
 		return false, err
 	}
 	// Mark local addresses and journal local transactions
@@ -726,7 +715,6 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 		pool.locals.add(from)
 	}
 	pool.journalTx(from, tx)
-	//pool.LogTxMsg("Pooled new future transaction", "hash", hash)
 
 	return replace, nil
 }

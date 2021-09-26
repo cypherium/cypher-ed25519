@@ -32,7 +32,7 @@ import (
 	"github.com/cypherium/cypherBFT/cmd/utils"
 	"github.com/cypherium/cypherBFT/console"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/cphclient"
+	"github.com/cypherium/cypherBFT/ethclient"
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/internal/debug"
 	"github.com/cypherium/cypherBFT/log"
@@ -83,7 +83,6 @@ var (
 		utils.TxPoolDisabledGASFlag,
 		utils.TxPoolEnabledJVMFlag,
 		utils.TxPoolEnabledEVMFlag,
-		utils.PowRangeModeFlag,
 		utils.IpEncryptDisableFlag,
 		utils.LocalTestIpConfig,
 		utils.FastSyncFlag,
@@ -100,7 +99,6 @@ var (
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxPendingPeersFlag,
-		utils.CpherbaseFlag,
 		utils.GasPriceFlag,
 		utils.MinerThreadsFlag,
 		utils.MiningEnabledFlag,
@@ -143,9 +141,9 @@ var (
 		utils.IPCPathFlag,
 	}
 
-	onetFlags = []cli.Flag{
-		utils.OnetDebugFlag,
-		utils.OnetPortFlag,
+	rnetFlags = []cli.Flag{
+		utils.RnetDebugFlag,
+		utils.RnetPortFlag,
 		utils.PublicKeyFlag,
 	}
 
@@ -199,7 +197,7 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, onetFlags...)
+	app.Flags = append(app.Flags, rnetFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
@@ -250,8 +248,8 @@ func cypher(ctx *cli.Context) error {
 	//if err != nil {
 	//	log.Error("Cannot get home directory")
 	//}
-	//OnetPort := ctx.GlobalString(utils.OnetPortFlag.Name)
-	//logFile, _ := os.OpenFile(strings.Join([]string{usr.HomeDir, "/", OnetPort, ".log"}, ""), os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
+	//RnetPort := ctx.GlobalString(utils.RnetPortFlag.Name)
+	//logFile, _ := os.OpenFile(strings.Join([]string{usr.HomeDir, "/", RnetPort, ".log"}, ""), os.O_WRONLY|os.O_CREATE|os.O_SYNC, 0755)
 	//syscall.Dup2(int(logFile.Fd()), 1)
 	//syscall.Dup2(int(logFile.Fd()), 2)
 	//fmt.Println(logFile, syscall.Getuid())
@@ -294,7 +292,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		if err != nil {
 			utils.Fatalf("Failed to attach to self: %v", err)
 		}
-		stateReader := cphclient.NewClient(rpcClient)
+		stateReader := ethclient.NewClient(rpcClient)
 
 		// Open any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
@@ -331,7 +329,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	//	if ctx.GlobalBool(utils.LightModeFlag.Name) || ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
 	//		utils.Fatalf("Light clients do not support mining")
 	//	}
-	//	var cypherium *cph.Cypherium
+	//	var cypherium *eth.Cypherium
 	//	if err := stack.Service(&cypherium); err != nil {
 	//		utils.Fatalf("Cypherium service not running: %v", err)
 	//	}

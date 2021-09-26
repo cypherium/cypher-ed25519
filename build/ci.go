@@ -76,7 +76,7 @@ var (
 
 	// A debian package is created for all executables listed here.
 
-	debEthereum = debPackage{
+	debCypherium = debPackage{
 		Name:        "cypherium",
 		Version:     params.Version,
 		Executables: debExecutables,
@@ -84,7 +84,7 @@ var (
 
 	// Debian meta packages to build and push to Ubuntu PPA
 	debPackages = []debPackage{
-		debEthereum,
+		debCypherium,
 	}
 
 	// Distros for which packages are created.
@@ -189,7 +189,7 @@ func doInstall(cmdline []string) {
 		if runtime.GOARCH == "arm64" {
 			goinstall.Args = append(goinstall.Args, "-p", "1")
 		}
-	//	goinstall.Args = append(goinstall.Args, "-trimpath")
+		//	goinstall.Args = append(goinstall.Args, "-trimpath")
 		goinstall.Args = append(goinstall.Args, "-v")
 		goinstall.Args = append(goinstall.Args, packages...)
 		build.MustRun(goinstall)
@@ -198,7 +198,7 @@ func doInstall(cmdline []string) {
 
 	// Seems we are cross compiling, work around forbidden GOBIN
 	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
-//	goinstall.Args = append(goinstall.Args, "-trimpath")
+	//	goinstall.Args = append(goinstall.Args, "-trimpath")
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
 	goinstall.Args = append(goinstall.Args, packages...)

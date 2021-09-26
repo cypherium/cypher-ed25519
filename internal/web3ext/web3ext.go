@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -22,7 +23,7 @@ var Modules = map[string]string{
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
 	"debug":      Debug_JS,
-	"cphe":       Cph_JS,
+	"eth":       Eth_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -391,103 +392,103 @@ web3._extend({
 });
 `
 
-const Cph_JS = `
+const Eth_JS = `
 web3._extend({
-	property: 'cph',
+	property: 'eth',
 	methods: [
 		new web3._extend.Method({
 			name: 'committeeMembers',
-			call: 'cph_committeeMembers',
+			call: 'eth_committeeMembers',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
 		}),
+        new web3._extend.Method({
+			name: 'committeeExceptions',
+			call: 'eth_committeeExceptions',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+      new web3._extend.Method({
+			name: 'takePartInNumbers',
+			call: 'eth_takePartInNumbers',
+			params: 2,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter,null]
+		}),
 		new web3._extend.Method({
 			name: 'sign',
-			call: 'cph_sign',
+			call: 'eth_sign',
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null]
 		}),
 		new web3._extend.Method({
 			name: 'resend',
-			call: 'cph_resend',
+			call: 'eth_resend',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter, web3._extend.utils.fromDecimal, web3._extend.utils.fromDecimal]
 		}),
 		new web3._extend.Method({
 			name: 'signTransaction',
-			call: 'cph_signTransaction',
+			call: 'eth_signTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',
-			call: 'cph_submitTransaction',
+			call: 'eth_submitTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransaction',
-			call: 'cph_getRawTransactionByHash',
+			call: 'eth_getRawTransactionByHash',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransactionFromBlock',
 			call: function(args) {
-				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'cph_getRawTransactionByBlockHashAndIndex' : 'cph_getRawTransactionByBlockNumberAndIndex';
+				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'eth_getRawTransactionByBlockHashAndIndex' : 'eth_getRawTransactionByBlockNumberAndIndex';
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
 		}),
 		new web3._extend.Method({
 			name: 'getKeyBlockByNumber',
-			call: 'cph_getKeyBlockByNumber',
+			call: 'eth_getKeyBlockByNumber',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
 		}),
 		new web3._extend.Method({
 			name: 'announceBlock',
-			call: 'cph_announceBlock',
+			call: 'eth_announceBlock',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
 		}),
 		new web3._extend.Method({
 			name: 'announceTxBlock',
-			call: 'cph_announceTxBlock',
+			call: 'eth_announceTxBlock',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
 		}),
 		new web3._extend.Method({
 			name: 'mockKeyBlock',
-			call: 'cph_mockKeyBlock',
+			call: 'eth_mockKeyBlock',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
 		}),
 
 		new web3._extend.Method({
-			name: 'getTxBlockByNumber',
-			call: 'cph_getTxBlockByNumber',
+			name: 'getBlockByNumber',
+			call: 'eth_getBlockByNumber',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, null, null],
 			outputFormatter: web3._extend.formatters.outputBlockFormatter,
 		}),
-      
-       new web3._extend.Method({
-           name: 'manualReconfigStart',
-           call: 'cph_manualReconfigStart',
-           params: 3,
-           inputFormatter: [web3._extend.utils.toDecimal, web3._extend.formatters.inputAddressFormatter,null],
-       }),
-     new web3._extend.Method({
-           name: 'manualReconfigStop',
-           call: 'cph_manualReconfigStop',
-           params: 0,
-       }),
 
 	],
 	properties: [
 		new web3._extend.Property({
 			name: 'pendingTransactions',
-			getter: 'cph_pendingTransactions',
+			getter: 'eth_pendingTransactions',
 			outputFormatter: function(txs) {
 				var formatted = [];
 				for (var i = 0; i < txs.length; i++) {
@@ -499,7 +500,7 @@ web3._extend({
 		}),
 	   new web3._extend.Property({
 			name: 'keyBlockNumber',
-			getter: 'cph_keyBlockNumber'
+			getter: 'eth_keyBlockNumber'
 		}),
 	]
 });
@@ -518,12 +519,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'stop',
 			call: 'miner_stop'
-		}),
-		new web3._extend.Method({
-			name: 'setCpherbase',
-			call: 'miner_setCpherbase',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'setExtra',

@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -24,7 +25,7 @@ import (
 	"github.com/cypherium/cypherBFT/core/state"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/pow"
 )
@@ -143,7 +144,7 @@ func (b *BlockGen) OffsetTime(seconds int64) {
 // Blocks created by GenerateChain do not contain valid proof of work
 // values. Inserting them into BlockChain requires use of FakePow or
 // a similar non-validating proof of work implementation.
-func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.Engine, db cphdb.Database, n int, gen func(int, *BlockGen)) ([]*types.Block, []types.Receipts) {
+func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) ([]*types.Block, []types.Receipts) {
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -163,7 +164,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.E
 		}
 
 		if b.engine != nil {
-			block, _ := blockchain.Processor.Finalize(false, b.header, statedb, b.txs, b.receipts)
+			block, _ := blockchain.Processor.Finalize(false, b.header, statedb, b.txs, b.receipts, 0)
 			// Write state changes to db
 			root, err := statedb.Commit()
 			if err != nil {
@@ -207,7 +208,7 @@ func makeHeader(chain types.ChainReader, parent *types.Block, state *state.State
 }
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.
-func makeHeaderChain(parent *types.Header, n int, engine pow.Engine, db cphdb.Database, seed int) []*types.Header {
+func makeHeaderChain(parent *types.Header, n int, engine pow.Engine, db ethdb.Database, seed int) []*types.Header {
 	blocks := makeBlockChain(types.NewBlockWithHeader(parent), n, engine, db, seed)
 	headers := make([]*types.Header, len(blocks))
 	for i, block := range blocks {
@@ -217,7 +218,7 @@ func makeHeaderChain(parent *types.Header, n int, engine pow.Engine, db cphdb.Da
 }
 
 // makeBlockChain creates a deterministic chain of blocks rooted at parent.
-func makeBlockChain(parent *types.Block, n int, engine pow.Engine, db cphdb.Database, seed int) []*types.Block {
+func makeBlockChain(parent *types.Block, n int, engine pow.Engine, db ethdb.Database, seed int) []*types.Block {
 	blocks, _ := GenerateChain(params.TestChainConfig, parent, engine, db, n, func(i int, b *BlockGen) {
 
 	})

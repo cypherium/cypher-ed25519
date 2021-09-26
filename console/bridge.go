@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -284,10 +285,10 @@ func (b *bridge) SleepBlocks(call otto.FunctionCall) (response otto.Value) {
 			throwJSException("expected number as second argument")
 		}
 	}
-	// go through the console, this will allow web3 to call the appropriate
+	// go through the console, this will allow web3c to call the appropriate
 	// callbacks if a delayed response or notification is received.
 	blockNumber := func() int64 {
-		result, err := call.Otto.Run("cph.blockNumber")
+		result, err := call.Otto.Run("eth.blockNumber")
 		if err != nil {
 			throwJSException(err.Error())
 		}
@@ -316,7 +317,7 @@ type jsonrpcCall struct {
 	Params []interface{}
 }
 
-// Send implements the web3 provider "send" method.
+// Send implements the web3c provider "send" method.
 func (b *bridge) Send(call otto.FunctionCall) (response otto.Value) {
 	// Remarshal the request into a Go value.
 	JSON, _ := call.Otto.Object("JSON")

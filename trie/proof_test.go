@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -24,7 +25,7 @@ import (
 	"time"
 
 	"github.com/cypherium/cypherBFT/common"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto"
 )
 
@@ -34,18 +35,18 @@ func init() {
 
 // makeProvers creates Merkle trie provers based on different implementations to
 // test all variations.
-func makeProvers(trie *Trie) []func(key []byte) *cphdb.MemDatabase {
-	var provers []func(key []byte) *cphdb.MemDatabase
+func makeProvers(trie *Trie) []func(key []byte) *ethdb.MemDatabase {
+	var provers []func(key []byte) *ethdb.MemDatabase
 
 	// Create a direct trie based Merkle prover
-	provers = append(provers, func(key []byte) *cphdb.MemDatabase {
-		proof := cphdb.NewMemDatabase()
+	provers = append(provers, func(key []byte) *ethdb.MemDatabase {
+		proof := ethdb.NewMemDatabase()
 		trie.Prove(key, 0, proof)
 		return proof
 	})
 	// Create a leaf iterator based Merkle prover
-	provers = append(provers, func(key []byte) *cphdb.MemDatabase {
-		proof := cphdb.NewMemDatabase()
+	provers = append(provers, func(key []byte) *ethdb.MemDatabase {
+		proof := ethdb.NewMemDatabase()
 		if it := NewIterator(trie.NodeIterator(key)); it.Next() && bytes.Equal(key, it.Key) {
 			for _, p := range it.Prove() {
 				proof.Put(crypto.Keccak256(p), p)
@@ -127,7 +128,7 @@ func TestMissingKeyProof(t *testing.T) {
 	updateString(trie, "k", "v")
 
 	for i, key := range []string{"a", "j", "l", "z"} {
-		proof := cphdb.NewMemDatabase()
+		proof := ethdb.NewMemDatabase()
 		trie.Prove([]byte(key), 0, proof)
 
 		if proof.Len() != 1 {
@@ -164,7 +165,7 @@ func BenchmarkProve(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		kv := vals[keys[i%len(keys)]]
-		proofs := cphdb.NewMemDatabase()
+		proofs := ethdb.NewMemDatabase()
 		if trie.Prove(kv.k, 0, proofs); len(proofs.Keys()) == 0 {
 			b.Fatalf("zero length proof for %x", kv.k)
 		}
@@ -175,10 +176,10 @@ func BenchmarkVerifyProof(b *testing.B) {
 	trie, vals := randomTrie(100)
 	root := trie.Hash()
 	var keys []string
-	var proofs []*cphdb.MemDatabase
+	var proofs []*ethdb.MemDatabase
 	for k := range vals {
 		keys = append(keys, k)
-		proof := cphdb.NewMemDatabase()
+		proof := ethdb.NewMemDatabase()
 		trie.Prove([]byte(k), 0, proof)
 		proofs = append(proofs, proof)
 	}

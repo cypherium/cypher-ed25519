@@ -10,7 +10,7 @@ import (
 	"github.com/cypherium/cypherBFT/accounts"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/params"
@@ -25,7 +25,7 @@ type Backend interface {
 	KeyBlockChain() *core.KeyBlockChain
 	CandidatePool() *core.CandidatePool
 	TxPool() *core.TxPool
-	ChainDb() cphdb.Database
+	ChainDb() ethdb.Database
 }
 
 // Miner creates candidate from current head keyblock and searches for proof-of-work values.
@@ -34,7 +34,7 @@ type Miner struct {
 	worker      *worker
 	pubKey      ed25519.PublicKey
 	coinBase    common.Address
-	cph         Backend
+	eth         Backend
 	engine      pow.Engine
 	keyHeadSub  *event.TypeMuxSubscription
 	fullSyncing int32 // can start indicates whether we can start the mining operation
@@ -42,17 +42,17 @@ type Miner struct {
 	isMember    bool
 }
 
-func New(cph Backend, config *params.ChainConfig, mux *event.TypeMux, engine pow.Engine, extIP net.IP) *Miner {
+func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine pow.Engine, extIP net.IP) *Miner {
 	miner := &Miner{
-		cph:         cph,
+		eth:         eth,
 		mux:         mux,
 		engine:      engine,
-		worker:      newWorker(config, engine, cph, mux, cph.CandidatePool(), extIP),
+		worker:      newWorker(config, engine, eth, mux, eth.CandidatePool(), extIP),
 		fullSyncing: 0,
 		shouldStart: 0,
 		isMember:    false,
 	}
-	miner.Register(NewCpuAgent(cph.BlockChain(), engine))
+	miner.Register(NewCpuAgent(eth.BlockChain(), engine))
 	go miner.update() //monitor self role change carefully，prevent role change something wrong
 	return miner
 }
@@ -150,4 +150,8 @@ func (self *Miner) SetPubKey(pubKey ed25519.PublicKey) {
 func (self *Miner) SetCoinbase(eb common.Address) {
 	self.coinBase = eb
 	self.worker.SetCoinbase(eb)
+}
+
+func (self *Miner) GetCoinbase() common.Address {
+	return self.coinBase
 }

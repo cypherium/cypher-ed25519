@@ -48,7 +48,7 @@ var (
 		"vendor/", "tests/testdata/", "build/",
 		// don't relicense vendored sources
 		"cmd/internal/browser",
-		"consensus/cphash/xor.go",
+		"consensus/ethash/xor.go",
 		"crypto/bn256/",
 		"crypto/ecies/",
 		"crypto/secp256k1/curve.go",

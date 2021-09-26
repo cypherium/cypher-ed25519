@@ -1,4 +1,5 @@
-// Copyright 2016 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -23,6 +24,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -323,11 +325,26 @@ func (s DistinctNetSet) String() string {
 }
 
 // VerifyConnectivity tries to connect to a remote host on a given
-func VerifyConnectivity(host string, port int) error {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), 3*time.Second)
-	if err != nil {
-		return err
+func VerifyConnectivity(protocol string, host net.IP, port int) error {
+	if protocol == "tcp" {
+		conn, err := net.DialTimeout(protocol, fmt.Sprintf("%s:%d", host.String(), port), 10*time.Second)
+		if err != nil {
+			return err
+		}
+		conn.Close()
+		return nil
+	} else if protocol == "udp" {
+		addr, err := net.ResolveUDPAddr(protocol, host.String()+":"+strconv.Itoa(port))
+		if nil != err {
+			return err
+		}
+		conn, err := net.DialUDP(protocol, nil, addr)
+		if nil != err {
+			return err
+		}
+		defer conn.Close()
+		return nil
+
 	}
-	conn.Close()
-	return nil
+	return errors.New("wrong protocol type")
 }

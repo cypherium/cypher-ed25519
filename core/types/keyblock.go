@@ -118,7 +118,7 @@ type KeyBlock struct {
 	// of the chain up to and including the block.
 	td *big.Int
 
-	// These fields are used by package cph to track
+	// These fields are used by package eth to track
 	// inter-peer block relay.
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
@@ -262,13 +262,25 @@ func (b *KeyBlock) LeaderAddress() string { return b.leaderAddress }
 func (b *KeyBlock) InPubKey() string      { return b.inPubKey }
 func (b *KeyBlock) InAddress() string     { return b.inAddress }
 func (b *KeyBlock) OutPubKey() string     { return b.outPubKey }
-func (b *KeyBlock) OutAddress() string    { return b.outAddress }
+func (b *KeyBlock) OutAddress(flag int) string {
+	if flag == 1 && b.outAddress != "" && b.outAddress[0] == '*' {
+		return b.outAddress[1:]
+	}
+	return b.outAddress
+}
 func (b *KeyBlock) HasNewNode() bool {
 	return b.header.BlockType == PowReconfig || b.header.BlockType == PacePowReconfig
 }
 func (b *KeyBlock) TypeCheck(last_T_Number uint64) bool {
+	/*
+		keyType := b.BlockType()
+		if keyType == PowReconfig && (b.T_Number()-last_T_Number)%params.KeyblockPerTxBlocks != 0 {
+			return false
+		} else if keyType == TimeReconfig && (b.T_Number()-last_T_Number)%params.GapTxBlocks != 0 {
+			return false
+		}
+	*/
 	return true
-	//return (b.T_Number()-last_T_Number)%params.KeyblockPerTxBlocks == 0
 }
 
 // Body returns the non-header content of the block.

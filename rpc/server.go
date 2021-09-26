@@ -1,4 +1,5 @@
-// Copyright 2015 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -25,8 +26,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/cypherium/cypherBFT/log"
-	"gopkg.in/fatih/set.v0"
 )
 
 const MetadataApi = "rpc"
@@ -46,7 +47,7 @@ const (
 func NewServer() *Server {
 	server := &Server{
 		services: make(serviceRegistry),
-		codecs:   set.New(),
+		codecs:   mapset.NewSet(),
 		run:      1,
 	}
 
@@ -94,11 +95,12 @@ func (s *Server) RegisterName(name string, rcvr interface{}) error {
 
 	methods, subscriptions := suitableCallbacks(rcvrVal, svc.typ)
 
-	// already a previous service register under given sname, merge methods/subscriptions
+	if len(methods) == 0 && len(subscriptions) == 0 {
+		return fmt.Errorf("Service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
+	}
+
+	// already a previous service register under given name, merge methods/subscriptions
 	if regsvc, present := s.services[name]; present {
-		if len(methods) == 0 && len(subscriptions) == 0 {
-			return fmt.Errorf("Service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
-		}
 		for _, m := range methods {
 			regsvc.callbacks[formatName(m.method.Name)] = m
 		}
@@ -110,10 +112,6 @@ func (s *Server) RegisterName(name string, rcvr interface{}) error {
 
 	svc.name = name
 	svc.callbacks, svc.subscriptions = methods, subscriptions
-
-	if len(svc.callbacks) == 0 && len(svc.subscriptions) == 0 {
-		return fmt.Errorf("Service %T doesn't have any suitable methods/subscriptions to expose", rcvr)
-	}
 
 	s.services[svc.name] = svc
 	return nil
@@ -408,7 +406,7 @@ func (s *Server) readRequest(codec ServerCodec) ([]*serverRequest, bool, Error) 
 			continue
 		}
 
-		if r.isPubSub { // cph_subscribe, r.method contains the subscription method name
+		if r.isPubSub { // eth_subscribe, r.method contains the subscription method name
 			if callb, ok := svc.subscriptions[r.method]; ok {
 				requests[i] = &serverRequest{id: r.id, svcname: svc.name, callb: callb}
 				if r.params != nil && len(callb.argTypes) > 0 {

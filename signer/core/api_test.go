@@ -32,7 +32,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/internal/cphapi"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/rlp"
 )
 
@@ -44,7 +44,7 @@ type HeadlessUI struct {
 func (ui *HeadlessUI) OnSignerStartup(info StartupInfo) {
 }
 
-func (ui *HeadlessUI) OnApprovedTx(tx cphapi.SignTransactionResult) {
+func (ui *HeadlessUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	fmt.Printf("OnApproved called")
 }
 
@@ -276,7 +276,7 @@ func TestSignTx(t *testing.T) {
 
 	var (
 		list      Accounts
-		res, res2 *cphapi.SignTransactionResult
+		res, res2 *ethapi.SignTransactionResult
 		err       error
 	)
 

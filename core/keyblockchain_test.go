@@ -2,18 +2,18 @@ package core
 
 import (
 	"github.com/cypherium/cypherBFT/core/rawdb"
-	"github.com/cypherium/cypherBFT/cphdb"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/pow"
-	"github.com/cypherium/cypherBFT/pow/cphash"
+	"github.com/cypherium/cypherBFT/pow/ethash"
 	"testing"
 )
 
 // newKeyBlockChain creates a chain database, and injects a deterministic key block
 // chain.
-func newKeyBlockChain(engine pow.Engine, n int) (cphdb.Database, *KeyBlockChain, error) {
+func newKeyBlockChain(engine pow.Engine, n int) (ethdb.Database, *KeyBlockChain, error) {
 	var (
-		db      = cphdb.NewMemDatabase()
+		db      = ethdb.NewMemDatabase()
 		genesis = new(GenesisKey).MustCommit(db)
 	)
 
@@ -34,13 +34,13 @@ func TestLastKeyBlock(t *testing.T) {
 		BLOCK_NUM = 5
 	)
 
-	_, blockchain, err := newKeyBlockChain(cphash.NewFaker(), 0)
+	_, blockchain, err := newKeyBlockChain(ethash.NewFaker(), 0)
 	if err != nil {
 		t.Fatalf("failed to create key block chain: %v", err)
 	}
 	defer blockchain.Stop()
 
-	blocks := makeKeyBlockChain(blockchain.CurrentBlock(), BLOCK_NUM, cphash.NewFullFaker(), blockchain.db, 0)
+	blocks := makeKeyBlockChain(blockchain.CurrentBlock(), BLOCK_NUM, ethash.NewFullFaker(), blockchain.db, 0)
 	if _, err := blockchain.InsertChain(nil, blocks); err != nil {
 		t.Fatalf("Failed to insert block: %v", err)
 	}

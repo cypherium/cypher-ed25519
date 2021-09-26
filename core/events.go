@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -37,7 +38,7 @@ type PendingStateEvent struct{}
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
 
-type NewCandidateEvent struct {
+type RemoteCandidateEvent struct {
 	Candidate *types.Candidate
 }
 
@@ -81,8 +82,4 @@ type IdentityChangeEvent struct {
 
 type SelfRoleChangeEvent struct {
 	IsMember bool
-}
-
-type ResetRoleChangeEvent struct {
-	NodeRole uint8
 }

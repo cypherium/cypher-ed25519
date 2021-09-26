@@ -1,4 +1,5 @@
-// Copyright 2014 The cypherBFT Authors
+// Copyright 2015 The go-ethereum Authors
+// Copyright 2017 The cypherBFT Authors
 // This file is part of the cypherBFT library.
 //
 // The cypherBFT library is free software: you can redistribute it and/or modify
@@ -20,20 +21,20 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/cypherium/cypherBFT/crypto/bech32"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
-
-	"crypto/sha256"
+	"strings"
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/math"
-	"github.com/cypherium/cypherBFT/crypto/bech32"
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/rlp"
@@ -43,7 +44,7 @@ import (
 var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))
-	hrp            = "cyp"
+	hrp            = "cph"
 )
 
 var errInvalidPubkey = errors.New("invalid secp256k1 public key")
@@ -266,34 +267,24 @@ func zeroBytes(bytes []byte) {
 }
 
 func CyperBech32Encode(addr common.Address) (string, error) {
-	addrInt := make([]int, len(addr)*2)
+	addrInt := make([]int, len(addr))
 	for i := range addr {
-		addrInt[2*i] = (int)(addr[i]&0xf0) >> 4
-		addrInt[2*i+1] = (int)(addr[i] & 0xf)
+		addrInt[i] = (int)(addr[i])
 	}
-
-	encodeAddr, err := bech32.Encode(hrp, addrInt)
-	if err != nil {
-		return "", err
-	}
-
-	return encodeAddr, nil
+	return bech32.Bech32NoVersionEncode(hrp, strings.TrimPrefix(addr.String(), "0x"))
 }
 
-func CyperBech32Decode(s string) (common.Address, error) {
-	h, addrInt, err := bech32.Decode(s)
-	if err != nil {
-		return common.Address{}, err
-	}
+func CyperBech32Decode(addrstr string) (common.Address, error) {
+	if addrInt, error := bech32.Bech32NoVersionDecode(hrp, addrstr); error != nil {
+		return common.Address{}, error
+	} else {
 
-	if h != hrp {
-		return common.Address{}, fmt.Errorf("bech32 human readable part mismatch")
+		addrbyte := make([]byte, common.AddressLength)
+		for i := range addrInt {
+			if i < len(addrbyte) {
+				addrbyte[i] = (byte)(addrInt[i])
+			}
+		}
+		return common.BytesToAddress(addrbyte), nil
 	}
-
-	addr := common.Address{}
-	for i := range addr {
-		addr[i] = (byte)(addrInt[2*i]<<4 | addrInt[2*i+1])
-	}
-
-	return addr, nil
 }
