@@ -11,10 +11,12 @@ fi
 workspace="$PWD/build/_workspace"
 root="$PWD"
 cphdir="$workspace/src/github.com/cypherium/cypherBFT"
-if [ ! -L "$cphdir" ]; then
-    mkdir -p "$cphdir"
-    cd "$cphdir"
-    ln -s ../../../../../. .
+wrkdir="$workspace/src/github.com/cypherium"
+if [ ! -d "$wrkdir" ]; then
+    mkdir -p "$wrkdir"
+    cd "$wrkdir"
+    ln -s  ../../../../../  ./cypherBFT
+#    cp `ls  ../../../../../ | grep -v "_workspace" | awk '{print i$0}' i='../../../../../'` .
     cd "$root"
 fi
 

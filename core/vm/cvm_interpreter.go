@@ -266,5 +266,5 @@ func CVM_init() {
 		return
 	}
 
-	cvm.CVM_init(register_javax_cypher_cypnet)
+	//cvm.CVM_init(register_javax_cypher_cypnet)
 }
