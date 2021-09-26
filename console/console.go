@@ -122,14 +122,14 @@ func (c *Console) init(preload []string) error {
 	if err := c.jsre.Compile("bignumber.js", jsre.BigNumber_JS); err != nil {
 		return fmt.Errorf("bignumber.js: %v", err)
 	}
-	if err := c.jsre.Compile("web3.js", jsre.Web3c_JS); err != nil {
+	if err := c.jsre.Compile("web3.js", jsre.Web3_JS); err != nil {
 		return fmt.Errorf("web3.js: %v", err)
 	}
-	if _, err := c.jsre.Run("var Web3c = require('web3c');"); err != nil {
-		return fmt.Errorf("web3c require: %v", err)
+	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
+		return fmt.Errorf("web3 require: %v", err)
 	}
-	if _, err := c.jsre.Run("var web3c = new Web3c(jeth);"); err != nil {
-		return fmt.Errorf("web3c provider: %v", err)
+	if _, err := c.jsre.Run("var web3 = new Web3(jeth);"); err != nil {
+		return fmt.Errorf("web3 provider: %v", err)
 	}
 	// Load the supported APIs into the JavaScript runtime environment
 	apis, err := c.client.SupportedModules()
@@ -139,7 +139,7 @@ func (c *Console) init(preload []string) error {
 	// flatten := "var cph = web3.cph; var personal = web3.personal; "
 	flatten := "var personal = web3.personal; var cph = web3.cph; var miner = web3.miner;"
 	for api := range apis {
-		if api == "web3c" {
+		if api == "web3" {
 			continue // manually mapped or ignore
 		}
 		if file, ok := web3ext.Modules[api]; ok {
@@ -168,8 +168,8 @@ func (c *Console) init(preload []string) error {
 		}
 		// Override the openWallet, unlockAccount, newAccount and sign methods since
 		// these require user interaction. Assign these method in the Console the
-		// original web3c callbacks. These will be called by the jeth.* methods after
-		// they got the password from the user and send the original web3c request to
+		// original web3 callbacks. These will be called by the jeth.* methods after
+		// they got the password from the user and send the original web3 request to
 		// the backend.
 		if obj := personal.Object(); obj != nil { // make sure the personal api is enabled over the interface
 			if _, err = c.jsre.Run(`jeth.openWallet = personal.openWallet;`); err != nil {
@@ -272,8 +272,8 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		if line[start] == '.' || (line[start] >= 'a' && line[start] <= 'z') || (line[start] >= 'A' && line[start] <= 'Z') {
 			continue
 		}
-		// Handle web3c in a special way (i.e. other numbers aren't auto completed)
-		if start >= 3 && line[start-3:start] == "web3c" {
+		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
+		if start >= 3 && line[start-3:start] == "web3" {
 			start -= 3
 			continue
 		}

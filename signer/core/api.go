@@ -442,7 +442,7 @@ func SignHash(data []byte) ([]byte, string) {
 	return crypto.Keccak256([]byte(msg)), msg
 }
 
-// Export returns encrypted private key associated with the given address in web3c keystore format.
+// Export returns encrypted private key associated with the given address in web3 keystore format.
 func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.RawMessage, error) {
 	res, err := api.UI.ApproveExport(&ExportRequest{Address: addr, Meta: MetadataFromContext(ctx)})
 
@@ -464,7 +464,7 @@ func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.Raw
 }
 
 // Import tries to import the given keyJSON in the local keystore. The keyJSON data is expected to be
-// in web3c keystore format. It will decrypt the keyJSON with the given passphrase and on successful
+// in web3 keystore format. It will decrypt the keyJSON with the given passphrase and on successful
 // decryption it will encrypt the key with the given newPassphrase and store it in the keystore.
 func (api *SignerAPI) Import(ctx context.Context, keyJSON json.RawMessage) (Account, error) {
 	be := api.am.Backends(keystore.KeyStoreType)
