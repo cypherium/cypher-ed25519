@@ -1,0 +1,387 @@
+DEBUG[09/26/2021|15:33:06.883] Sanitizing Go's GC trigger               percent=100
+INFO [09/26/2021|15:33:06.884] FLAG                                     DisableJVM=false DisableEVM=false
+DEBUG[09/26/2021|15:33:06.885] FS scan times                            list=91.311µs set=7.97µs diff=4.963µs
+TRACE[09/26/2021|15:33:06.885] Handled keystore changes                 time=209.136µs
+TRACE[09/26/2021|15:33:06.885] Started watching keystore folder         path=/Users/cypher02/go/src/github.com/cypherium/cypherBFT/localChaindb/3/keystore
+INFO [09/26/2021|15:33:06.908] Starting peer-to-peer node               instance=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+INFO [09/26/2021|15:33:06.908] Allocated cache and file handles         database=/Users/cypher02/go/src/github.com/cypherium/cypherBFT/localChaindb/3/cypher/chaindata cache=768 handles=1024
+INFO [09/26/2021|15:33:06.939] SetCommitteeConfig                       len=0
+INFO [09/26/2021|15:33:06.939] Initialised chain configuration          config id=123676
+INFO [09/26/2021|15:33:06.939] extIP address                            IP=192.168.1.211
+INFO [09/26/2021|15:33:06.939] pow engine                               mode=0
+DEBUG[09/26/2021|15:33:06.939] Disk storage enabled for ethash caches   dir=/Users/cypher02/go/src/github.com/cypherium/cypherBFT/localChaindb/3/cypher/ethash count=3
+DEBUG[09/26/2021|15:33:06.939] Disk storage enabled for ethash DAGs     dir=/Users/cypher02/.ethash                                                            count=2
+INFO [09/26/2021|15:33:06.939] Initialising Cypherium protocol          versions="[63 62]" network=123676
+INFO [09/26/2021|15:33:06.941] Loaded most recent local keyblock header number=0 hash=bbd67f…a0fb73 td=1100
+INFO [09/26/2021|15:33:06.941] Loaded most recent local full keyblock   number=0 hash=bbd67f…a0fb73 td=1100
+WARN [09/26/2021|15:33:06.941] Head state missing, repairing chain      number=0 hash=197deb…ae095a root=797492…bebc24
+INFO [09/26/2021|15:33:06.942] Loaded most recent local header          number=0 hash=197deb…ae095a td=<nil>
+INFO [09/26/2021|15:33:06.942] Loaded most recent local full block      number=0 hash=197deb…ae095a td=<nil>
+INFO [09/26/2021|15:33:06.942] Loaded most recent local fast block      number=0 hash=197deb…ae095a td=<nil>
+INFO [09/26/2021|15:33:06.942] New router                               address=[::]:7106
+INFO [09/26/2021|15:33:06.942] Starting service                         name=cypherBFTService
+INFO [09/26/2021|15:33:06.942] Started Service                          name=cypherBFTService
+INFO [09/26/2021|15:33:06.942] instantiated all services                address=192.168.1.211:7106
+INFO [09/26/2021|15:33:06.942] SetCommitteeConfig                       len=8
+INFO [09/26/2021|15:33:06.942] Starting P2P networking 
+INFO [09/26/2021|15:33:06.942] Mapped network port                      proto=udp extport=16006 intport=16006 interface=ExtIP(192.168.1.211)
+INFO [09/26/2021|15:33:06.957] UDP listener up                          self=cnode://41e7d38cf3caa702545c245da057668e91caedc688548834db4572515d596b536f42c2b31c6c4e8630a08d77a39d94b726de832f1591725898776da4b3079d97@192.168.1.211:16006
+INFO [09/26/2021|15:33:06.957] RLPx listener up                         self=cnode://41e7d38cf3caa702545c245da057668e91caedc688548834db4572515d596b536f42c2b31c6c4e8630a08d77a39d94b726de832f1591725898776da4b3079d97@192.168.1.211:16006
+INFO [09/26/2021|15:33:06.957] Start broadcast pow loop 
+INFO [09/26/2021|15:33:06.957] Mapped network port                      proto=tcp extport=16006 intport=16006 interface=ExtIP(192.168.1.211)
+INFO [09/26/2021|15:33:06.960] IPC endpoint opened                      url=/Users/cypher02/go/src/github.com/cypherium/cypherBFT/localChaindb/3/cypher.ipc
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=web3
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=txpool
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=personal
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=miner
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=miner
+DEBUG[09/26/2021|15:33:06.960] HTTP registered                          namespace=eth
+INFO [09/26/2021|15:33:06.960] HTTP endpoint opened                     url=http://0.0.0.0:18006                                                            cors=* vhosts=localhost
+TRACE[09/26/2021|15:33:07.948] Adding p2p peer                          name=Cypher/v1.9.24-unsta... addr=192.168.1.211:64576 peers=1
+TRACE[09/26/2021|15:33:07.948] connection set up                        id=5b7745040082ab7b addr=192.168.1.211:64576 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.948] Starting protocol cph/63                 id=5b7745040082ab7b conn=inbound
+TRACE[09/26/2021|15:33:07.948] Cypherium peer connected                 id=5b7745040082ab7b conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.949] Registering sync peer                    peer=5b7745040082ab7b
+TRACE[09/26/2021|15:33:07.949] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64559 peers=2
+TRACE[09/26/2021|15:33:07.949] connection set up                        id=d3eede82cd5256ce addr=192.168.1.211:64559 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.949] Starting protocol cph/63                 id=d3eede82cd5256ce conn=inbound
+TRACE[09/26/2021|15:33:07.949] Cypherium peer connected                 id=d3eede82cd5256ce conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.949] Registering sync peer                    peer=d3eede82cd5256ce
+TRACE[09/26/2021|15:33:07.949] Relaxed downloader QoS values            rtt=1m0s confidence=0.500 ttl=1m0s
+TRACE[09/26/2021|15:33:07.957] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64582 peers=3
+TRACE[09/26/2021|15:33:07.957] connection set up                        id=c0a6fdde1ee77205 addr=192.168.1.211:64582 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.957] Starting protocol cph/63                 id=c0a6fdde1ee77205 conn=inbound
+TRACE[09/26/2021|15:33:07.957] Cypherium peer connected                 id=c0a6fdde1ee77205 conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.958] Registering sync peer                    peer=c0a6fdde1ee77205
+TRACE[09/26/2021|15:33:07.958] Relaxed downloader QoS values            rtt=1m0s confidence=0.333 ttl=1m0s
+TRACE[09/26/2021|15:33:07.974] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64586 peers=4
+TRACE[09/26/2021|15:33:07.974] connection set up                        id=6091141ca5e1d14e addr=192.168.1.211:64586 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.974] Starting protocol cph/63                 id=6091141ca5e1d14e conn=inbound
+TRACE[09/26/2021|15:33:07.974] Cypherium peer connected                 id=6091141ca5e1d14e conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.974] Registering sync peer                    peer=6091141ca5e1d14e
+TRACE[09/26/2021|15:33:07.974] Relaxed downloader QoS values            rtt=1m0s confidence=0.250 ttl=1m0s
+TRACE[09/26/2021|15:33:07.979] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64593 peers=5
+TRACE[09/26/2021|15:33:07.979] connection set up                        id=8f0d680b4a3fdda2 addr=192.168.1.211:64593 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.979] Starting protocol cph/63                 id=8f0d680b4a3fdda2 conn=inbound
+TRACE[09/26/2021|15:33:07.979] Cypherium peer connected                 id=8f0d680b4a3fdda2 conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.979] Registering sync peer                    peer=8f0d680b4a3fdda2
+TRACE[09/26/2021|15:33:07.979] Relaxed downloader QoS values            rtt=1m0s confidence=0.200 ttl=1m0s
+TRACE[09/26/2021|15:33:07.986] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64595 peers=6
+TRACE[09/26/2021|15:33:07.986] connection set up                        id=1ed5ef90d9893e44 addr=192.168.1.211:64595 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.986] Starting protocol cph/63                 id=1ed5ef90d9893e44 conn=inbound
+TRACE[09/26/2021|15:33:07.986] Cypherium peer connected                 id=1ed5ef90d9893e44 conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.986] Registering sync peer                    peer=1ed5ef90d9893e44
+TRACE[09/26/2021|15:33:07.986] Relaxed downloader QoS values            rtt=1m0s confidence=0.167 ttl=1m0s
+TRACE[09/26/2021|15:33:07.986] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64604 peers=7
+TRACE[09/26/2021|15:33:07.986] connection set up                        id=9163a9c8324dd74b addr=192.168.1.211:64604 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:07.986] Starting protocol cph/63                 id=9163a9c8324dd74b conn=inbound
+TRACE[09/26/2021|15:33:07.987] Cypherium peer connected                 id=9163a9c8324dd74b conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:07.987] Registering sync peer                    peer=9163a9c8324dd74b
+TRACE[09/26/2021|15:33:07.987] Relaxed downloader QoS values            rtt=1m0s confidence=0.143 ttl=1m0s
+TRACE[09/26/2021|15:33:08.003] Adding p2p peer                          name=Cypher/v1.9.24-unsta...                                addr=192.168.1.211:64605 peers=8
+TRACE[09/26/2021|15:33:08.003] connection set up                        id=6c443d8ed2a1e964 addr=192.168.1.211:64605 conn=inbound inbound=true
+TRACE[09/26/2021|15:33:08.003] Starting protocol cph/63                 id=6c443d8ed2a1e964 conn=inbound
+TRACE[09/26/2021|15:33:08.003] Cypherium peer connected                 id=6c443d8ed2a1e964 conn=inbound name=Cypher/v1.9.24-unstable-ac6d8a5e/darwin-amd64/go1.11.1
+TRACE[09/26/2021|15:33:08.004] Registering sync peer                    peer=6c443d8ed2a1e964
+TRACE[09/26/2021|15:33:08.004] Relaxed downloader QoS values            rtt=1m0s confidence=0.125 ttl=1m0s
+WARN [09/26/2021|15:33:16.854] pubKey                                   pubKey=e2b77c083abcf76107ecfbcb296379ed92e72f8e817c5637daf5f4a1b3bae8190e7e18f452ab83a5e6a81ef98e0f8cbe5086d699ea81be93ede4dd0e47da651b prvKey=625598c2ce42aed2f6fe6f1e7e3f2fdc53a62a1108d7b54136f08dba37f64803
+WARN [09/26/2021|15:33:16.854] exip                                     ip=192.168.1.211 port=7106
+INFO [09/26/2021|15:33:16.854] Starting server at 2021-09-26 15:33:16 on address 192.168.1.211:7106  
+INFO [09/26/2021|15:33:16.854] Listener Start !! 
+DEBUG[09/26/2021|15:33:16.854] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7104
+DEBUG[09/26/2021|15:33:16.854] registerConnection                       =[::]:7106 Registers=192.168.1.211:7104
+DEBUG[09/26/2021|15:33:16.854] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7102
+DEBUG[09/26/2021|15:33:16.854] registerConnection                       =[::]:7106 Registers=192.168.1.211:7102
+DEBUG[09/26/2021|15:33:16.854] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:16.854] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7104
+INFO [09/26/2021|15:33:16.854] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7102
+TRACE[09/26/2021|15:33:16.906] updateCurrentView                        TxNumber=0 KeyNumber=0 LeaderIndex=0 ReconfigType=0
+INFO [09/26/2021|15:33:16.906] reconfig start 
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7108
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7104
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7114
+INFO [09/26/2021|15:33:16.906] Connect                                  Connected to=192.168.1.211:7108
+DEBUG[09/26/2021|15:33:16.906] registerConnection                       =[::]:7106 Registers=192.168.1.211:7108
+INFO [09/26/2021|15:33:16.906] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7108
+INFO [09/26/2021|15:33:16.906] Connect                                  Connected to=192.168.1.211:7104
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7112
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7102
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7116
+INFO [09/26/2021|15:33:16.907] Connect                                  Connected to=192.168.1.211:7102
+INFO [09/26/2021|15:33:16.906] Miner) Start                             coinBase=0x216fd89ea77b220E71E439e76F4873e63b5c6c69 pubKey="[226 183 124 8 58 188 247 97 7 236 251 203 41 99 121 237 146 231 47 142 129 124 86 55 218 245 244 161 179 186 232 25 14 126 24 244 82 171 131 165 230 168 30 249 142 15 140 190 80 134 214 153 234 129 190 147 237 228 221 14 71 218 101 27]"
+INFO [09/26/2021|15:33:16.907] Ready to start pow work 
+INFO [09/26/2021|15:33:16.907] Connect                                  Connected to=192.168.1.211:7112
+DEBUG[09/26/2021|15:33:16.906] Connect                                  Connecting to=192.168.1.211:7110
+DEBUG[09/26/2021|15:33:16.908] registerConnection                       =[::]:7106 Registers=192.168.1.211:7112
+INFO [09/26/2021|15:33:16.906] Connect                                  Connected to=192.168.1.211:7114
+DEBUG[09/26/2021|15:33:16.907] registerConnection                       =[::]:7106 Registers=192.168.1.211:7104
+DEBUG[09/26/2021|15:33:16.907] registerConnection                       =[::]:7106 Registers=192.168.1.211:7102
+INFO [09/26/2021|15:33:16.908] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7104
+INFO [09/26/2021|15:33:16.907] Connect                                  Connected to=192.168.1.211:7116
+INFO [09/26/2021|15:33:16.908] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7102
+INFO [09/26/2021|15:33:16.907] Miner worker start auto-committing 
+INFO [09/26/2021|15:33:16.908] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7112
+INFO [09/26/2021|15:33:16.908] Connect                                  Connected to=192.168.1.211:7110
+DEBUG[09/26/2021|15:33:16.908] registerConnection                       =[::]:7106 Registers=192.168.1.211:7114
+DEBUG[09/26/2021|15:33:16.908] registerConnection                       =[::]:7106 Registers=192.168.1.211:7110
+DEBUG[09/26/2021|15:33:16.908] registerConnection                       =[::]:7106 Registers=192.168.1.211:7116
+INFO [09/26/2021|15:33:16.908] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7114
+INFO [09/26/2021|15:33:16.908] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7110
+INFO [09/26/2021|15:33:16.909] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7116
+DEBUG[09/26/2021|15:33:16.936] handleHotStuffMsg                        id=                 code=MsgStartNewView ViewId=000000…000000
+DEBUG[09/26/2021|15:33:16.936] handler handleStartNewView 
+INFO [09/26/2021|15:33:16.936] CurrentState.NextLeader                  index=0 ip=192.168.1.211:7102
+INFO [09/26/2021|15:33:16.936] CurrentState                             TxNumber=0 KeyNumber=0 LeaderIndex=0 ReconfigType=0
+INFO [09/26/2021|15:33:16.939] Signed hotstuff data! 
+DEBUG[09/26/2021|15:33:16.939] New View                                 leader=192.168.1.211:7102 ViewID=a0fdb29901786d4b19ab2d1a593360c78c41e80ac7b25eac9f1a04d5871824b7
+INFO [09/26/2021|15:33:16.939] Write                                    to id=192.168.1.211:7102 code=MsgNewView      ViewId=a0fdb2…1824b7
+DEBUG[09/26/2021|15:33:16.939] loop_iddata start                        address=192.168.1.211:7102
+DEBUG[09/26/2021|15:33:17.849] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7108
+DEBUG[09/26/2021|15:33:17.849] registerConnection                       =[::]:7106 Registers=192.168.1.211:7108
+DEBUG[09/26/2021|15:33:17.849] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:17.849] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7108
+DEBUG[09/26/2021|15:33:18.798] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7110
+DEBUG[09/26/2021|15:33:18.798] registerConnection                       =[::]:7106 Registers=192.168.1.211:7110
+DEBUG[09/26/2021|15:33:18.798] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:18.798] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7110
+DEBUG[09/26/2021|15:33:19.847] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7112
+DEBUG[09/26/2021|15:33:19.847] registerConnection                       =[::]:7106 Registers=192.168.1.211:7112
+DEBUG[09/26/2021|15:33:19.847] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:19.847] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7112
+DEBUG[09/26/2021|15:33:20.715] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7114
+DEBUG[09/26/2021|15:33:20.715] registerConnection                       =[::]:7106 Registers=192.168.1.211:7114
+DEBUG[09/26/2021|15:33:20.715] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:20.715] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7114
+DEBUG[09/26/2021|15:33:21.774] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7116
+DEBUG[09/26/2021|15:33:21.774] registerConnection                       =[::]:7106 Registers=192.168.1.211:7116
+DEBUG[09/26/2021|15:33:21.774] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:21.775] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7116
+DEBUG[09/26/2021|15:33:22.645] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:22.645] registerConnection                       =[::]:7106 Registers=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:22.645] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:22.645] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:38.797] CandidateMsg                             new candidate coinbase=0x3ED9390604F7d231502867f6eF25214C52c93C70
+INFO [09/26/2021|15:33:38.797] loop RemoteCandidateEvent                candidate.number=1 candidate.PubKey=41b526e32a2773b14183ae6dbc5883a1ad3a1ced11d46f2919c17e4cb8240505b56f8a5ec7335a444e3670b6b43ed711c9f9599d1efcc79f2b774ed6f25b4c09 IP="[192 168 1 211]" Port=7118
+TRACE[09/26/2021|15:33:38.797] Requiring new ethash cache               epoch=0
+TRACE[09/26/2021|15:33:38.797] Requiring new future ethash cache        epoch=1
+DEBUG[09/26/2021|15:33:38.797] Failed to load old ethash cache          epoch=0 err="open /Users/cypher02/go/src/github.com/cypherium/cypherBFT/localChaindb/3/cypher/ethash/cache-R23-0000000000000000: no such file or directory"
+DEBUG[09/26/2021|15:33:40.349] Generated ethash verification cache      epoch=0 elapsed=1.550s
+DEBUG[09/26/2021|15:33:40.350] Failed to load old ethash cache          epoch=1 err="open /Users/cypher02/go/src/github.com/cypherium/cypherBFT/localChaindb/3/cypher/ethash/cache-R23-290decd9548b62a8: no such file or directory"
+DEBUG[09/26/2021|15:33:40.363] CandidatePool AddToTemp                  local=false candidate.number=1 pubkey=41b526e32a2773b14183ae6dbc5883a1ad3a1ced11d46f2919c17e4cb8240505b56f8a5ec7335a444e3670b6b43ed711c9f9599d1efcc79f2b774ed6f25b4c09 hash=53599b…0c57f8
+INFO [09/26/2021|15:33:40.363] CheckMinerPort                           addr=192.168.1.211:7118  msg="&{BlockN:0 KeyblockN:0 AckFlag:111}"
+DEBUG[09/26/2021|15:33:40.363] Connect                                  Connecting to=192.168.1.211:7118
+INFO [09/26/2021|15:33:40.363] Connect                                  Connected to=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:40.363] registerConnection                       =[::]:7106 Registers=192.168.1.211:7118
+INFO [09/26/2021|15:33:40.363] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:40.667] receiveServerIdentity                    =[::]:7106 from=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:40.667] registerConnection                       =[::]:7106 Registers=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:40.667] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:33:40.667] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7118
+DEBUG[09/26/2021|15:33:40.749] CandidateMsg                             new candidate coinbase=0x3ED9390604F7d231502867f6eF25214C52c93C70
+INFO [09/26/2021|15:33:40.749] loop RemoteCandidateEvent                candidate.number=1 candidate.PubKey=41b526e32a2773b14183ae6dbc5883a1ad3a1ced11d46f2919c17e4cb8240505b56f8a5ec7335a444e3670b6b43ed711c9f9599d1efcc79f2b774ed6f25b4c09 IP="[192 168 1 211]" Port=7118
+DEBUG[09/26/2021|15:33:40.829] CandidateMsg                             new candidate coinbase=0x3ED9390604F7d231502867f6eF25214C52c93C70
+INFO [09/26/2021|15:33:40.829] loop RemoteCandidateEvent                candidate.number=1 candidate.PubKey=41b526e32a2773b14183ae6dbc5883a1ad3a1ced11d46f2919c17e4cb8240505b56f8a5ec7335a444e3670b6b43ed711c9f9599d1efcc79f2b774ed6f25b4c09 IP="[192 168 1 211]" Port=7118
+DEBUG[09/26/2021|15:33:40.866] CandidateMsg                             new candidate coinbase=0x3ED9390604F7d231502867f6eF25214C52c93C70
+INFO [09/26/2021|15:33:40.866] loop RemoteCandidateEvent                candidate.number=1 candidate.PubKey=41b526e32a2773b14183ae6dbc5883a1ad3a1ced11d46f2919c17e4cb8240505b56f8a5ec7335a444e3670b6b43ed711c9f9599d1efcc79f2b774ed6f25b4c09 IP="[192 168 1 211]" Port=7118
+DEBUG[09/26/2021|15:33:40.867] handleCheckMinerMsgAck Recv              from address=192.168.1.211:7118 blockN=0 keyblockN=0 ackFlag=0
+DEBUG[09/26/2021|15:33:40.867] CheckMinerMsgAck                         address=192.168.1.211:7118 blockN=0 keyblockN=0 CurrentBlockN()=0
+DEBUG[09/26/2021|15:33:40.867] CheckMinerMsgAck                         ip=192.168.1.211
+DEBUG[09/26/2021|15:33:40.868] FoundCandidateByIp                       ip=192.168.1.211      candidate.IP=192.168.1.211
+DEBUG[09/26/2021|15:33:40.868] FoundCandidateByIp true 
+DEBUG[09/26/2021|15:33:40.868] CandidatePool add new candidate          candidate.number=1 pubkey=41b526e32a2773b14183ae6dbc5883a1ad3a1ced11d46f2919c17e4cb8240505b56f8a5ec7335a444e3670b6b43ed711c9f9599d1efcc79f2b774ed6f25b4c09 hash=53599b…0c57f8
+DEBUG[09/26/2021|15:33:40.868] CheckMinerMsgAck broadcast 
+DEBUG[09/26/2021|15:33:41.736] Generated ethash verification cache      epoch=1 elapsed=1.385s
+INFO [09/26/2021|15:34:34.155] Gossip_MSG broadcast                     hash=ea957e…f368be keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.156] Gossip_MSG Recv Same                     hash=ea957e…f368be keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.156] Gossip_MSG Recv Same                     hash=ea957e…f368be keyblockN=0 blockN=1
+DEBUG[09/26/2021|15:34:34.156] loop_iddata start                        address=192.168.1.211:7104
+DEBUG[09/26/2021|15:34:34.156] loop_iddata start                        address=192.168.1.211:7108
+DEBUG[09/26/2021|15:34:34.156] loop_iddata start                        address=192.168.1.211:7114
+DEBUG[09/26/2021|15:34:34.156] loop_iddata start                        address=192.168.1.211:7112
+INFO [09/26/2021|15:34:34.157] Gossip_MSG Recv Same                     hash=ea957e…f368be keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.157] Gossip_MSG Recv Same                     hash=ea957e…f368be keyblockN=0 blockN=1
+DEBUG[09/26/2021|15:34:34.173] handleHotStuffMsg                        id=192.168.1.211:7102 code=MsgPrepare      ViewId=a0fdb2…1824b7
+DEBUG[09/26/2021|15:34:34.175] OnPropose.. 
+INFO [09/26/2021|15:34:34.175] OnPropose                                txNumber=1
+INFO [09/26/2021|15:34:34.175] verifyTxBlock                            txblock num=1
+INFO [09/26/2021|15:34:34.176] Signed hotstuff data! 
+DEBUG[09/26/2021|15:34:34.176] handlePrepareMsg send VotePrepare msg    viewID=a0fdb2…1824b7
+INFO [09/26/2021|15:34:34.176] Write                                    to id=192.168.1.211:7102 code=MsgVotePrepare  ViewId=a0fdb2…1824b7
+INFO [09/26/2021|15:34:34.270] Gossip_MSG broadcast                     hash=ad338e…7cd752 keyblockN=0 blockN=1
+DEBUG[09/26/2021|15:34:34.270] loop_iddata start                        address=192.168.1.211:7110
+INFO [09/26/2021|15:34:34.273] Gossip_MSG Recv Same                     hash=ad338e…7cd752 keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.273] Gossip_MSG Recv Same                     hash=ad338e…7cd752 keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.273] Gossip_MSG Recv Same                     hash=ad338e…7cd752 keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.273] Gossip_MSG Recv Same                     hash=ad338e…7cd752 keyblockN=0 blockN=1
+INFO [09/26/2021|15:34:34.275] Gossip_MSG Recv Same                     hash=ad338e…7cd752 keyblockN=0 blockN=1
+DEBUG[09/26/2021|15:34:34.276] handleHotStuffMsg                        id=192.168.1.211:7102 code=MsgDecide       ViewId=a0fdb2…1824b7
+DEBUG[09/26/2021|15:34:34.277] handleDecideMsg view done                viewId=a0fdb2…1824b7
+DEBUG[09/26/2021|15:34:34.277] view finished successfully               ViewId=a0fdb2…1824b7 timeElapsed=77340
+INFO [09/26/2021|15:34:34.277] decideNewBlock                           TxBlock Number=1 txs=1
+INFO [09/26/2021|15:34:34.277] InsertBlock..                            number=1
+TRACE[09/26/2021|15:34:34.279] finish WriteBlockWithState               status=1
+INFO [09/26/2021|15:34:34.279] procBlockDone                            number=1
+TRACE[09/26/2021|15:34:34.279] updateCurrentView                        TxNumber=1 KeyNumber=0 LeaderIndex=0 ReconfigType=0
+DEBUG[09/26/2021|15:34:34.279] @TPS                                     txs/s=9.687
+INFO [09/26/2021|15:34:34.279] decideNewBlock InsertBlock ok 
+DEBUG[09/26/2021|15:34:34.279] handleHotStuffMsg                        id=                   code=MsgStartNewView ViewId=000000…000000
+DEBUG[09/26/2021|15:34:34.279] handler handleStartNewView 
+INFO [09/26/2021|15:34:34.279] CurrentState.NextLeader                  index=0 ip=192.168.1.211:7102
+INFO [09/26/2021|15:34:34.279] CurrentState                             TxNumber=1 KeyNumber=0 LeaderIndex=0 ReconfigType=0
+INFO [09/26/2021|15:34:34.279] Content                                  sortedCandidates=[0xc0191657a0] bestCandidate nonce=985036784980063225
+INFO [09/26/2021|15:34:34.279] Signed hotstuff data! 
+DEBUG[09/26/2021|15:34:34.279] New View                                 leader=192.168.1.211:7102 ViewID=a4bffce80425d49045154da1bbacc1f52eff3ea418aaec5dd5454899f0ecdd92
+INFO [09/26/2021|15:34:34.279] Write                                    to id=192.168.1.211:7102 code=MsgNewView      ViewId=a4bffc…ecdd92
+TRACE[09/26/2021|15:34:34.287] Propagated block                         hash=bea77c…d45795 recipients=2 duration=2562047h47m16.854s
+TRACE[09/26/2021|15:34:34.287] Propagated block                         id=c0a6fdde1ee77205   conn=inbound number=1 hash=bea77c…d45795
+TRACE[09/26/2021|15:34:34.287] Propagated block                         id=d3eede82cd5256ce   conn=inbound number=1 hash=bea77c…d45795
+DEBUG[09/26/2021|15:36:16.907] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7108 =>=timeout
+DEBUG[09/26/2021|15:36:16.908] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7102 =>=timeout
+DEBUG[09/26/2021|15:36:16.908] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7112 =>=timeout
+DEBUG[09/26/2021|15:36:16.908] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7104 =>=timeout
+DEBUG[09/26/2021|15:36:16.909] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7114 =>=timeout
+DEBUG[09/26/2021|15:36:16.909] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7110 =>=timeout
+DEBUG[09/26/2021|15:36:16.909] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7116 =>=timeout
+DEBUG[09/26/2021|15:36:40.366] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7118 =>=timeout
+DEBUG[09/26/2021|15:36:40.871] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55588 =>=timeout
+DEBUG[09/26/2021|15:39:16.910] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7104  =>=timeout
+DEBUG[09/26/2021|15:39:16.910] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7102  =>=timeout
+DEBUG[09/26/2021|15:39:16.910] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7112  =>=timeout
+DEBUG[09/26/2021|15:39:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7114  =>=timeout
+DEBUG[09/26/2021|15:39:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7116  =>=timeout
+DEBUG[09/26/2021|15:39:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7108  =>=timeout
+DEBUG[09/26/2021|15:39:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7110  =>=timeout
+DEBUG[09/26/2021|15:39:40.368] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7118  =>=timeout
+DEBUG[09/26/2021|15:39:40.877] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55588 =>=timeout
+DEBUG[09/26/2021|15:42:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7112  =>=timeout
+DEBUG[09/26/2021|15:42:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7104  =>=timeout
+DEBUG[09/26/2021|15:42:16.911] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7102  =>=timeout
+DEBUG[09/26/2021|15:42:16.912] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7110  =>=timeout
+DEBUG[09/26/2021|15:42:16.912] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7116  =>=timeout
+DEBUG[09/26/2021|15:42:16.912] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7114  =>=timeout
+DEBUG[09/26/2021|15:42:16.912] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7108  =>=timeout
+DEBUG[09/26/2021|15:42:40.369] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7118  =>=timeout
+DEBUG[09/26/2021|15:42:40.877] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55588 =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7108  =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7102  =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7116  =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7112  =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7104  =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7110  =>=timeout
+DEBUG[09/26/2021|15:45:16.913] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7114  =>=timeout
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7110 rx=0 tx=2001
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7108 rx=0 tx=2650
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7102 rx=0 tx=2933
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7116 rx=0 tx=1796
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7112 rx=0 tx=2650
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7104 rx=0 tx=2445
+DEBUG[09/26/2021|15:45:16.915] CloseConnect                             remote=192.168.1.211:7114 rx=0 tx=2650
+DEBUG[09/26/2021|15:45:17.756] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:17.756] registerConnection                       =[::]:7106          Registers=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:17.756] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:17.756] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:18.787] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7104
+DEBUG[09/26/2021|15:45:18.787] registerConnection                       =[::]:7106          Registers=192.168.1.211:7104
+DEBUG[09/26/2021|15:45:18.787] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:18.787] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7104
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7108
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7110
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7112
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7114
+DEBUG[09/26/2021|15:45:19.559] Connect                                  Connecting to=192.168.1.211:7104
+INFO [09/26/2021|15:45:19.559] Connect                                  Connected to=192.168.1.211:7108
+INFO [09/26/2021|15:45:19.560] Connect                                  Connected to=192.168.1.211:7114
+INFO [09/26/2021|15:45:19.559] Connect                                  Connected to=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:19.560] registerConnection                       =[::]:7106          Registers=192.168.1.211:7114
+DEBUG[09/26/2021|15:45:19.560] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:19.560] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7114
+DEBUG[09/26/2021|15:45:19.560] registerConnection                       =[::]:7106          Registers=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:19.560] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:19.559] Connect                                  Connected to=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:19.560] registerConnection                       =[::]:7106          Registers=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:19.560] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:19.560] Connect                                  Connected to=192.168.1.211:7112
+INFO [09/26/2021|15:45:19.560] Connect                                  Connected to=192.168.1.211:7104
+DEBUG[09/26/2021|15:45:19.560] registerConnection                       =[::]:7106          Registers=192.168.1.211:7112
+DEBUG[09/26/2021|15:45:19.560] Connection already registered. Appending new connection to same identity. 
+DEBUG[09/26/2021|15:45:19.560] registerConnection                       =[::]:7106          Registers=192.168.1.211:7104
+DEBUG[09/26/2021|15:45:19.561] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:19.559] Connect                                  Connected to=192.168.1.211:7110
+INFO [09/26/2021|15:45:19.560] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:19.561] registerConnection                       =[::]:7106          Registers=192.168.1.211:7110
+DEBUG[09/26/2021|15:45:19.561] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:19.560] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7102
+DEBUG[09/26/2021|15:45:19.560] registerConnection                       =[::]:7106          Registers=192.168.1.211:7108
+DEBUG[09/26/2021|15:45:19.561] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:19.561] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7112
+INFO [09/26/2021|15:45:19.561] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7108
+INFO [09/26/2021|15:45:19.561] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7104
+INFO [09/26/2021|15:45:19.561] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7110
+DEBUG[09/26/2021|15:45:20.589] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7108
+DEBUG[09/26/2021|15:45:20.589] registerConnection                       =[::]:7106          Registers=192.168.1.211:7108
+DEBUG[09/26/2021|15:45:20.590] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:20.590] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7108
+DEBUG[09/26/2021|15:45:21.458] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7110
+DEBUG[09/26/2021|15:45:21.458] registerConnection                       =[::]:7106          Registers=192.168.1.211:7110
+DEBUG[09/26/2021|15:45:21.458] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:21.458] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7110
+DEBUG[09/26/2021|15:45:22.609] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7112
+DEBUG[09/26/2021|15:45:22.610] registerConnection                       =[::]:7106          Registers=192.168.1.211:7112
+DEBUG[09/26/2021|15:45:22.610] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:22.610] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7112
+DEBUG[09/26/2021|15:45:23.510] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7114
+DEBUG[09/26/2021|15:45:23.510] registerConnection                       =[::]:7106          Registers=192.168.1.211:7114
+DEBUG[09/26/2021|15:45:23.510] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:23.510] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7114
+DEBUG[09/26/2021|15:45:24.359] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:24.359] registerConnection                       =[::]:7106          Registers=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:24.359] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:24.359] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7116
+DEBUG[09/26/2021|15:45:40.370] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7118  =>=timeout
+DEBUG[09/26/2021|15:45:40.370] CloseConnect                             remote=192.168.1.211:7118 rx=0 tx=96
+DEBUG[09/26/2021|15:45:46.680] receiveServerIdentity                    =[::]:7106          from=192.168.1.211:7118
+DEBUG[09/26/2021|15:45:46.680] registerConnection                       =[::]:7106          Registers=192.168.1.211:7118
+DEBUG[09/26/2021|15:45:46.680] Connection already registered. Appending new connection to same identity. 
+INFO [09/26/2021|15:45:46.680] HandleConn                               address=[::]:7106          Handling new connection from=192.168.1.211:7118
+TRACE[09/26/2021|15:48:06.946] Refreshing port mapping                  proto=udp extport=16006 intport=16006 interface=ExtIP(192.168.1.211)
+TRACE[09/26/2021|15:48:06.958] Refreshing port mapping                  proto=tcp extport=16006 intport=16006 interface=ExtIP(192.168.1.211)
+DEBUG[09/26/2021|15:48:07.719] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:57549 =>=timeout
+DEBUG[09/26/2021|15:48:08.748] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:54736 =>=timeout
+DEBUG[09/26/2021|15:48:10.447] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:58316 =>=timeout
+DEBUG[09/26/2021|15:48:11.426] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55200 =>=timeout
+DEBUG[09/26/2021|15:48:12.476] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:50814 =>=timeout
+DEBUG[09/26/2021|15:48:13.374] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:50154 =>=timeout
+DEBUG[09/26/2021|15:48:14.215] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:49199 =>=timeout
+DEBUG[09/26/2021|15:48:16.419] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:56437 =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7108  =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7104  =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7102  =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7110  =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7114  =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7116  =>=timeout
+DEBUG[09/26/2021|15:48:19.562] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7112  =>=timeout
+DEBUG[09/26/2021|15:48:36.529] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55588 =>=timeout
+DEBUG[09/26/2021|15:51:07.720] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:57549 =>=timeout
+DEBUG[09/26/2021|15:51:08.749] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:54736 =>=timeout
+DEBUG[09/26/2021|15:51:10.449] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:58316 =>=timeout
+DEBUG[09/26/2021|15:51:11.427] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55200 =>=timeout
+DEBUG[09/26/2021|15:51:12.479] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:50814 =>=timeout
+DEBUG[09/26/2021|15:51:13.375] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:50154 =>=timeout
+DEBUG[09/26/2021|15:51:14.216] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:49199 =>=timeout
+DEBUG[09/26/2021|15:51:16.420] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:56437 =>=timeout
+DEBUG[09/26/2021|15:51:19.563] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7114  =>=timeout
+DEBUG[09/26/2021|15:51:19.563] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7112  =>=timeout
+DEBUG[09/26/2021|15:51:19.563] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7116  =>=timeout
+DEBUG[09/26/2021|15:51:19.564] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7110  =>=timeout
+DEBUG[09/26/2021|15:51:19.564] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7104  =>=timeout
+DEBUG[09/26/2021|15:51:19.564] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7102  =>=timeout
+DEBUG[09/26/2021|15:51:19.564] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:7108  =>=timeout
+DEBUG[09/26/2021|15:51:36.534] HandleConn                               =192.168.1.211:7106 Error with connection=192.168.1.211:55588 =>=timeout

@@ -23,6 +23,10 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/prque"
 	"github.com/cypherium/cypherBFT/ethdb"
+<<<<<<< HEAD
+=======
+	"github.com/cypherium/cypherBFT/common/prque"
+>>>>>>> bf413e870799d14322319051b817c963d70756a7
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a
@@ -84,7 +88,10 @@ func NewSync(root common.Hash, database ethdb.KeyValueReader, callback LeafCallb
 		membatch: newSyncMemBatch(),
 		requests: make(map[common.Hash]*request),
 		queue:    prque.New(nil),
+<<<<<<< HEAD
 		bloom:    bloom,
+=======
+>>>>>>> bf413e870799d14322319051b817c963d70756a7
 	}
 	ts.AddSubTrie(root, 0, common.Hash{}, callback)
 	return ts

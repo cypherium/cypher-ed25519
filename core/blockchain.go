@@ -45,6 +45,10 @@ import (
 	"github.com/cypherium/cypherBFT/rlp"
 	"github.com/cypherium/cypherBFT/trie"
 	lru "github.com/hashicorp/golang-lru"
+<<<<<<< HEAD
+=======
+	"github.com/cypherium/cypherBFT/common/prque"
+>>>>>>> bf413e870799d14322319051b817c963d70756a7
 )
 
 var (
@@ -197,6 +201,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
+<<<<<<< HEAD
 		chainConfig:    chainConfig,
 		cacheConfig:    cacheConfig,
 		db:             db,
@@ -213,6 +218,20 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	//	engine:         engine,
 		vmConfig:       vmConfig,
 		badBlocks:      badBlocks,
+=======
+		chainConfig:   chainConfig,
+		cacheConfig:   cacheConfig,
+		db:            db,
+		triegc:        prque.New(nil),
+		stateCache:    state.NewDatabase(db),
+		quit:          make(chan struct{}),
+		bodyCache:     bodyCache,
+		bodyRLPCache:  bodyRLPCache,
+		blockCache:    blockCache,
+		futureBlocks:  futureBlocks,
+		VmConfig:      vmConfig,
+		badBlocks:     badBlocks,
+>>>>>>> bf413e870799d14322319051b817c963d70756a7
 		KeyBlockChain: kbc,
 	}
 	bc.Validator = NewBlockValidator(chainConfig, bc)
