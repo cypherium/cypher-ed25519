@@ -31,6 +31,7 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/mclock"
 	"github.com/cypherium/cypherBFT/common/prque"
+
 	//"github.com/cypherium/cypherBFT/consensus"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/state"
@@ -40,19 +41,15 @@ import (
 	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
-//	"github.com/cypherium/cypherBFT/metrics"
+
+	//	"github.com/cypherium/cypherBFT/metrics"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/rlp"
 	"github.com/cypherium/cypherBFT/trie"
 	lru "github.com/hashicorp/golang-lru"
-<<<<<<< HEAD
-=======
-	"github.com/cypherium/cypherBFT/common/prque"
->>>>>>> bf413e870799d14322319051b817c963d70756a7
 )
 
 var (
-
 	errInsertionInterrupted = errors.New("insertion is interrupted")
 )
 
@@ -134,15 +131,15 @@ type BlockChain struct {
 	//  * nil: disable tx reindexer/deleter, but still index new blocks
 	txLookupLimit uint64
 
-	hc            *HeaderChain
-	rmLogsFeed    event.Feed
-	chainFeed     event.Feed
-	chainSideFeed event.Feed
-	chainHeadFeed event.Feed
-	logsFeed      event.Feed
-	blockProcFeed event.Feed
-	scope         event.SubscriptionScope
-	genesisBlock  *types.Block
+	hc              *HeaderChain
+	rmLogsFeed      event.Feed
+	chainFeed       event.Feed
+	chainSideFeed   event.Feed
+	chainHeadFeed   event.Feed
+	logsFeed        event.Feed
+	blockProcFeed   event.Feed
+	scope           event.SubscriptionScope
+	genesisBlock    *types.Block
 	CurrentKeyBlock *types.KeyBlock
 
 	chainmu sync.RWMutex // blockchain insertion lock
@@ -165,14 +162,14 @@ type BlockChain struct {
 	procInterrupt int32          // interrupt signaler for block processing
 
 	//engine     consensus.Engine
-	Processor *StateProcessor // block processor interface
-	Validator *BlockValidator // block and state validator interface
-	prefetcher Prefetcher // Block state prefetcher interface
+	Processor  *StateProcessor // block processor interface
+	Validator  *BlockValidator // block and state validator interface
+	prefetcher Prefetcher      // Block state prefetcher interface
 	vmConfig   vm.Config
 
-	badBlocks       *lru.Cache                     // Bad block cache
-	shouldPreserve  func(*types.Block) bool        // Function used to determine whether should preserve the given block.
-	terminateInsert func(common.Hash, uint64) bool // Testing hook used to terminate ancient receipt chain insertion.
+	badBlocks        *lru.Cache                     // Bad block cache
+	shouldPreserve   func(*types.Block) bool        // Function used to determine whether should preserve the given block.
+	terminateInsert  func(common.Hash, uint64) bool // Testing hook used to terminate ancient receipt chain insertion.
 	KeyBlockChain    *KeyBlockChain
 	TxPool           *TxPool
 	ProcInsertDone   func(*types.Block)
@@ -182,7 +179,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
-func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64,kbc *KeyBlockChain) (*BlockChain, error) {
+func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64, kbc *KeyBlockChain) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = &CacheConfig{
 			TrieCleanLimit: 256,
@@ -201,7 +198,6 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
-<<<<<<< HEAD
 		chainConfig:    chainConfig,
 		cacheConfig:    cacheConfig,
 		db:             db,
@@ -215,23 +211,9 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		blockCache:     blockCache,
 		txLookupCache:  txLookupCache,
 		futureBlocks:   futureBlocks,
-	//	engine:         engine,
-		vmConfig:       vmConfig,
-		badBlocks:      badBlocks,
-=======
-		chainConfig:   chainConfig,
-		cacheConfig:   cacheConfig,
-		db:            db,
-		triegc:        prque.New(nil),
-		stateCache:    state.NewDatabase(db),
-		quit:          make(chan struct{}),
-		bodyCache:     bodyCache,
-		bodyRLPCache:  bodyRLPCache,
-		blockCache:    blockCache,
-		futureBlocks:  futureBlocks,
-		VmConfig:      vmConfig,
+		//	engine:         engine,
+		vmConfig:      vmConfig,
 		badBlocks:     badBlocks,
->>>>>>> bf413e870799d14322319051b817c963d70756a7
 		KeyBlockChain: kbc,
 	}
 	bc.Validator = NewBlockValidator(chainConfig, bc)
@@ -531,7 +513,6 @@ func (bc *BlockChain) Snapshot() *snapshot.Tree {
 func (bc *BlockChain) CurrentFastBlock() *types.Block {
 	return bc.currentFastBlock.Load().(*types.Block)
 }
-
 
 // State returns a new mutable state based on the current HEAD block.
 func (bc *BlockChain) State() (*state.StateDB, error) {
@@ -1094,7 +1075,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	head := blockChain[len(blockChain)-1]
 	context := []interface{}{
 		"count", stats.processed, "elapsed", common.PrettyDuration(time.Since(start)),
-		"number", head.Number(), "hash", head.Hash(), 	"size", common.StorageSize(size),
+		"number", head.Number(), "hash", head.Hash(), "size", common.StorageSize(size),
 	}
 	if stats.ignored > 0 {
 		context = append(context, []interface{}{"ignored", stats.ignored}...)
@@ -1314,7 +1295,7 @@ func (bc *BlockChain) addFutureBlock(block *types.Block) error {
 //
 // After insertion is done, all accumulated events will be fired.
 func (bc *BlockChain) InsertBlock(block *types.Block) error {
-	
+
 	log.Info("InsertBlock..", "number", block.NumberU64())
 	_, err := bc.InsertChain(types.Blocks{block})
 	//_, events, logs, err := bc.insertChain(types.Blocks{block}, false)
@@ -1322,7 +1303,7 @@ func (bc *BlockChain) InsertBlock(block *types.Block) error {
 	//go bc.PostChainEvents(events, logs)
 	//if err != nil {
 	//	log.Error("InsertBlock", "err", err)
-	//} 
+	//}
 	//if bc.TxPool != nil {
 	//	go bc.TxPool.PostChainHeadEvent()
 	//}
@@ -1499,7 +1480,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 				logger = log.Warn
 			}
 			logger("Inserted known block", "number", block.Number(), "hash", block.Hash(),
-				 "txs", len(block.Transactions()), "gas", block.GasUsed(), "root", block.Root())
+				"txs", len(block.Transactions()), "gas", block.GasUsed(), "root", block.Root())
 
 			// Special case. Commit the empty receipt slice if we meet the known
 			// block in the middle. It can only happen in the clique chain. Whenever
@@ -1573,7 +1554,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		}
 		proctime := time.Since(start)
 
-
 		// Write the block to the chain and get the status.
 		//substart = time.Now()
 		status, err := bc.writeBlockWithState(block, receipts, logs, statedb, false)
@@ -1588,7 +1568,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		switch status {
 		case CanonStatTy:
 			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
-			        "txs", len(block.Transactions()), "gas", block.GasUsed(),
+				"txs", len(block.Transactions()), "gas", block.GasUsed(),
 				"elapsed", common.PrettyDuration(time.Since(start)),
 				"root", block.Root())
 
@@ -2056,7 +2036,6 @@ func (bc *BlockChain) SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Su
 	return bc.scope.Track(bc.chainHeadFeed.Subscribe(ch))
 }
 
-
 // SubscribeLogsEvent registers a subscription of []*types.Log.
 func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
@@ -2065,6 +2044,7 @@ func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscript
 func (bc *BlockChain) GetKeyChainReader() types.KeyChainReader {
 	return bc.KeyBlockChain
 }
+
 // SubscribeBlockProcessingEvent registers a subscription of bool where true means
 // block processing has started while false means it has stopped.
 func (bc *BlockChain) SubscribeBlockProcessingEvent(ch chan<- bool) event.Subscription {
