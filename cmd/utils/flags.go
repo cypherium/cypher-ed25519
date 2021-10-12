@@ -38,15 +38,18 @@ import (
 	"github.com/cypherium/cypherBFT/eth/downloader"
 	"github.com/cypherium/cypherBFT/eth/gasprice"
 	"github.com/cypherium/cypherBFT/ethdb"
-	"github.com/cypherium/cypherBFT/ethstats"
+//	"github.com/cypherium/cypherBFT/ethstats"
 	"github.com/cypherium/cypherBFT/crypto"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/metrics"
 	"github.com/cypherium/cypherBFT/metrics/influxdb"
 	"github.com/cypherium/cypherBFT/node"
 	"github.com/cypherium/cypherBFT/p2p"
-	"github.com/cypherium/cypherBFT/p2p/discover"
 	"github.com/cypherium/cypherBFT/p2p/discv5"
+	"github.com/cypherium/cypherBFT/p2p/enode"
+	
+//	"github.com/cypherium/cypherBFT/p2p/discover"
 	"github.com/cypherium/cypherBFT/p2p/nat"
 	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/params"
@@ -532,7 +535,7 @@ var (
 	}
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
-		Name:  metrics.MetricsEnabledFlag,
+		Name:  "metrics",
 		Usage: "Enable metrics collection and reporting",
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
@@ -639,14 +642,16 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		return // already set, don't apply defaults.
 	}
 
-	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
+	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
-		node, err := discover.ParseNode(url)
-		if err != nil {
-			log.Error("Bootstrap URL invalid", "cnode", url, "err", err)
-			continue
+		if url != "" {
+			node, err := enode.Parse(enode.ValidSchemes, url)
+			if err != nil {
+				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 		}
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 	}
 }
 
@@ -960,9 +965,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)
 	}
-	if ctx.GlobalIsSet(TxPoolEnabledTPSFlag.Name) {
-		cfg.EnableTPS = ctx.GlobalBool(TxPoolEnabledTPSFlag.Name)
-	}
+	//if ctx.GlobalIsSet(TxPoolEnabledTPSFlag.Name) {
+	//	cfg.EnableTPS = ctx.GlobalBool(TxPoolEnabledTPSFlag.Name)
+	//}
 	if ctx.GlobalIsSet(TxPoolDisabledGASFlag.Name) {
 		params.DisableGAS = ctx.GlobalBool(TxPoolDisabledGASFlag.Name)
 	}
@@ -1101,9 +1106,10 @@ func SetCphhConfig(ctx *cli.Context, cfg *eth.Config) {
 	}
 	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
 
-	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
-	}
+
+//	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+//		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+//	}
 	if ctx.GlobalIsSet(MinerThreadsFlag.Name) {
 		cfg.MinerThreads = ctx.GlobalInt(MinerThreadsFlag.Name)
 	}
@@ -1128,28 +1134,21 @@ func SetCphhConfig(ctx *cli.Context, cfg *eth.Config) {
 }
 
 // RegisterCphService adds an Cypherium client to the stack.
-func RegisterCphService(stack *node.Node, cfg *eth.Config) {
-	err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		fullNode, err := eth.New(ctx, cfg)
-		return fullNode, err
-	})
-	if err != nil {
-		Fatalf("Failed to register the Cypherium service: %v", err)
-	}
+func RegisterCphService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
+		backend, err := eth.New(stack, cfg)
+		if err != nil {
+			Fatalf("Failed to register the Ethereum service: %v", err)
+		}
+		return backend.APIBackend
+
 }
 
 // RegisterCphStatsService configures the Cypherium Stats daemon and adds it to
 // th egiven node.
-func RegisterCphStatsService(stack *node.Node, url string) {
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		// Retrieve both cph and les services
-		var cphServ *eth.Cypherium
-		ctx.Service(&cphServ)
-
-		return ethstats.New(url, cphServ)
-	}); err != nil {
-		Fatalf("Failed to register the Cypherium Stats service: %v", err)
-	}
+func RegisterCphStatsService(stack *node.Node, backend ethapi.Backend, url string) {
+//	if err := ethstats.New(stack, backend, backend.Engine(), url); err != nil {
+//		Fatalf("Failed to register the Ethereum Stats service: %v", err)
+//	}
 }
 
 // SetupNetwork configures the system for either the main net or some test network.
@@ -1189,7 +1188,7 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 	if ctx.GlobalBool(LightModeFlag.Name) {
 		name = "lightchaindata"
 	}
-	chainDb, err := stack.OpenDatabase(name, cache, handles)
+	chainDb, err := stack.OpenDatabase(name, cache, handles, "")
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}

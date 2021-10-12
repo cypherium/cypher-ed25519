@@ -65,7 +65,7 @@ func (txS *txService) procBlockDone(block *types.Block) { //callback by tx inser
 
 // Try proposal new txBlock for current txs
 func (txS *txService) tryProposalNewBlock(blockType uint8) ([]byte, error) {
-	txsCount := txS.txPool.PendingCount()
+	txsCount, _ := txS.txPool.Stats()
 	if txsCount < 1 {
 		return nil, fmt.Errorf("no tx in txpool")
 	}
@@ -132,13 +132,13 @@ func (txS *txService) verifyTxBlock(txblock *types.Block) error {
 		retErr = fmt.Errorf("cannot get receipts, error:%s", err.Error())
 		return retErr
 	}
-	err = bc.Validator.ValidateState(txblock, bc.GetBlockByHash(txblock.ParentHash()), statedb, receipts, usedGas)
+	err = bc.Validator.ValidateState(txblock, statedb, receipts, usedGas)
 	if err != nil {
 		retErr = fmt.Errorf("Invalid state, error:%s", err.Error())
 		return retErr
 	}
 
-	bc.VerifyCaches.Push(txblock, statedb, receipts, usedGas)
+	//??bc.VerifyCaches.Push(txblock, statedb, receipts, usedGas)
 
 	return nil
 }
@@ -192,9 +192,9 @@ func (txS *txService) packageTxs(blockType uint8) *types.Block {
 		return nil
 	}
 
-	bc.VerifyCaches.Push(block, state, receipts, useGas)
+	//??bc.VerifyCaches.Push(block, state, receipts, useGas)
 
-	log.Info("packageTxs", "OK, TxBlock Number=", block.NumberU64())
+	log.Info("packageTxs", "OK, TxBlock Number=", block.NumberU64(), "useGas", useGas)
 	return block
 }
 
@@ -216,7 +216,7 @@ func packageHeader(keyHash common.Hash, parent *types.Block, state *state.StateD
 		KeyHash:    keyHash,
 		Number:     num.Add(num, common.Big1),
 		BlockType:  blockType,
-		GasLimit:   core.CalcGasLimit(parent),
+		GasLimit:   core.CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		GasUsed:    0,
 		Extra:      nil,
 		Time:       big.NewInt(tstamp),
@@ -254,7 +254,8 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 		state.Prepare(tx.Hash(), common.Hash{}, tcount)
 		//commitTX
 		snap := state.Snapshot()
-		receipt, gas, err := core.ApplyTransaction(true, nil, kbc, txS.config, bc, gp, state, header, tx, &header.GasUsed, bc.VmConfig)
+
+		receipt, err := core.ApplyTransaction(true, nil, kbc, txS.config, bc, gp, state, header, tx, &header.GasUsed, bc.GetVMConfig())
 		if err != nil {
 			state.RevertToSnapshot(snap)
 			switch err {
@@ -276,8 +277,8 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 			okTxs = append(okTxs, tx) //??
 			receipts = append(receipts, receipt)
 			//??coalescedLogs = append(coalescedLogs, receipt.Logs...)
-			useGas += gas
-			totalGas += gas * tx.GasPriceU64()
+			useGas += receipt.GasUsed
+			totalGas += receipt.GasUsed * tx.GasPriceU64()
 			tcount++
 			if tcount > params.MaxTxCountPerBlock {
 				break
@@ -287,7 +288,7 @@ func (txS *txService) commitTransactions(signer types.Signer, txs *types.Transac
 	}
 
 	if len(failedTxs) > 0 {
-		txS.txPool.RemoveBatch(failedTxs)
+		//?? txS.txPool.RemoveBatch(failedTxs)
 	}
 	/*
 		if len(coalescedLogs) > 0 || tcount > 0 {

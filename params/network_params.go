@@ -52,4 +52,18 @@ var SendOverFlowErr = errors.New("Network send queue overflow!")
 const (
 	MaxSendBlocks    = 5
 	SendErrReTryTime = 60 * time.Second
+	// HelperTrieConfirmations is the number of confirmations before a client is expected
+	// to have the given HelperTrie available.
+	HelperTrieConfirmations = 2048
+
+	// HelperTrieProcessConfirmations is the number of confirmations before a HelperTrie
+	// is generated
+	HelperTrieProcessConfirmations = 256
+
+	// CheckpointFrequency is the block frequency for creating checkpoint
+	CheckpointFrequency = 32768
+
+	// CheckpointProcessConfirmations is the number before a checkpoint is generated
+	CheckpointProcessConfirmations = 256
+	FullImmutabilityThreshold = 90000
 )

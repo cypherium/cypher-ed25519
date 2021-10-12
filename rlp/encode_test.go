@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package rlp
 
@@ -26,6 +25,8 @@ import (
 	"math/big"
 	"sync"
 	"testing"
+
+	"github.com/cypherium/cypherBFT/common/math"
 )
 
 type testEncoder struct {
@@ -34,8 +35,9 @@ type testEncoder struct {
 
 func (e *testEncoder) EncodeRLP(w io.Writer) error {
 	if e == nil {
-		w.Write([]byte{0, 0, 0, 0})
-	} else if e.err != nil {
+		panic("EncodeRLP called on nil value")
+	}
+	if e.err != nil {
 		return e.err
 	} else {
 		w.Write([]byte{0, 1, 0, 1, 0, 1, 0, 1, 0, 1})
@@ -43,10 +45,24 @@ func (e *testEncoder) EncodeRLP(w io.Writer) error {
 	return nil
 }
 
+type testEncoderValueMethod struct{}
+
+func (e testEncoderValueMethod) EncodeRLP(w io.Writer) error {
+	w.Write([]byte{0xFA, 0xFE, 0xF0})
+	return nil
+}
+
 type byteEncoder byte
 
 func (e byteEncoder) EncodeRLP(w io.Writer) error {
 	w.Write(EmptyList)
+	return nil
+}
+
+type undecodableEncoder func()
+
+func (f undecodableEncoder) EncodeRLP(w io.Writer) error {
+	w.Write([]byte{0xF5, 0xF5, 0xF5})
 	return nil
 }
 
@@ -123,16 +139,43 @@ var encTests = []encTest{
 	// negative ints are not supported
 	{val: big.NewInt(-1), error: "rlp: cannot encode negative *big.Int"},
 
-	// byte slices, strings
+	// byte arrays
+	{val: [0]byte{}, output: "80"},
+	{val: [1]byte{0}, output: "00"},
+	{val: [1]byte{1}, output: "01"},
+	{val: [1]byte{0x7F}, output: "7F"},
+	{val: [1]byte{0x80}, output: "8180"},
+	{val: [1]byte{0xFF}, output: "81FF"},
+	{val: [3]byte{1, 2, 3}, output: "83010203"},
+	{val: [57]byte{1, 2, 3}, output: "B839010203000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"},
+
+	// named byte type arrays
+	{val: [0]namedByteType{}, output: "80"},
+	{val: [1]namedByteType{0}, output: "00"},
+	{val: [1]namedByteType{1}, output: "01"},
+	{val: [1]namedByteType{0x7F}, output: "7F"},
+	{val: [1]namedByteType{0x80}, output: "8180"},
+	{val: [1]namedByteType{0xFF}, output: "81FF"},
+	{val: [3]namedByteType{1, 2, 3}, output: "83010203"},
+	{val: [57]namedByteType{1, 2, 3}, output: "B839010203000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"},
+
+	// byte slices
 	{val: []byte{}, output: "80"},
+	{val: []byte{0}, output: "00"},
 	{val: []byte{0x7E}, output: "7E"},
 	{val: []byte{0x7F}, output: "7F"},
 	{val: []byte{0x80}, output: "8180"},
 	{val: []byte{1, 2, 3}, output: "83010203"},
 
+	// named byte type slices
+	{val: []namedByteType{}, output: "80"},
+	{val: []namedByteType{0}, output: "00"},
+	{val: []namedByteType{0x7E}, output: "7E"},
+	{val: []namedByteType{0x7F}, output: "7F"},
+	{val: []namedByteType{0x80}, output: "8180"},
 	{val: []namedByteType{1, 2, 3}, output: "83010203"},
-	{val: [...]namedByteType{1, 2, 3}, output: "83010203"},
 
+	// strings
 	{val: "", output: "80"},
 	{val: "\x7E", output: "7E"},
 	{val: "\x7F", output: "7F"},
@@ -220,6 +263,7 @@ var encTests = []encTest{
 	{val: &tailRaw{A: 1, Tail: []RawValue{}}, output: "C101"},
 	{val: &tailRaw{A: 1, Tail: nil}, output: "C101"},
 	{val: &hasIgnoredField{A: 1, B: 2, C: 3}, output: "C20103"},
+	{val: &intField{X: 3}, error: "rlp: type int is not RLP-serializable (struct field rlp.intField.X)"},
 
 	// nil
 	{val: (*uint)(nil), output: "80"},
@@ -233,20 +277,66 @@ var encTests = []encTest{
 	{val: (*[]struct{ uint })(nil), output: "C0"},
 	{val: (*interface{})(nil), output: "C0"},
 
+	// nil struct fields
+	{
+		val: struct {
+			X *[]byte
+		}{},
+		output: "C180",
+	},
+	{
+		val: struct {
+			X *[2]byte
+		}{},
+		output: "C180",
+	},
+	{
+		val: struct {
+			X *uint64
+		}{},
+		output: "C180",
+	},
+	{
+		val: struct {
+			X *uint64 `rlp:"nilList"`
+		}{},
+		output: "C1C0",
+	},
+	{
+		val: struct {
+			X *[]uint64
+		}{},
+		output: "C1C0",
+	},
+	{
+		val: struct {
+			X *[]uint64 `rlp:"nilString"`
+		}{},
+		output: "C180",
+	},
+
 	// interfaces
 	{val: []io.Reader{reader}, output: "C3C20102"}, // the contained value is a struct
 
 	// Encoder
-	{val: (*testEncoder)(nil), output: "00000000"},
+	{val: (*testEncoder)(nil), output: "C0"},
 	{val: &testEncoder{}, output: "00010001000100010001"},
 	{val: &testEncoder{errors.New("test error")}, error: "test error"},
-	// verify that pointer method testEncoder.EncodeRLP is called for
+	{val: struct{ E testEncoderValueMethod }{}, output: "C3FAFEF0"},
+	{val: struct{ E *testEncoderValueMethod }{}, output: "C1C0"},
+
+	// Verify that the Encoder interface works for unsupported types like func().
+	{val: undecodableEncoder(func() {}), output: "F5F5F5"},
+
+	// Verify that pointer method testEncoder.EncodeRLP is called for
 	// addressable non-pointer values.
 	{val: &struct{ TE testEncoder }{testEncoder{}}, output: "CA00010001000100010001"},
 	{val: &struct{ TE testEncoder }{testEncoder{errors.New("test error")}}, error: "test error"},
-	// verify the error for non-addressable non-pointer Encoder
-	{val: testEncoder{}, error: "rlp: game over: unadressable value of type rlp.testEncoder, EncodeRLP is pointer method"},
-	// verify the special case for []byte
+
+	// Verify the error for non-addressable non-pointer Encoder.
+	{val: testEncoder{}, error: "rlp: unadressable value of type rlp.testEncoder, EncodeRLP is pointer method"},
+
+	// Verify Encoder takes precedence over []byte.
 	{val: []byteEncoder{0, 1, 2, 3, 4}, output: "C5C0C0C0C0C0"},
 }
 
@@ -339,4 +429,37 @@ func TestEncodeToReaderReturnToPool(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+var sink interface{}
+
+func BenchmarkIntsize(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		sink = intsize(0x12345678)
+	}
+}
+
+func BenchmarkPutint(b *testing.B) {
+	buf := make([]byte, 8)
+	for i := 0; i < b.N; i++ {
+		putint(buf, 0x12345678)
+		sink = buf
+	}
+}
+
+func BenchmarkEncodeBigInts(b *testing.B) {
+	ints := make([]*big.Int, 200)
+	for i := range ints {
+		ints[i] = math.BigPow(2, int64(i))
+	}
+	out := bytes.NewBuffer(make([]byte, 0, 4096))
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		out.Reset()
+		if err := Encode(out, ints); err != nil {
+			b.Fatal(err)
+		}
+	}
 }

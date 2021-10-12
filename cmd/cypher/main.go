@@ -31,8 +31,9 @@ import (
 	"github.com/cypherium/cypherBFT/accounts/keystore"
 	"github.com/cypherium/cypherBFT/cmd/utils"
 	"github.com/cypherium/cypherBFT/console"
-	"github.com/cypherium/cypherBFT/core/vm"
+//	"github.com/cypherium/cypherBFT/core/vm"
 	"github.com/cypherium/cypherBFT/ethclient"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/internal/debug"
 	"github.com/cypherium/cypherBFT/log"
@@ -255,18 +256,24 @@ func cypher(ctx *cli.Context) error {
 	//fmt.Println(logFile, syscall.Getuid())
 	log.Info("FLAG", "DisableJVM", params.DisableJVM, "DisableEVM", params.DisableEVM)
 
-	node := makeFullNode(ctx)
-	startNode(ctx, node)
-	vm.CVM_init()
+	//node := makeFullNode(ctx)
+	//startNode(ctx, node)
+	//vm.CVM_init()
+	//node.Wait()
 
-	node.Wait()
+	stack, backend := makeFullNode(ctx)
+	defer stack.Close()
+
+	startNode(ctx, stack, backend)
+	stack.Wait()
+	
 	return nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
 // miner.
-func startNode(ctx *cli.Context, stack *node.Node) {
+func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
@@ -285,14 +292,16 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
 	stack.AccountManager().Subscribe(events)
+	
+	// Create a client to interact with local geth node.
+	rpcClient, err := stack.Attach()
+	if err != nil {
+		utils.Fatalf("Failed to attach to self: %v", err)
+	}
+	stateReader := ethclient.NewClient(rpcClient)
+	
 
 	go func() {
-		// Create a chain state reader for self-derivation
-		rpcClient, err := stack.Attach()
-		if err != nil {
-			utils.Fatalf("Failed to attach to self: %v", err)
-		}
-		stateReader := ethclient.NewClient(rpcClient)
 
 		// Open any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {

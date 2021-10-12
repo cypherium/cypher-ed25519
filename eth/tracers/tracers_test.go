@@ -1,23 +1,24 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package tracers
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/json"
 	"io/ioutil"
 	"math/big"
@@ -30,15 +31,17 @@ import (
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/common/math"
 	"github.com/cypherium/cypherBFT/core"
+	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/ethdb"
+	"github.com/cypherium/cypherBFT/crypto"
+	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/rlp"
 	"github.com/cypherium/cypherBFT/tests"
 )
 
 // To generate a new callTracer test, copy paste the makeTest method below into
-// a Cypher console and call it with a transaction hash you which to export.
+// a Geth console and call it with a transaction hash you which to export.
 
 /*
 // makeTest generates a callTracer test by running a prestate reassembled and a
@@ -117,6 +120,85 @@ type callTracerTest struct {
 	Result  *callTrace    `json:"result"`
 }
 
+func TestPrestateTracerCreate2(t *testing.T) {
+	unsignedTx := types.NewTransaction(1, common.HexToAddress("0x00000000000000000000000000000000deadbeef"),
+		new(big.Int), 5000000, big.NewInt(1), []byte{})
+
+	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	signer := types.NewEIP155Signer(big.NewInt(1))
+	tx, err := types.SignTx(unsignedTx, signer, privateKeyECDSA)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	/**
+		This comes from one of the test-vectors on the Skinny Create2 - EIP
+
+	    address 0x00000000000000000000000000000000deadbeef
+	    salt 0x00000000000000000000000000000000000000000000000000000000cafebabe
+	    init_code 0xdeadbeef
+	    gas (assuming no mem expansion): 32006
+	    result: 0x60f3f640a8508fC6a86d45DF051962668E1e8AC7
+	*/
+	origin, _ := signer.Sender(tx)
+	context := vm.Context{
+		CanTransfer: core.CanTransfer,
+		Transfer:    core.Transfer,
+		Origin:      origin,
+		Coinbase:    common.Address{},
+		BlockNumber: new(big.Int).SetUint64(8000000),
+		Time:        new(big.Int).SetUint64(5),
+		Difficulty:  big.NewInt(0x30000),
+		GasLimit:    uint64(6000000),
+		GasPrice:    big.NewInt(1),
+	}
+	alloc := core.GenesisAlloc{}
+
+	// The code pushes 'deadbeef' into memory, then the other params, and calls CREATE2, then returns
+	// the address
+	alloc[common.HexToAddress("0x00000000000000000000000000000000deadbeef")] = core.GenesisAccount{
+		Nonce:   1,
+		Code:    hexutil.MustDecode("0x63deadbeef60005263cafebabe6004601c6000F560005260206000F3"),
+		Balance: big.NewInt(1),
+	}
+	alloc[origin] = core.GenesisAccount{
+		Nonce:   1,
+		Code:    []byte{},
+		Balance: big.NewInt(500000000000000),
+	}
+	_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), alloc, false)
+
+	// Create the tracer, the EVM environment and run it
+	tracer, err := New("prestateTracer")
+	if err != nil {
+		t.Fatalf("failed to create call tracer: %v", err)
+	}
+	evm := vm.NewEVM(context, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tracer})
+
+	msg, err := tx.AsMessage(signer)
+	if err != nil {
+		t.Fatalf("failed to prepare transaction for tracing: %v", err)
+	}
+	st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+	if _, err = st.TransitionDb(); err != nil {
+		t.Fatalf("failed to execute transaction: %v", err)
+	}
+	// Retrieve the trace result and compare against the etalon
+	res, err := tracer.GetResult()
+	if err != nil {
+		t.Fatalf("failed to retrieve trace result: %v", err)
+	}
+	ret := make(map[string]interface{})
+	if err := json.Unmarshal(res, &ret); err != nil {
+		t.Fatalf("failed to unmarshal trace result: %v", err)
+	}
+	if _, has := ret["0x60f3f640a8508fc6a86d45df051962668e1e8ac7"]; !has {
+		t.Fatalf("Expected 0x60f3f640a8508fc6a86d45df051962668e1e8ac7 in result")
+	}
+}
+
 // Iterates over all the input-output datasets in the tracer test harness and
 // runs the JavaScript tracers against them.
 func TestCallTracer(t *testing.T) {
@@ -160,21 +242,21 @@ func TestCallTracer(t *testing.T) {
 				GasLimit:    uint64(test.Context.GasLimit),
 				GasPrice:    tx.GasPrice(),
 			}
-			statedb := tests.MakePreState(ethdb.NewMemDatabase(), test.Genesis.Alloc)
+			_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 
 			// Create the tracer, the EVM environment and run it
 			tracer, err := New("callTracer")
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer}, nil)
+			evm := vm.NewEVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 
 			msg, err := tx.AsMessage(signer)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
 			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
-			if _, _, _, err = st.TransitionDb(); err != nil {
+			if _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}
 			// Retrieve the trace result and compare against the etalon
@@ -186,8 +268,9 @@ func TestCallTracer(t *testing.T) {
 			if err := json.Unmarshal(res, ret); err != nil {
 				t.Fatalf("failed to unmarshal trace result: %v", err)
 			}
+
 			if !reflect.DeepEqual(ret, test.Result) {
-				t.Fatalf("trace mismatch: have %+v, want %+v", ret, test.Result)
+				t.Fatalf("trace mismatch: \nhave %+v\nwant %+v", ret, test.Result)
 			}
 		})
 	}

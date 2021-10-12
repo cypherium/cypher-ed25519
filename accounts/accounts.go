@@ -19,12 +19,14 @@
 package accounts
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/cypherI"
 	"github.com/cypherium/cypherBFT/event"
+	"golang.org/x/crypto/sha3"
 )
 
 // Account represents an Cypherium account located at a specific location defined
@@ -33,6 +35,13 @@ type Account struct {
 	Address common.Address `json:"address"` // Cypherium account address derived from the key
 	URL     URL            `json:"url"`     // Optional resource locator within a backend
 }
+
+const (
+	MimetypeDataWithValidator = "data/validator"
+	MimetypeTypedData         = "data/typed"
+	MimetypeClique            = "application/x-clique-header"
+	MimetypeTextPlain         = "text/plain"
+)
 
 // Wallet represents a software or hardware wallet that might contain one or more
 // accounts (derived from the same seed).
@@ -151,6 +160,33 @@ type Backend interface {
 	// backend detects the arrival or departure of a wallet.
 	Subscribe(sink chan<- WalletEvent) event.Subscription
 }
+
+// TextHash is a helper function that calculates a hash for the given message that can be
+// safely used to calculate a signature from.
+//
+// The hash is calulcated as
+//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+// This gives context to the signed message and prevents signing of transactions.
+func TextHash(data []byte) []byte {
+	hash, _ := TextAndHash(data)
+	return hash
+}
+
+// TextAndHash is a helper function that calculates a hash for the given message that can be
+// safely used to calculate a signature from.
+//
+// The hash is calulcated as
+//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+// This gives context to the signed message and prevents signing of transactions.
+func TextAndHash(data []byte) ([]byte, string) {
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), string(data))
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write([]byte(msg))
+	return hasher.Sum(nil), msg
+}
+
 
 // WalletEventType represents the different event types that can be fired by
 // the wallet subscription subsystem.

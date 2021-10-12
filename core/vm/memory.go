@@ -1,36 +1,34 @@
 // Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package vm
 
 import (
 	"fmt"
-	"math/big"
 
-	"github.com/cypherium/cypherBFT/common/math"
+	"github.com/holiman/uint256"
 )
 
-// Memory implements a simple memory model for the cypherium virtual machine.
+// Memory implements a simple memory model for the ethereum virtual machine.
 type Memory struct {
 	store       []byte
 	lastGasCost uint64
 }
 
-// NewMemory returns a new memory memory model.
+// NewMemory returns a new memory model.
 func NewMemory() *Memory {
 	return &Memory{}
 }
@@ -51,7 +49,7 @@ func (m *Memory) Set(offset, size uint64, value []byte) {
 
 // Set32 sets the 32 bytes starting at offset to the value of val, left-padded with zeroes to
 // 32 bytes.
-func (m *Memory) Set32(offset uint64, val *big.Int) {
+func (m *Memory) Set32(offset uint64, val *uint256.Int) {
 	// length of store may never be less than offset + size.
 	// The store should be resized PRIOR to setting the memory
 	if offset+32 > uint64(len(m.store)) {
@@ -60,7 +58,7 @@ func (m *Memory) Set32(offset uint64, val *big.Int) {
 	// Zero the memory area
 	copy(m.store[offset:offset+32], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	// Fill in relevant bits
-	math.ReadBits(val, m.store[offset:offset+32])
+	val.WriteToSlice(m.store[offset:])
 }
 
 // Resize resizes the memory to size
@@ -71,7 +69,7 @@ func (m *Memory) Resize(size uint64) {
 }
 
 // Get returns offset + size as a new slice
-func (m *Memory) Get(offset, size int64) (cpy []byte) {
+func (m *Memory) GetCopy(offset, size int64) (cpy []byte) {
 	if size == 0 {
 		return nil
 	}

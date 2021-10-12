@@ -146,7 +146,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			return nil, fmt.Errorf("parent block #%d not found", number-1)
 		}
 	}
-	statedb, err := state.New(start.Root(), database)
+	statedb, err := state.New(start.Root(), database, nil)
 	if err != nil {
 		// If the starting state is missing, allow some number of blocks to be reexecuted
 		reexec := defaultTraceReexec
@@ -159,7 +159,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			if start == nil {
 				break
 			}
-			if statedb, err = state.New(start.Root(), database); err == nil {
+			if statedb, err = state.New(start.Root(), database, nil); err == nil {
 				break
 			}
 		}
@@ -285,7 +285,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				break
 			}
 			// Finalize the state so any modifications are written to the trie
-			root, err := statedb.Commit()
+			root, err := statedb.Commit(false)
 			if err != nil {
 				failed = err
 				break
@@ -300,7 +300,9 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				database.TrieDB().Reference(root, common.Hash{})
 			}
 			// Dereference all past tries we ourselves are done working with
-			database.TrieDB().Dereference(proot)
+			if proot != (common.Hash{}) {
+				database.TrieDB().Dereference(proot)
+			}
 			proot = root
 
 			// TODO(karalabe): Do we need the preimages? Won't they accumulate too much?
@@ -453,8 +455,8 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 		msg, _ := tx.AsMessage(signer)
 		vmctx := core.NewEVMContext(msg, block.Header(), api.eth.blockchain)
 
-		vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{}, api.eth.blockchain)
-		if _, _, _, err := core.ApplyMessage(false, block.Header(), vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
+		vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{})
+		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
 			failed = err
 			break
 		}
@@ -489,7 +491,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block == nil {
 			break
 		}
-		if statedb, err = state.New(block.Root(), database); err == nil {
+		if statedb, err = state.New(block.Root(), database, nil); err == nil {
 			break
 		}
 	}
@@ -522,7 +524,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 			return nil, err
 		}
 		// Finalize the state so any modifications are written to the trie
-		root, err := statedb.Commit()
+		root, err := statedb.Commit(false)
 		if err != nil {
 			return nil, err
 		}
@@ -595,8 +597,8 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 		tracer = vm.NewStructLogger(config.LogConfig)
 	}
 	// Run the transaction with tracing enabled.
-	vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{Debug: true, Tracer: tracer}, api.eth.blockchain)
-	ret, gas, failed, err := core.ApplyMessage(false, nil, vmenv, message, new(core.GasPool).AddGas(message.Gas())) //?? nil
+	vmenv := vm.NewEVM(vmctx, statedb, api.config, vm.Config{Debug: true, Tracer: tracer})
+	ret, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas())) 
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %v", err)
 	}
@@ -604,8 +606,8 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 	switch tracer := tracer.(type) {
 	case *vm.StructLogger:
 		return &ethapi.ExecutionResult{
-			Gas:         gas,
-			Failed:      failed,
+			Gas:         ret.UsedGas,
+			Failed:      ret.Failed(),
 			ReturnValue: fmt.Sprintf("%x", ret),
 			StructLogs:  ethapi.FormatLogs(tracer.StructLogs()),
 		}, nil
@@ -644,8 +646,8 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 			return msg, context, statedb, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewEVM(context, statedb, api.config, vm.Config{}, api.eth.blockchain)
-		if _, _, _, err := core.ApplyMessage(false, block.Header(), vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
+		vmenv := vm.NewEVM(context, statedb, api.config, vm.Config{})
+		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.Context{}, nil, fmt.Errorf("tx %x failed: %v", tx.Hash(), err)
 		}
 		// Ensure any modifications are committed to the state

@@ -213,7 +213,7 @@ func (kbc *KeyBlockChain) SetHead(head uint64) error {
 	defer kbc.mu.Unlock()
 
 	// Rewind the header chain, deleting all block bodies until then
-	delFn := func(db rawdb.DatabaseDeleter, hash common.Hash, num uint64) {
+	delFn := func(db ethdb.KeyValueWriter, hash common.Hash, num uint64) {
 		rawdb.DeleteKeyBlock(db, hash, num)
 	}
 	kbc.khc.SetHead(head, delFn)

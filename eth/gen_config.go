@@ -23,13 +23,18 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		NetworkId               uint64
 		SyncMode                downloader.SyncMode
 		NoPruning               bool
+		TxLookupLimit           uint64                 `toml:",omitempty"`
 		LightServ               int  `toml:",omitempty"`
 		LightPeers              int  `toml:",omitempty"`
 		SkipBcVersionCheck      bool `toml:"-"`
 		DatabaseHandles         int  `toml:"-"`
 		DatabaseCache           int
-		TrieCache               int
+		TrieCleanCache          int
+		TrieCleanCacheJournal   string        `toml:",omitempty"`
+		TrieCleanCacheRejournal time.Duration `toml:",omitempty"`
+		TrieDirtyCache          int
 		TrieTimeout             time.Duration
+		SnapshotCache           int
 		MinerThreads            int           `toml:",omitempty"`
 		ExtraData               hexutil.Bytes `toml:",omitempty"`
 		GasPrice                *big.Int
@@ -38,6 +43,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
 		DocRoot                 string `toml:"-"`
+		RPCGasCap               uint64                         `toml:",omitempty"`
+		RPCTxFeeCap             float64                        `toml:",omitempty"`
 		RnetPort                string
 	}
 	var enc Config
@@ -46,13 +53,19 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
+	enc.TxLookupLimit = c.TxLookupLimit
 	enc.LightServ = c.LightServ
 	enc.LightPeers = c.LightPeers
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
-	enc.TrieCache = c.TrieCache
+	enc.TrieCleanCache = c.TrieCleanCache
+	enc.TrieCleanCacheJournal = c.TrieCleanCacheJournal
+	enc.TrieCleanCacheRejournal = c.TrieCleanCacheRejournal
+	enc.TrieDirtyCache = c.TrieDirtyCache
 	enc.TrieTimeout = c.TrieTimeout
+	enc.SnapshotCache = c.SnapshotCache
+
 	enc.MinerThreads = c.MinerThreads
 	enc.ExtraData = c.ExtraData
 	enc.GasPrice = c.GasPrice
@@ -61,6 +74,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.DocRoot = c.DocRoot
+	enc.RPCGasCap = c.RPCGasCap
+	enc.RPCTxFeeCap = c.RPCTxFeeCap
 	enc.RnetPort = c.RnetPort
 	return &enc, nil
 }
@@ -73,13 +88,19 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		NetworkId               *uint64
 		SyncMode                *downloader.SyncMode
 		NoPruning               *bool
+		TxLookupLimit           *uint64                `toml:",omitempty"`
 		LightServ               *int  `toml:",omitempty"`
 		LightPeers              *int  `toml:",omitempty"`
 		SkipBcVersionCheck      *bool `toml:"-"`
 		DatabaseHandles         *int  `toml:"-"`
 		DatabaseCache           *int
-		TrieCache               *int
+		TrieCleanCache          *int
+		TrieCleanCacheJournal   *string        `toml:",omitempty"`
+		TrieCleanCacheRejournal *time.Duration `toml:",omitempty"`
+		TrieDirtyCache          *int
 		TrieTimeout             *time.Duration
+		SnapshotCache           *int
+	
 		MinerThreads            *int           `toml:",omitempty"`
 		ExtraData               *hexutil.Bytes `toml:",omitempty"`
 		GasPrice                *big.Int
@@ -88,6 +109,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
 		DocRoot                 *string `toml:"-"`
+		RPCGasCap               *uint64                        `toml:",omitempty"`
+		RPCTxFeeCap             *float64                       `toml:",omitempty"`
 		RnetPort                *string
 	}
 	var dec Config
@@ -109,6 +132,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.NoPruning != nil {
 		c.NoPruning = *dec.NoPruning
 	}
+	if dec.TxLookupLimit != nil {
+		c.TxLookupLimit = *dec.TxLookupLimit
+	}
 	if dec.LightServ != nil {
 		c.LightServ = *dec.LightServ
 	}
@@ -124,11 +150,23 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.DatabaseCache != nil {
 		c.DatabaseCache = *dec.DatabaseCache
 	}
-	if dec.TrieCache != nil {
-		c.TrieCache = *dec.TrieCache
+	if dec.TrieCleanCache != nil {
+		c.TrieCleanCache = *dec.TrieCleanCache
+	}
+	if dec.TrieCleanCacheJournal != nil {
+		c.TrieCleanCacheJournal = *dec.TrieCleanCacheJournal
+	}
+	if dec.TrieCleanCacheRejournal != nil {
+		c.TrieCleanCacheRejournal = *dec.TrieCleanCacheRejournal
+	}
+	if dec.TrieDirtyCache != nil {
+		c.TrieDirtyCache = *dec.TrieDirtyCache
 	}
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
+	}
+	if dec.SnapshotCache != nil {
+		c.SnapshotCache = *dec.SnapshotCache
 	}
 	if dec.MinerThreads != nil {
 		c.MinerThreads = *dec.MinerThreads
@@ -153,6 +191,12 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot
+	}
+	if dec.RPCGasCap != nil {
+		c.RPCGasCap = *dec.RPCGasCap
+	}
+	if dec.RPCTxFeeCap != nil {
+		c.RPCTxFeeCap = *dec.RPCTxFeeCap
 	}
 	if dec.RnetPort != nil {
 		c.RnetPort = *dec.RnetPort

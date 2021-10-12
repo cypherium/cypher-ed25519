@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package simulations simulates p2p networks.
 // A mocker simulates starting and stopping real nodes in a network.
@@ -26,7 +25,7 @@ import (
 	"time"
 
 	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/p2p/discover"
+	"github.com/cypherium/cypherBFT/p2p/enode"
 	"github.com/cypherium/cypherBFT/p2p/simulations/adapters"
 )
 
@@ -155,7 +154,7 @@ func probabilistic(net *Network, quit chan struct{}, nodeCount int) {
 				wg.Done()
 				continue
 			}
-			go func(id discover.NodeID) {
+			go func(id enode.ID) {
 				time.Sleep(randWait)
 				err := net.Start(id)
 				if err != nil {
@@ -170,8 +169,8 @@ func probabilistic(net *Network, quit chan struct{}, nodeCount int) {
 }
 
 //connect nodeCount number of nodes in a ring
-func connectNodesInRing(net *Network, nodeCount int) ([]discover.NodeID, error) {
-	ids := make([]discover.NodeID, nodeCount)
+func connectNodesInRing(net *Network, nodeCount int) ([]enode.ID, error) {
+	ids := make([]enode.ID, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		conf := adapters.RandomNodeConfig()
 		node, err := net.NewNodeWithConfig(conf)

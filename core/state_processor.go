@@ -1,19 +1,18 @@
 // Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -48,8 +47,9 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, kbc *KeyBlock
 	}
 }
 
-// Process processes the state changes according to the Cypherium rules by running
+// Process processes the state changes according to the Ethereum rules by running
 // the transaction messages using the statedb and applying any rewards to both
+// the processor (coinbase) and any included uncles.
 //
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
@@ -113,13 +113,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	var totalGas uint64
 	for i, tx := range txs {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, gas, err := ApplyTransaction(false, messages[i], p.keyblockchain, p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
+		receipt, err := ApplyTransaction(false, messages[i], p.keyblockchain, p.config, p.bc, gp, statedb, header, tx, usedGas, &cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
-		totalGas += gas * tx.GasPriceU64()
+		totalGas += receipt.GasUsed * tx.GasPriceU64()
 	}
 
 	p.Finalize(true, header, statedb, txs, receipts, totalGas)
@@ -148,7 +148,7 @@ func (p *StateProcessor) Finalize(onlyCheck bool, header *types.Header, state *s
 			//	RewardCommites(p.bc, state, header, params.TxBlock_Reward)
 		}
 	}
-	header.Root = state.IntermediateRoot()
+	header.Root = state.IntermediateRoot(false)
 	// Header seems complete, assemble into a block and return
 	if onlyCheck {
 		return nil, nil
@@ -160,13 +160,13 @@ func (p *StateProcessor) Finalize(onlyCheck bool, header *types.Header, state *s
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(onlyGas bool, msg Message, keyChain types.KeyChainReader, config *params.ChainConfig, bc types.ChainReader, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(onlyGas bool, msg Message, keyChain types.KeyChainReader, config *params.ChainConfig, bc types.ChainReader, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg *vm.Config) (*types.Receipt, error) {
 
 	if msg == nil {
 		var err error
 		msg, err = tx.AsMessage(types.MakeSigner(config, header.Number))
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 
 	}
@@ -174,27 +174,31 @@ func ApplyTransaction(onlyGas bool, msg Message, keyChain types.KeyChainReader, 
 	context := NewEVMContext(msg, header, bc)
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
-	vmenv := vm.NewEVM(context, statedb, config, cfg, bc)
+	vmenv := vm.NewEVM(context, statedb, config, *cfg)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err := ApplyMessage(onlyGas, header, vmenv, msg, gp)
+	res, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	// Update the state with pending changes
-	root := statedb.IntermediateRoot().Bytes()
-	*usedGas += gas
+	root := statedb.IntermediateRoot(false).Bytes()
+	*usedGas += res.UsedGas
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing wether the root touch-delete accounts.
-	receipt := types.NewReceipt(root, failed, *usedGas)
+	receipt := types.NewReceipt(root, res.Failed(), *usedGas)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
+	receipt.GasUsed = res.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
+	//receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	receipt.BlockHash = statedb.BlockHash()
+	receipt.BlockNumber = header.Number
+	receipt.TransactionIndex = uint(statedb.TxIndex())
 
-	return receipt, gas, err
+	return receipt, err
 }

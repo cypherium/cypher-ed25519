@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package netutil
 
@@ -258,24 +257,6 @@ func TestDistinctNetSetAddRemove(t *testing.T) {
 	}
 
 	if err := quick.Check(fn, cfg); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestVerifyConnectivity(t *testing.T) {
-	protocol := "udp"
-	err := VerifyConnectivity(protocol, parseIP("127.0.0.1"), 7100)
-	if err != nil {
-		t.Fatal(err)
-	}
-	protocol = "tcp"
-	err = VerifyConnectivity(protocol, parseIP("127.0.0.1"), 8000)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = VerifyConnectivity(protocol, parseIP("127.0.0.1"), 6000)
-	if err != nil {
 		t.Fatal(err)
 	}
 }

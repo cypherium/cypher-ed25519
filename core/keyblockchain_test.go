@@ -18,7 +18,7 @@ func newKeyBlockChain(engine pow.Engine, n int) (ethdb.Database, *KeyBlockChain,
 	)
 
 	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := NewKeyBlockChain(db, nil, params.AllCphashProtocolChanges, engine)
+	blockchain, _ := NewKeyBlockChain(db, nil, params.AllEthashProtocolChanges, engine)
 	// Create and inject the requested chain
 	if n == 0 {
 		return db, blockchain, nil

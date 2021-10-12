@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/metrics"
+	"github.com/cypherium/cypherBFT/metrics/prometheus"
 )
 
 type exp struct {
@@ -42,12 +44,27 @@ func Exp(r metrics.Registry) {
 	// http.HandleFunc("/debug/vars", e.expHandler)
 	// haven't found an elegant way, so just use a different endpoint
 	http.Handle("/debug/metrics", h)
+	http.Handle("/debug/metrics/prometheus", prometheus.Handler(r))
 }
 
 // ExpHandler will return an expvar powered metrics handler.
 func ExpHandler(r metrics.Registry) http.Handler {
 	e := exp{sync.Mutex{}, r}
 	return http.HandlerFunc(e.expHandler)
+}
+
+// Setup starts a dedicated metrics server at the given address.
+// This function enables metrics reporting separate from pprof.
+func Setup(address string) {
+	m := http.NewServeMux()
+	m.Handle("/debug/metrics", ExpHandler(metrics.DefaultRegistry))
+	m.Handle("/debug/metrics/prometheus", prometheus.Handler(metrics.DefaultRegistry))
+	log.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/debug/metrics", address))
+	go func() {
+		if err := http.ListenAndServe(address, m); err != nil {
+			log.Error("Failure in running metrics server", "err", err)
+		}
+	}()
 }
 
 func (exp *exp) getInt(name string) *expvar.Int {
@@ -147,21 +164,21 @@ func (exp *exp) publishResettingTimer(name string, metric metrics.ResettingTimer
 
 func (exp *exp) syncToExpvar() {
 	exp.registry.Each(func(name string, i interface{}) {
-		switch i.(type) {
+		switch i := i.(type) {
 		case metrics.Counter:
-			exp.publishCounter(name, i.(metrics.Counter))
+			exp.publishCounter(name, i)
 		case metrics.Gauge:
-			exp.publishGauge(name, i.(metrics.Gauge))
+			exp.publishGauge(name, i)
 		case metrics.GaugeFloat64:
-			exp.publishGaugeFloat64(name, i.(metrics.GaugeFloat64))
+			exp.publishGaugeFloat64(name, i)
 		case metrics.Histogram:
-			exp.publishHistogram(name, i.(metrics.Histogram))
+			exp.publishHistogram(name, i)
 		case metrics.Meter:
-			exp.publishMeter(name, i.(metrics.Meter))
+			exp.publishMeter(name, i)
 		case metrics.Timer:
-			exp.publishTimer(name, i.(metrics.Timer))
+			exp.publishTimer(name, i)
 		case metrics.ResettingTimer:
-			exp.publishResettingTimer(name, i.(metrics.ResettingTimer))
+			exp.publishResettingTimer(name, i)
 		default:
 			panic(fmt.Sprintf("unsupported type for '%s': %T", name, i))
 		}

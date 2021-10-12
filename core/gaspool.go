@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/cypherium/cypherBFT/core/types"
+//	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/params"
 )
 
@@ -48,7 +48,7 @@ func (gp *GasPool) SubGas(amount uint64) error {
 		return nil
 	}
 	if uint64(*gp) < amount {
-		return types.ErrGasLimitReached
+		return ErrGasLimitReached
 	}
 	*(*uint64)(gp) -= amount
 	return nil

@@ -1,60 +1,61 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package common
 
 import (
 	"bytes"
 	"testing"
-
-	checker "gopkg.in/check.v1"
 )
 
-type BytesSuite struct{}
+func TestCopyBytes(t *testing.T) {
+	input := []byte{1, 2, 3, 4}
 
-var _ = checker.Suite(&BytesSuite{})
-
-func (s *BytesSuite) TestCopyBytes(c *checker.C) {
-	data1 := []byte{1, 2, 3, 4}
-	exp1 := []byte{1, 2, 3, 4}
-	res1 := CopyBytes(data1)
-	c.Assert(res1, checker.DeepEquals, exp1)
+	v := CopyBytes(input)
+	if !bytes.Equal(v, []byte{1, 2, 3, 4}) {
+		t.Fatal("not equal after copy")
+	}
+	v[0] = 99
+	if bytes.Equal(v, input) {
+		t.Fatal("result is not a copy")
+	}
 }
 
-func (s *BytesSuite) TestLeftPadBytes(c *checker.C) {
-	val1 := []byte{1, 2, 3, 4}
-	exp1 := []byte{0, 0, 0, 0, 1, 2, 3, 4}
-
-	res1 := LeftPadBytes(val1, 8)
-	res2 := LeftPadBytes(val1, 2)
-
-	c.Assert(res1, checker.DeepEquals, exp1)
-	c.Assert(res2, checker.DeepEquals, val1)
-}
-
-func (s *BytesSuite) TestRightPadBytes(c *checker.C) {
+func TestLeftPadBytes(t *testing.T) {
 	val := []byte{1, 2, 3, 4}
-	exp := []byte{1, 2, 3, 4, 0, 0, 0, 0}
+	padded := []byte{0, 0, 0, 0, 1, 2, 3, 4}
 
-	resstd := RightPadBytes(val, 8)
-	resshrt := RightPadBytes(val, 2)
+	if r := LeftPadBytes(val, 8); !bytes.Equal(r, padded) {
+		t.Fatalf("LeftPadBytes(%v, 8) == %v", val, r)
+	}
+	if r := LeftPadBytes(val, 2); !bytes.Equal(r, val) {
+		t.Fatalf("LeftPadBytes(%v, 2) == %v", val, r)
+	}
+}
 
-	c.Assert(resstd, checker.DeepEquals, exp)
-	c.Assert(resshrt, checker.DeepEquals, val)
+func TestRightPadBytes(t *testing.T) {
+	val := []byte{1, 2, 3, 4}
+	padded := []byte{1, 2, 3, 4, 0, 0, 0, 0}
+
+	if r := RightPadBytes(val, 8); !bytes.Equal(r, padded) {
+		t.Fatalf("RightPadBytes(%v, 8) == %v", val, r)
+	}
+	if r := RightPadBytes(val, 2); !bytes.Equal(r, val) {
+		t.Fatalf("RightPadBytes(%v, 2) == %v", val, r)
+	}
 }
 
 func TestFromHex(t *testing.T) {
@@ -102,5 +103,24 @@ func TestNoPrefixShortHexOddLength(t *testing.T) {
 	result := FromHex(input)
 	if !bytes.Equal(expected, result) {
 		t.Errorf("Expected %x got %x", expected, result)
+	}
+}
+
+func TestTrimRightZeroes(t *testing.T) {
+	tests := []struct {
+		arr []byte
+		exp []byte
+	}{
+		{FromHex("0x00ffff00ff0000"), FromHex("0x00ffff00ff")},
+		{FromHex("0x00000000000000"), []byte{}},
+		{FromHex("0xff"), FromHex("0xff")},
+		{[]byte{}, []byte{}},
+		{FromHex("0x00ffffffffffff"), FromHex("0x00ffffffffffff")},
+	}
+	for i, test := range tests {
+		got := TrimRightZeroes(test.arr)
+		if !bytes.Equal(got, test.exp) {
+			t.Errorf("test %d, got %x exp %x", i, got, test.exp)
+		}
 	}
 }

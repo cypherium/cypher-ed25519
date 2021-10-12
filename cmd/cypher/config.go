@@ -29,6 +29,7 @@ import (
 
 	"github.com/cypherium/cypherBFT/cmd/utils"
 	"github.com/cypherium/cypherBFT/eth"
+	"github.com/cypherium/cypherBFT/internal/ethapi"
 	"github.com/cypherium/cypherBFT/node"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/naoina/toml"
@@ -133,10 +134,11 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gcphConfig) {
 	return stack, cfg
 }
 
-func makeFullNode(ctx *cli.Context) *node.Node {
+// makeFullNode loads geth configuration and creates the Ethereum backend.
+func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
 
-	utils.RegisterCphService(stack, &cfg.Cph)
+	backend := utils.RegisterCphService(stack, &cfg.Cph)
 
 	/*
 		// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
@@ -154,10 +156,10 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	*/
 
 	// Add the Cypherium Stats daemon if requested.
-	if cfg.Cphstats.URL != "" {
-		utils.RegisterCphStatsService(stack, cfg.Cphstats.URL)
-	}
-	return stack
+	//if cfg.Cphstats.URL != "" {
+	//	utils.RegisterCphStatsService(stack, backend, cfg.Cphstats.URL)
+	//}
+	return stack,backend
 }
 
 // dumpConfig is the dumpconfig command.

@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -35,7 +34,7 @@ var errNoActiveJournal = errors.New("no active journal")
 // devNull is a WriteCloser that just discards anything written into it. Its
 // goal is to allow the transaction journal to write into a fake journal when
 // loading transactions on startup without printing warnings due to no file
-// being readt for write.
+// being read for write.
 type devNull struct{}
 
 func (*devNull) Write(p []byte) (n int, err error) { return len(p), nil }
@@ -58,7 +57,7 @@ func newTxJournal(path string) *txJournal {
 // load parses a transaction journal dump from disk, loading its contents into
 // the specified pool.
 func (journal *txJournal) load(add func([]*types.Transaction) []error) error {
-	// Skip the parsing if the journal file doens't exist at all
+	// Skip the parsing if the journal file doesn't exist at all
 	if _, err := os.Stat(journal.path); os.IsNotExist(err) {
 		return nil
 	}
@@ -79,7 +78,7 @@ func (journal *txJournal) load(add func([]*types.Transaction) []error) error {
 
 	// Create a method to load a limited batch of transactions and bump the
 	// appropriate progress counters. Then use this method to load all the
-	// journalled transactions in small-ish batches.
+	// journaled transactions in small-ish batches.
 	loadBatch := func(txs types.Transactions) {
 		for _, err := range add(txs) {
 			if err != nil {
@@ -104,7 +103,7 @@ func (journal *txJournal) load(add func([]*types.Transaction) []error) error {
 			}
 			break
 		}
-		// New transaction parsed, queue up for later, import if threnshold is reached
+		// New transaction parsed, queue up for later, import if threshold is reached
 		total++
 
 		if batch = append(batch, tx); batch.Len() > 1024 {
@@ -164,7 +163,7 @@ func (journal *txJournal) rotate(all map[common.Address]types.Transactions) erro
 		return err
 	}
 	journal.writer = sink
-	//	log.Info("Regenerated local transaction journal", "transactions", journaled, "accounts", len(all))
+	log.Info("Regenerated local transaction journal", "transactions", journaled, "accounts", len(all))
 
 	return nil
 }

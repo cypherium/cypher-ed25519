@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package math
 
@@ -210,6 +209,16 @@ func TestU256(t *testing.T) {
 		if y := U256(new(big.Int).Set(test.x)); y.Cmp(test.y) != 0 {
 			t.Errorf("U256(%x) = %x, want %x", test.x, y, test.y)
 		}
+	}
+}
+
+func TestU256Bytes(t *testing.T) {
+	ubytes := make([]byte, 32)
+	ubytes[31] = 1
+
+	unsigned := U256Bytes(big.NewInt(1))
+	if !bytes.Equal(unsigned, ubytes) {
+		t.Errorf("expected %x got %x", ubytes, unsigned)
 	}
 }
 

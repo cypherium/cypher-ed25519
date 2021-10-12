@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discv5
 
@@ -28,10 +27,10 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/mclock"
 	"github.com/cypherium/cypherBFT/crypto"
-	"github.com/cypherium/cypherBFT/crypto/sha3"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/p2p/netutil"
 	"github.com/cypherium/cypherBFT/rlp"
+	"golang.org/x/crypto/sha3"
 )
 
 var (
@@ -78,14 +77,6 @@ type Network struct {
 	nursery       []*Node
 	nodes         map[NodeID]*Node // tracks active nodes with state != known
 	timeoutTimers map[timeoutEvent]*time.Timer
-
-	// Revalidation queues.
-	// Nodes put on these queues will be pinged eventually.
-	slowRevalidateQueue []*Node
-	fastRevalidateQueue []*Node
-
-	// Buffers for state transition.
-	sendBuf []*ingressPacket
 }
 
 // transport is implemented by the UDP transport.
@@ -105,10 +96,9 @@ type transport interface {
 }
 
 type findnodeQuery struct {
-	remote   *Node
-	target   common.Hash
-	reply    chan<- []*Node
-	nresults int // counter for received nodes
+	remote *Node
+	target common.Hash
+	reply  chan<- []*Node
 }
 
 type topicRegisterReq struct {
@@ -367,6 +357,8 @@ func (net *Network) loop() {
 		bucketRefreshTimer = time.NewTimer(bucketRefreshInterval)
 		refreshDone        chan struct{} // closed when the 'refresh' lookup has ended
 	)
+	defer refreshTimer.Stop()
+	defer bucketRefreshTimer.Stop()
 
 	// Tracking the next ticket to register.
 	var (
@@ -403,11 +395,13 @@ func (net *Network) loop() {
 		searchInfo                = make(map[Topic]topicSearchInfo)
 		activeSearchCount         int
 	)
+	defer topicRegisterLookupTick.Stop()
 	topicSearchLookupDone := make(chan topicSearchResult, 100)
 	topicSearch := make(chan Topic, 100)
 	<-topicRegisterLookupTick.C
 
 	statsDump := time.NewTicker(10 * time.Second)
+	defer statsDump.Stop()
 
 loop:
 	for {
@@ -568,12 +562,11 @@ loop:
 			net.ticketStore.searchLookupDone(res.target, res.nodes, func(n *Node, topic Topic) []byte {
 				if n.state != nil && n.state.canQuery {
 					return net.conn.send(n, topicQueryPacket, topicQuery{Topic: topic}) // TODO: set expiration
-				} else {
-					if n.state == unknown {
-						net.ping(n, n.addr())
-					}
-					return nil
 				}
+				if n.state == unknown {
+					net.ping(n, n.addr())
+				}
+				return nil
 			})
 
 		case <-statsDump.C:
@@ -648,14 +641,14 @@ loop:
 	}
 	log.Trace("loop stopped")
 
-	log.Debug(fmt.Sprintf("shutting down"))
+	log.Debug("shutting down")
 	if net.conn != nil {
 		net.conn.Close()
 	}
-	if refreshDone != nil {
-		// TODO: wait for pending refresh.
-		//<-refreshResults
-	}
+	// TODO: wait for pending refresh.
+	// if refreshDone != nil {
+	// 	<-refreshResults
+	// }
 	// Cancel all pending timeouts.
 	for _, timer := range net.timeoutTimers {
 		timer.Stop()
@@ -679,7 +672,7 @@ func (net *Network) refresh(done chan<- struct{}) {
 	}
 	if len(seeds) == 0 {
 		log.Trace("no seed nodes found")
-		close(done)
+		time.AfterFunc(time.Second*10, func() { close(done) })
 		return
 	}
 	for _, n := range seeds {
@@ -802,7 +795,7 @@ func (n *nodeNetGuts) startNextQuery(net *Network) {
 func (q *findnodeQuery) start(net *Network) bool {
 	// Satisfy queries against the local node directly.
 	if q.remote == net.tab.self {
-		closest := net.tab.closest(crypto.Keccak256Hash(q.target[:]), bucketSize)
+		closest := net.tab.closest(q.target, bucketSize)
 		q.reply <- closest.entries
 		return true
 	}
@@ -1044,6 +1037,9 @@ func (net *Network) handle(n *Node, ev nodeEvent, pkt *ingressPacket) error {
 			net.db.ensureExpirer()
 		}
 	}
+	if ev == pongTimeout {
+		n.pingEcho = nil // clean up if pongtimeout
+	}
 	if n.state == nil {
 		n.state = unknown //???
 	}
@@ -1229,14 +1225,14 @@ func (net *Network) checkTopicRegister(data *topicRegister) (*pong, error) {
 	if rlpHash(data.Topics) != pongpkt.data.(*pong).TopicHash {
 		return nil, errors.New("topic hash mismatch")
 	}
-	if data.Idx < 0 || int(data.Idx) >= len(data.Topics) {
+	if data.Idx >= uint(len(data.Topics)) {
 		return nil, errors.New("topic index out of range")
 	}
 	return pongpkt.data.(*pong), nil
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h

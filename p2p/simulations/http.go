@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package simulations
 
@@ -32,11 +31,11 @@ import (
 
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/p2p"
-	"github.com/cypherium/cypherBFT/p2p/discover"
+	"github.com/cypherium/cypherBFT/p2p/enode"
 	"github.com/cypherium/cypherBFT/p2p/simulations/adapters"
 	"github.com/cypherium/cypherBFT/rpc"
+	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
-	"golang.org/x/net/websocket"
 )
 
 // DefaultClient is the default simulation API client which expects the API
@@ -385,12 +384,6 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 	sub := s.network.events.Subscribe(events)
 	defer sub.Unsubscribe()
 
-	// stop the stream if the client goes away
-	var clientGone <-chan bool
-	if cn, ok := w.(http.CloseNotifier); ok {
-		clientGone = cn.CloseNotify()
-	}
-
 	// write writes the given event and data to the stream like:
 	//
 	// event: <event>
@@ -456,6 +449,7 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	clientGone := req.Context().Done()
 	for {
 		select {
 		case event := <-events:
@@ -655,16 +649,20 @@ func (s *Server) Options(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+var wsUpgrade = websocket.Upgrader{
+	CheckOrigin: func(*http.Request) bool { return true },
+}
+
 // NodeRPC forwards RPC requests to a node in the network via a WebSocket
 // connection
 func (s *Server) NodeRPC(w http.ResponseWriter, req *http.Request) {
-	node := req.Context().Value("node").(*Node)
-
-	handler := func(conn *websocket.Conn) {
-		node.ServeRPC(conn)
+	conn, err := wsUpgrade.Upgrade(w, req, nil)
+	if err != nil {
+		return
 	}
-
-	websocket.Server{Handler: handler}.ServeHTTP(w, req)
+	defer conn.Close()
+	node := req.Context().Value("node").(*Node)
+	node.ServeRPC(conn)
 }
 
 // ServeHTTP implements the http.Handler interface by delegating to the
@@ -700,18 +698,19 @@ func (s *Server) JSON(w http.ResponseWriter, status int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
-// wrapHandler returns a httprouter.Handle which wraps a http.HandlerFunc by
+// wrapHandler returns an httprouter.Handle which wraps an http.HandlerFunc by
 // populating request.Context with any objects from the URL params
 func (s *Server) wrapHandler(handler http.HandlerFunc) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
-		ctx := context.Background()
+		ctx := req.Context()
 
 		if id := params.ByName("nodeid"); id != "" {
+			var nodeID enode.ID
 			var node *Node
-			if nodeID, err := discover.HexID(id); err == nil {
+			if nodeID.UnmarshalText([]byte(id)) == nil {
 				node = s.network.GetNode(nodeID)
 			} else {
 				node = s.network.GetNodeByName(id)
@@ -724,8 +723,9 @@ func (s *Server) wrapHandler(handler http.HandlerFunc) httprouter.Handle {
 		}
 
 		if id := params.ByName("peerid"); id != "" {
+			var peerID enode.ID
 			var peer *Node
-			if peerID, err := discover.HexID(id); err == nil {
+			if peerID.UnmarshalText([]byte(id)) == nil {
 				peer = s.network.GetNode(peerID)
 			} else {
 				peer = s.network.GetNodeByName(id)

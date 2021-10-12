@@ -192,7 +192,7 @@ func BytesToAddress(b []byte) Address {
 func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 func HexToAddress(s string) Address   { return BytesToAddress(FromHex(s)) }
 func IsHexAddress(s string) bool {
-	if hasHexPrefix(s) {
+	if has0xPrefix(s) {
 		s = s[2:]
 	}
 	return len(s) == 2*AddressLength && isHex(s)
@@ -258,7 +258,7 @@ func BytesToPublicKey(b []byte) PublicKey {
 func BigToPublicKey(b *big.Int) PublicKey { return BytesToPublicKey(b.Bytes()) }
 func HexToPublicKey(s string) PublicKey   { return BytesToPublicKey(FromHex(s)) }
 func IsHexPublicKey(s string) bool {
-	if hasHexPrefix(s) {
+	if has0xPrefix(s) {
 		s = s[2:]
 	}
 	return len(s) == 2*PubkeyLength && isHex(s)

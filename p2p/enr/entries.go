@@ -1,29 +1,26 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package enr
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"net"
 
-	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/rlp"
 )
 
@@ -63,10 +60,20 @@ type TCP uint16
 
 func (v TCP) ENRKey() string { return "tcp" }
 
+// UDP is the "udp" key, which holds the IPv6-specific UDP port of the node.
+type TCP6 uint16
+
+func (v TCP6) ENRKey() string { return "tcp6" }
+
 // UDP is the "udp" key, which holds the UDP port of the node.
 type UDP uint16
 
 func (v UDP) ENRKey() string { return "udp" }
+
+// UDP is the "udp" key, which holds the IPv6-specific UDP port of the node.
+type UDP6 uint16
+
+func (v UDP6) ENRKey() string { return "udp6" }
 
 // ID is the "id" key, which holds the name of the identity scheme.
 type ID string
@@ -75,17 +82,27 @@ const IDv4 = ID("v4") // the default identity scheme
 
 func (v ID) ENRKey() string { return "id" }
 
-// IP is the "ip" key, which holds the IP address of the node.
+// IP is either the "ip" or "ip6" key, depending on the value.
+// Use this value to encode IP addresses that can be either v4 or v6.
+// To load an address from a record use the IPv4 or IPv6 types.
 type IP net.IP
 
-func (v IP) ENRKey() string { return "ip" }
+func (v IP) ENRKey() string {
+	if net.IP(v).To4() == nil {
+		return "ip6"
+	}
+	return "ip"
+}
 
 // EncodeRLP implements rlp.Encoder.
 func (v IP) EncodeRLP(w io.Writer) error {
 	if ip4 := net.IP(v).To4(); ip4 != nil {
 		return rlp.Encode(w, ip4)
 	}
-	return rlp.Encode(w, net.IP(v))
+	if ip6 := net.IP(v).To16(); ip6 != nil {
+		return rlp.Encode(w, ip6)
+	}
+	return fmt.Errorf("invalid IP address: %v", net.IP(v))
 }
 
 // DecodeRLP implements rlp.Decoder.
@@ -99,27 +116,53 @@ func (v *IP) DecodeRLP(s *rlp.Stream) error {
 	return nil
 }
 
-// Secp256k1 is the "secp256k1" key, which holds a public key.
-type Secp256k1 ecdsa.PublicKey
+// IPv4 is the "ip" key, which holds the IP address of the node.
+type IPv4 net.IP
 
-func (v Secp256k1) ENRKey() string { return "secp256k1" }
+func (v IPv4) ENRKey() string { return "ip" }
 
 // EncodeRLP implements rlp.Encoder.
-func (v Secp256k1) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, crypto.CompressPubkey((*ecdsa.PublicKey)(&v)))
+func (v IPv4) EncodeRLP(w io.Writer) error {
+	ip4 := net.IP(v).To4()
+	if ip4 == nil {
+		return fmt.Errorf("invalid IPv4 address: %v", net.IP(v))
+	}
+	return rlp.Encode(w, ip4)
 }
 
 // DecodeRLP implements rlp.Decoder.
-func (v *Secp256k1) DecodeRLP(s *rlp.Stream) error {
-	buf, err := s.Bytes()
-	if err != nil {
+func (v *IPv4) DecodeRLP(s *rlp.Stream) error {
+	if err := s.Decode((*net.IP)(v)); err != nil {
 		return err
 	}
-	pk, err := crypto.DecompressPubkey(buf)
-	if err != nil {
+	if len(*v) != 4 {
+		return fmt.Errorf("invalid IPv4 address, want 4 bytes: %v", *v)
+	}
+	return nil
+}
+
+// IPv6 is the "ip6" key, which holds the IP address of the node.
+type IPv6 net.IP
+
+func (v IPv6) ENRKey() string { return "ip6" }
+
+// EncodeRLP implements rlp.Encoder.
+func (v IPv6) EncodeRLP(w io.Writer) error {
+	ip6 := net.IP(v).To16()
+	if ip6 == nil {
+		return fmt.Errorf("invalid IPv6 address: %v", net.IP(v))
+	}
+	return rlp.Encode(w, ip6)
+}
+
+// DecodeRLP implements rlp.Decoder.
+func (v *IPv6) DecodeRLP(s *rlp.Stream) error {
+	if err := s.Decode((*net.IP)(v)); err != nil {
 		return err
 	}
-	*v = (Secp256k1)(*pk)
+	if len(*v) != 16 {
+		return fmt.Errorf("invalid IPv6 address, want 16 bytes: %v", *v)
+	}
 	return nil
 }
 

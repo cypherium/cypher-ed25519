@@ -1,19 +1,18 @@
 // Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discv5
 
@@ -67,23 +66,6 @@ func (n *Node) addr() *net.UDPAddr {
 	return &net.UDPAddr{IP: n.IP, Port: int(n.UDP)}
 }
 
-func (n *Node) setAddr(a *net.UDPAddr) {
-	n.IP = a.IP
-	if ipv4 := a.IP.To4(); ipv4 != nil {
-		n.IP = ipv4
-	}
-	n.UDP = uint16(a.Port)
-}
-
-// compares the given address against the stored values.
-func (n *Node) addrEqual(a *net.UDPAddr) bool {
-	ip := a.IP
-	if ipv4 := a.IP.To4(); ipv4 != nil {
-		ip = ipv4
-	}
-	return n.UDP == uint16(a.Port) && n.IP.Equal(ip)
-}
-
 // Incomplete returns true for nodes with no IP address.
 func (n *Node) Incomplete() bool {
 	return n.IP == nil
@@ -110,7 +92,7 @@ func (n *Node) validateComplete() error {
 // The string representation of a Node is a URL.
 // Please see ParseNode for a description of the format.
 func (n *Node) String() string {
-	u := url.URL{Scheme: "cnode"}
+	u := url.URL{Scheme: "enode"}
 	if n.Incomplete() {
 		u.Host = fmt.Sprintf("%x", n.ID[:])
 	} else {
@@ -124,7 +106,7 @@ func (n *Node) String() string {
 	return u.String()
 }
 
-var incompleteNodeURL = regexp.MustCompile("(?i)^(?:cnode://)?([0-9a-f]+)$")
+var incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
 
 // ParseNode parses a node designator.
 //
@@ -134,7 +116,7 @@ var incompleteNodeURL = regexp.MustCompile("(?i)^(?:cnode://)?([0-9a-f]+)$")
 //
 // For incomplete nodes, the designator must look like one of these
 //
-//    cnode://<hex node id>
+//    enode://<hex node id>
 //    <hex node id>
 //
 // For complete nodes, the node ID is encoded in the username portion
@@ -148,7 +130,7 @@ var incompleteNodeURL = regexp.MustCompile("(?i)^(?:cnode://)?([0-9a-f]+)$")
 // a node with IP address 10.3.58.6, TCP listening port 30303
 // and UDP discovery port 30301.
 //
-//    cnode://<hex node id>@10.3.58.6:30303?discport=30301
+//    enode://<hex node id>@10.3.58.6:30303?discport=30301
 func ParseNode(rawurl string) (*Node, error) {
 	if m := incompleteNodeURL.FindStringSubmatch(rawurl); m != nil {
 		id, err := HexID(m[1])
@@ -170,8 +152,8 @@ func parseComplete(rawurl string) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.Scheme != "cnode" {
-		return nil, errors.New("invalid URL scheme, want \"cnode\"")
+	if u.Scheme != "enode" {
+		return nil, errors.New("invalid URL scheme, want \"enode\"")
 	}
 	// Parse the Node ID from the user portion.
 	if u.User == nil {
@@ -325,14 +307,6 @@ func (n NodeID) Pubkey() (*ecdsa.PublicKey, error) {
 		return nil, errors.New("id is invalid secp256k1 curve point")
 	}
 	return p, nil
-}
-
-func (id NodeID) mustPubkey() ecdsa.PublicKey {
-	pk, err := id.Pubkey()
-	if err != nil {
-		panic(err)
-	}
-	return *pk
 }
 
 // recoverNodeID computes the public key used to sign the

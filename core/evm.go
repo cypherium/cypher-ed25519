@@ -23,8 +23,8 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/log"
-	"github.com/cypherium/cypherBFT/params"
+//	"github.com/cypherium/cypherBFT/log"
+//	"github.com/cypherium/cypherBFT/params"
 )
 
 // NewEVMContext creates a new context for use in the EVM.
@@ -68,17 +68,7 @@ func GetHashFn(ref *types.Header, chain types.ChainReader) func(n uint64) common
 	}
 }
 
-func isTransferLocked(db vm.StateDB, addr common.Address, balance *big.Int, amount *big.Int) bool {
-	for _, a := range params.WhiteAddressList {
-		if a == addr {
-			return false
-		}
-	}
-	log.Info("Account locked", "address", addr)
-	return true
-}
-
-// CanTransfer checks wether there are enough funds in the address' account to make a transfer.
+// CanTransfer checks whether there are enough funds in the address' account to make a transfer.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 	return db.GetBalance(addr).Cmp(amount) >= 0

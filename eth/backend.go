@@ -113,7 +113,7 @@ func (s *Cypherium) AddLesServer(ls LesServer) {
 
 // New creates a new Cypherium object (including the
 // initialisation of the common Cypherium object)
-func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
+func New(ctx *node.Node, config *Config) (*Cypherium, error) {
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run eth.Cypherium in light sync mode, use les.LightCphereum")
 	}
@@ -126,7 +126,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	}
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisKeyBlock(chainDb, config.GenesisKey)
 	chainConfig.RnetPort = config.RnetPort
-	chainConfig.EnabledTPS = config.TxPool.EnableTPS
+	//??	chainConfig.EnabledTPS = config.TxPool.EnableTPS
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
@@ -152,8 +152,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 		config:         config,
 		chainDb:        chainDb,
 		chainConfig:    chainConfig,
-		eventMux:       ctx.EventMux,
-		accountManager: ctx.AccountManager,
+		eventMux:       ctx.EventMux(),
+		accountManager: ctx.AccountManager(),
 		engine:         CreateConsensusEngine(ctx, &config.Ethash, chainConfig, chainDb),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
@@ -167,26 +167,42 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 
 	if !config.SkipBcVersionCheck {
 		bcVersion := rawdb.ReadDatabaseVersion(chainDb)
-		if bcVersion != core.BlockChainVersion && bcVersion != 0 {
-			return nil, fmt.Errorf("Blockchain DB version mismatch (%d / %d). Run cypher upgradedb.\n", bcVersion, core.BlockChainVersion)
+		if *bcVersion != core.BlockChainVersion && *bcVersion != 0 {
+			return nil, fmt.Errorf("Blockchain DB version mismatch (%d / %d). Run cypher upgradedb.\n", *bcVersion, core.BlockChainVersion)
 		}
 		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 	}
 	var (
-		vmConfig = vm.Config{EnablePreimageRecording: config.EnablePreimageRecording}
-		//cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
-		cacheConfig = &core.CacheConfig{Disabled: true, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
+		vmConfig = vm.Config{
+			EnablePreimageRecording: config.EnablePreimageRecording,
+		}
+		cacheConfig = &core.CacheConfig{
+			TrieCleanLimit:      config.TrieCleanCache,
+			TrieCleanJournal:    ctx.ResolvePath(config.TrieCleanCacheJournal),
+			TrieCleanRejournal:  config.TrieCleanCacheRejournal,
+			TrieCleanNoPrefetch: config.NoPrefetch,
+			TrieDirtyLimit:      config.TrieDirtyCache,
+			TrieDirtyDisabled:   config.NoPruning,
+			TrieTimeLimit:       config.TrieTimeout,
+			SnapshotLimit:       config.SnapshotCache,
+		}
 	)
+	/*
+		var (
+			vmConfig = vm.Config{EnablePreimageRecording: config.EnablePreimageRecording}
+			//cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
+			cacheConfig = &core.CacheConfig{Disabled: true, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
+		)
+	*/
 	eth.keyBlockChain, err = core.NewKeyBlockChain(eth, chainDb, cacheConfig, eth.chainConfig, eth.engine, eth.EventMux())
 	if err != nil {
 		return nil, err
 	}
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, vmConfig, eth.keyBlockChain)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, vmConfig, nil, &config.TxLookupLimit, eth.keyBlockChain)
 	if err != nil {
 		return nil, err
 	}
 	eth.candidatePool = core.NewCandidatePool(eth, eth.EventMux(), chainDb)
-	eth.blockchain.Mux = eth.EventMux()
 
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
@@ -210,7 +226,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Cypherium, error) {
 	eth.candidatePool.CheckMinerPort = eth.reconfig.CheckMinerPort
 	eth.blockchain.AddNewMinedBlock = eth.protocolManager.AddNewMinedBlock
 	// eth.miner.SetExtra(makeExtraData(config.ExtraData))
-	eth.APIBackend = &EthAPIBackend{eth, nil}
+	eth.APIBackend = &EthAPIBackend{ctx.Config().ExtRPCEnabled(), eth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.GasPrice
@@ -240,19 +256,19 @@ func makeExtraData(extra []byte) []byte {
 }
 
 // CreateDB creates the chain database.
-func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Database, error) {
-	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles)
+func CreateDB(ctx *node.Node, config *Config, name string) (ethdb.Database, error) {
+	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
-	if db, ok := db.(*ethdb.LDBDatabase); ok {
-		db.Meter("eth/db/chaindata/")
-	}
+	//if db, ok := db.(*ethdb.LDBDatabase); ok {
+	//	db.Meter("eth/db/chaindata/")
+	//}
 	return db, nil
 }
 
 // CreateConsensusEngine creates the required type of pow engine instance for an Cypherium service
-func CreateConsensusEngine(ctx *node.ServiceContext, config *ethash.Config, chainConfig *params.ChainConfig, db ethdb.Database) pow.Engine {
+func CreateConsensusEngine(ctx *node.Node, config *ethash.Config, chainConfig *params.ChainConfig, db ethdb.Database) pow.Engine {
 	// If proof-of-authority is requested, set it up
 	//if chainConfig.Clique != nil {
 	//	return clique.New(chainConfig.Clique, db)

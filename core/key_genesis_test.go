@@ -66,7 +66,7 @@ func TestSetupKeyGenesis(t *testing.T) {
 				return SetupGenesisKeyBlock(db, new(KeyGenesis))
 			},
 			wantErr:    errKeyGenesisNoConfig,
-			wantConfig: params.AllCphashProtocolChanges,
+			wantConfig: params.AllEthashProtocolChanges,
 		},
 		{
 			name: "no block in DB, genesis == nil",

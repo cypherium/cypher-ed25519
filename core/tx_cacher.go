@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2018 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
@@ -23,7 +22,7 @@ import (
 	"github.com/cypherium/cypherBFT/core/types"
 )
 
-// senderCacher is a concurrent tranaction sender recoverer anc cacher.
+// senderCacher is a concurrent transaction sender recoverer and cacher.
 var senderCacher = newTxSenderCacher(runtime.NumCPU())
 
 // txSenderCacherRequest is a request for recovering transaction senders with a
@@ -46,7 +45,7 @@ type txSenderCacher struct {
 }
 
 // newTxSenderCacher creates a new transaction sender background cacher and starts
-// as many procesing goroutines as allowed by the GOMAXPROCS on construction.
+// as many processing goroutines as allowed by the GOMAXPROCS on construction.
 func newTxSenderCacher(threads int) *txSenderCacher {
 	cacher := &txSenderCacher{
 		tasks:   make(chan *txSenderCacherRequest, threads),

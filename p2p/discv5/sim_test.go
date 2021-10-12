@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package discv5
 
@@ -44,6 +43,7 @@ func TestSimRandomResolve(t *testing.T) {
 
 	// A new node joins every 10s.
 	launcher := time.NewTicker(10 * time.Second)
+	defer launcher.Stop()
 	go func() {
 		for range launcher.C {
 			net := sim.launchNode(false)
@@ -51,12 +51,11 @@ func TestSimRandomResolve(t *testing.T) {
 			if err := net.SetFallbackNodes([]*Node{bootnode.Self()}); err != nil {
 				panic(err)
 			}
-			fmt.Printf("launched @ %v: %x\n", time.Now(), net.Self().ID[:16])
+			t.Logf("launched @ %v: %x\n", time.Now(), net.Self().ID[:16])
 		}
 	}()
 
 	time.Sleep(3 * time.Hour)
-	launcher.Stop()
 	sim.shutdown()
 	sim.printStats()
 }
@@ -197,6 +196,7 @@ func randomResolves(t *testing.T, s *simulation, net *Network) {
 	}
 
 	timer := time.NewTimer(randtime())
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
@@ -295,15 +295,6 @@ func (s *simulation) launchNode(log bool) *Network {
 	return net
 }
 
-func (s *simulation) dropNode(id NodeID) {
-	s.mu.Lock()
-	n := s.nodes[id]
-	delete(s.nodes, id)
-	s.mu.Unlock()
-
-	n.Close()
-}
-
 type simTransport struct {
 	joinTime   time.Time
 	sender     NodeID
@@ -357,22 +348,6 @@ func (st *simTransport) sendPing(remote *Node, remoteAddr *net.UDPAddr, topics [
 		},
 	})
 	return hash
-}
-
-func (st *simTransport) sendPong(remote *Node, pingHash []byte) {
-	raddr := remote.addr()
-
-	st.sendPacket(remote.ID, ingressPacket{
-		remoteID:   st.sender,
-		remoteAddr: st.senderAddr,
-		hash:       st.nextHash(),
-		ev:         pongPacket,
-		data: &pong{
-			To:         rpcEndpoint{IP: raddr.IP, UDP: uint16(raddr.Port), TCP: 30303},
-			ReplyTok:   pingHash,
-			Expiration: uint64(time.Now().Unix() + int64(expiration)),
-		},
-	})
 }
 
 func (st *simTransport) sendFindnodeHash(remote *Node, target common.Hash) {

@@ -184,10 +184,11 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("init blockchain,invalid genesis file: %v", err)
 	}
 
-	// Open an initialise both full and light databases
-	stack := makeFullNode(ctx)
+	// Open and initialise both full and light databases
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
 	for _, name := range []string{"chaindata"} {
-		chaindb, err := stack.OpenDatabase(name, 0, 0)
+		chaindb, err := stack.OpenDatabase(name, 0, 0, "")
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}

@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package abi
 
@@ -40,23 +39,21 @@ func formatSliceString(kind reflect.Kind, sliceSize int) string {
 // type in t.
 func sliceTypeCheck(t Type, val reflect.Value) error {
 	if val.Kind() != reflect.Slice && val.Kind() != reflect.Array {
-		return typeErr(formatSliceString(t.Kind, t.Size), val.Type())
+		return typeErr(formatSliceString(t.GetType().Kind(), t.Size), val.Type())
 	}
 
 	if t.T == ArrayTy && val.Len() != t.Size {
-		return typeErr(formatSliceString(t.Elem.Kind, t.Size), formatSliceString(val.Type().Elem().Kind(), val.Len()))
+		return typeErr(formatSliceString(t.Elem.GetType().Kind(), t.Size), formatSliceString(val.Type().Elem().Kind(), val.Len()))
 	}
 
-	if t.Elem.T == SliceTy {
+	if t.Elem.T == SliceTy || t.Elem.T == ArrayTy {
 		if val.Len() > 0 {
 			return sliceTypeCheck(*t.Elem, val.Index(0))
 		}
-	} else if t.Elem.T == ArrayTy {
-		return sliceTypeCheck(*t.Elem, val.Index(0))
 	}
 
-	if elemKind := val.Type().Elem().Kind(); elemKind != t.Elem.Kind {
-		return typeErr(formatSliceString(t.Elem.Kind, t.Size), val.Type())
+	if elemKind := val.Type().Elem().Kind(); elemKind != t.Elem.GetType().Kind() {
+		return typeErr(formatSliceString(t.Elem.GetType().Kind(), t.Size), val.Type())
 	}
 	return nil
 }
@@ -69,10 +66,10 @@ func typeCheck(t Type, value reflect.Value) error {
 	}
 
 	// Check base type validity. Element types will be checked later on.
-	if t.Kind != value.Kind() {
-		return typeErr(t.Kind, value.Kind())
+	if t.GetType().Kind() != value.Kind() {
+		return typeErr(t.GetType().Kind(), value.Kind())
 	} else if t.T == FixedBytesTy && t.Size != value.Len() {
-		return typeErr(t.Type, value.Type())
+		return typeErr(t.GetType(), value.Type())
 	} else {
 		return nil
 	}

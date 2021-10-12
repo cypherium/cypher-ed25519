@@ -1,27 +1,28 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package math
 
 import (
 	"fmt"
-	"math/rand"
+	"math/bits"
 	"strconv"
+	"math/rand"
 	"time"
+	
 )
 
 // Integer limit values.
@@ -81,25 +82,24 @@ func MustParseUint64(s string) uint64 {
 	return v
 }
 
-// NOTE: The following methods need to be optimised using either bit checking or asm
-
-// SafeSub returns subtraction result and whether overflow occurred.
+// SafeSub returns x-y and checks for overflow.
 func SafeSub(x, y uint64) (uint64, bool) {
-	return x - y, x < y
+	diff, borrowOut := bits.Sub64(x, y, 0)
+	return diff, borrowOut != 0
 }
 
-// SafeAdd returns the result and whether overflow occurred.
+// SafeAdd returns x+y and checks for overflow.
 func SafeAdd(x, y uint64) (uint64, bool) {
-	return x + y, y > MaxUint64-x
+	sum, carryOut := bits.Add64(x, y, 0)
+	return sum, carryOut != 0
 }
 
-// SafeMul returns multiplication result and whether overflow occurred.
+// SafeMul returns x*y and checks for overflow.
 func SafeMul(x, y uint64) (uint64, bool) {
-	if x == 0 || y == 0 {
-		return 0, false
-	}
-	return x * y, y > MaxUint64/x
+	hi, lo := bits.Mul64(x, y)
+	return lo, hi != 0
 }
+
 
 // GetRandIntArray returns int array with no repeat
 func GetRandIntArray(max int, num int) map[int]bool {
@@ -118,3 +118,4 @@ func GetRandIntArray(max int, num int) map[int]bool {
 
 	return a
 }
+

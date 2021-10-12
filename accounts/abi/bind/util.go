@@ -1,25 +1,24 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package bind
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/cypherium/cypherBFT/common"
@@ -57,14 +56,14 @@ func WaitMined(ctx context.Context, b DeployBackend, tx *types.Transaction) (*ty
 // contract address when it is mined. It stops waiting when ctx is canceled.
 func WaitDeployed(ctx context.Context, b DeployBackend, tx *types.Transaction) (common.Address, error) {
 	if tx.To() != nil {
-		return common.Address{}, fmt.Errorf("tx is not contract creation")
+		return common.Address{}, errors.New("tx is not contract creation")
 	}
 	receipt, err := WaitMined(ctx, b, tx)
 	if err != nil {
 		return common.Address{}, err
 	}
 	if receipt.ContractAddress == (common.Address{}) {
-		return common.Address{}, fmt.Errorf("zero address")
+		return common.Address{}, errors.New("zero address")
 	}
 	// Check that code has indeed been deployed at the address.
 	// This matters on pre-Homestead chains: OOG in the constructor

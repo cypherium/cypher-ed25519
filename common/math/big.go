@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package math provides integer math utilities.
 package math
@@ -42,6 +41,13 @@ const (
 
 // HexOrDecimal256 marshals big.Int as hex or decimal.
 type HexOrDecimal256 big.Int
+
+// NewHexOrDecimal256 creates a new HexOrDecimal256
+func NewHexOrDecimal256(x int64) *HexOrDecimal256 {
+	b := big.NewInt(x)
+	h := HexOrDecimal256(*b)
+	return &h
+}
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (i *HexOrDecimal256) UnmarshalText(input []byte) error {
@@ -176,6 +182,12 @@ func ReadBits(bigint *big.Int, buf []byte) {
 // U256 encodes as a 256 bit two's complement number. This operation is destructive.
 func U256(x *big.Int) *big.Int {
 	return x.And(x, tt256m1)
+}
+
+// U256Bytes converts a big Int into a 256bit EVM number.
+// This operation is destructive.
+func U256Bytes(n *big.Int) []byte {
+	return PaddedBigBytes(U256(n), 32)
 }
 
 // S256 interprets x as a two's complement number.

@@ -9,7 +9,7 @@ import (
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/params"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 type KeyHeaderChain struct {
@@ -137,7 +137,7 @@ func (khc *KeyHeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
 
 // SetHead rewinds the local chain to a new head. Everything above the new head
 // will be deleted and the new one set.
-func (khc *KeyHeaderChain) SetHead(head uint64, delFn DeleteCallback) {
+func (khc *KeyHeaderChain) SetHead(head uint64, delFn DeleteBlockContentCallback) {
 	height := uint64(0)
 
 	if hdr := khc.CurrentHeader(); hdr != nil {

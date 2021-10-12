@@ -1,19 +1,18 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package tracers
 
@@ -94,18 +93,27 @@ type memoryWrapper struct {
 
 // slice returns the requested range of memory as a byte slice.
 func (mw *memoryWrapper) slice(begin, end int64) []byte {
+	if end == begin {
+		return []byte{}
+	}
+	if end < begin || begin < 0 {
+		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
+		// runtime goes belly up https://github.com/golang/go/issues/15639.
+		log.Warn("Tracer accessed out of bound memory", "offset", begin, "end", end)
+		return nil
+	}
 	if mw.memory.Len() < int(end) {
 		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
 		// runtime goes belly up https://github.com/golang/go/issues/15639.
 		log.Warn("Tracer accessed out of bound memory", "available", mw.memory.Len(), "offset", begin, "size", end-begin)
 		return nil
 	}
-	return mw.memory.Get(begin, end-begin)
+	return mw.memory.GetCopy(begin, end-begin)
 }
 
 // getUint returns the 32 bytes at the specified address interpreted as a uint.
 func (mw *memoryWrapper) getUint(addr int64) *big.Int {
-	if mw.memory.Len() < int(addr)+32 {
+	if mw.memory.Len() < int(addr)+32 || addr < 0 {
 		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
 		// runtime goes belly up https://github.com/golang/go/issues/15639.
 		log.Warn("Tracer accessed out of bound memory", "available", mw.memory.Len(), "offset", addr, "size", 32)
@@ -125,7 +133,7 @@ func (mw *memoryWrapper) pushObject(vm *duktape.Context) {
 		ctx.Pop2()
 
 		ptr := ctx.PushFixedBuffer(len(blob))
-		copy(makeSlice(ptr, uint(len(blob))), blob[:])
+		copy(makeSlice(ptr, uint(len(blob))), blob)
 		return 1
 	})
 	vm.PutPropString(obj, "slice")
@@ -148,13 +156,13 @@ type stackWrapper struct {
 
 // peek returns the nth-from-the-top element of the stack.
 func (sw *stackWrapper) peek(idx int) *big.Int {
-	if len(sw.stack.Data()) <= idx {
+	if len(sw.stack.Data()) <= idx || idx < 0 {
 		// TODO(karalabe): We can't js-throw from Go inside duktape inside Go. The Go
 		// runtime goes belly up https://github.com/golang/go/issues/15639.
 		log.Warn("Tracer accessed out of bound stack", "size", len(sw.stack.Data()), "index", idx)
 		return new(big.Int)
 	}
-	return sw.stack.Data()[len(sw.stack.Data())-idx-1]
+	return sw.stack.Back(idx).ToBig()
 }
 
 // pushObject assembles a JSVM object wrapping a swappable stack and pushes it
@@ -205,7 +213,7 @@ func (dw *dbWrapper) pushObject(vm *duktape.Context) {
 		code := dw.db.GetCode(common.BytesToAddress(popSlice(ctx)))
 
 		ptr := ctx.PushFixedBuffer(len(code))
-		copy(makeSlice(ptr, uint(len(code))), code[:])
+		copy(makeSlice(ptr, uint(len(code))), code)
 		return 1
 	})
 	vm.PutPropString(obj, "getCode")
@@ -269,7 +277,7 @@ func (cw *contractWrapper) pushObject(vm *duktape.Context) {
 		blob := cw.contract.Input
 
 		ptr := ctx.PushFixedBuffer(len(blob))
-		copy(makeSlice(ptr, uint(len(blob))), blob[:])
+		copy(makeSlice(ptr, uint(len(blob))), blob)
 		return 1
 	})
 	vm.PutPropString(obj, "getInput")
@@ -291,11 +299,12 @@ type Tracer struct {
 	contractWrapper *contractWrapper // Wrapper around the contract object
 	dbWrapper       *dbWrapper       // Wrapper around the VM environment
 
-	pcValue    *uint   // Swappable pc value wrapped by a log accessor
-	gasValue   *uint   // Swappable gas value wrapped by a log accessor
-	costValue  *uint   // Swappable cost value wrapped by a log accessor
-	depthValue *uint   // Swappable depth value wrapped by a log accessor
-	errorValue *string // Swappable error value wrapped by a log accessor
+	pcValue     *uint   // Swappable pc value wrapped by a log accessor
+	gasValue    *uint   // Swappable gas value wrapped by a log accessor
+	costValue   *uint   // Swappable cost value wrapped by a log accessor
+	depthValue  *uint   // Swappable depth value wrapped by a log accessor
+	errorValue  *string // Swappable error value wrapped by a log accessor
+	refundValue *uint   // Swappable refund value wrapped by a log accessor
 
 	ctx map[string]interface{} // Transaction context gathered throughout execution
 	err error                  // Error, if one has occurred
@@ -324,6 +333,7 @@ func New(code string) (*Tracer, error) {
 		gasValue:        new(uint),
 		costValue:       new(uint),
 		depthValue:      new(uint),
+		refundValue:     new(uint),
 	}
 	// Set up builtins for this environment
 	tracer.vm.PushGlobalGoFunction("toHex", func(ctx *duktape.Context) int {
@@ -366,8 +376,30 @@ func New(code string) (*Tracer, error) {
 		copy(makeSlice(ctx.PushFixedBuffer(20), 20), contract[:])
 		return 1
 	})
+	tracer.vm.PushGlobalGoFunction("toContract2", func(ctx *duktape.Context) int {
+		var from common.Address
+		if ptr, size := ctx.GetBuffer(-3); ptr != nil {
+			from = common.BytesToAddress(makeSlice(ptr, size))
+		} else {
+			from = common.HexToAddress(ctx.GetString(-3))
+		}
+		// Retrieve salt hex string from js stack
+		salt := common.HexToHash(ctx.GetString(-2))
+		// Retrieve code slice from js stack
+		var code []byte
+		if ptr, size := ctx.GetBuffer(-1); ptr != nil {
+			code = common.CopyBytes(makeSlice(ptr, size))
+		} else {
+			code = common.FromHex(ctx.GetString(-1))
+		}
+		codeHash := crypto.Keccak256(code)
+		ctx.Pop3()
+		contract := crypto.CreateAddress2(from, salt, codeHash)
+		copy(makeSlice(ctx.PushFixedBuffer(20), 20), contract[:])
+		return 1
+	})
 	tracer.vm.PushGlobalGoFunction("isPrecompiled", func(ctx *duktape.Context) int {
-		_, ok := vm.PrecompiledContractsByzantium[common.BytesToAddress(popSlice(ctx))]
+		_, ok := vm.PrecompiledContractsIstanbul[common.BytesToAddress(popSlice(ctx))]
 		ctx.PushBoolean(ok)
 		return 1
 	})
@@ -396,17 +428,17 @@ func New(code string) (*Tracer, error) {
 	tracer.tracerObject = 0 // yeah, nice, eval can't return the index itself
 
 	if !tracer.vm.GetPropString(tracer.tracerObject, "step") {
-		return nil, fmt.Errorf("Trace object must expose a function step()")
+		return nil, fmt.Errorf("trace object must expose a function step()")
 	}
 	tracer.vm.Pop()
 
 	if !tracer.vm.GetPropString(tracer.tracerObject, "fault") {
-		return nil, fmt.Errorf("Trace object must expose a function fault()")
+		return nil, fmt.Errorf("trace object must expose a function fault()")
 	}
 	tracer.vm.Pop()
 
 	if !tracer.vm.GetPropString(tracer.tracerObject, "result") {
-		return nil, fmt.Errorf("Trace object must expose a function result()")
+		return nil, fmt.Errorf("trace object must expose a function result()")
 	}
 	tracer.vm.Pop()
 
@@ -442,6 +474,9 @@ func New(code string) (*Tracer, error) {
 
 	tracer.vm.PushGoFunction(func(ctx *duktape.Context) int { ctx.PushUint(*tracer.depthValue); return 1 })
 	tracer.vm.PutPropString(logObject, "getDepth")
+
+	tracer.vm.PushGoFunction(func(ctx *duktape.Context) int { ctx.PushUint(*tracer.refundValue); return 1 })
+	tracer.vm.PutPropString(logObject, "getRefund")
 
 	tracer.vm.PushGoFunction(func(ctx *duktape.Context) int {
 		if tracer.errorValue != nil {
@@ -487,12 +522,7 @@ func (jst *Tracer) call(method string, args ...string) (json.RawMessage, error) 
 }
 
 func wrapError(context string, err error) error {
-	var message string
-	switch err := err.(type) {
-	default:
-		message = err.Error()
-	}
-	return fmt.Errorf("%v    in server-side tracer function '%v'", message, context)
+	return fmt.Errorf("%v    in server-side tracer function '%v'", err, context)
 }
 
 // CaptureStart implements the Tracer interface to initialize the tracing operation.
@@ -511,7 +541,7 @@ func (jst *Tracer) CaptureStart(from common.Address, to common.Address, create b
 }
 
 // CaptureState implements the Tracer interface to trace a single step of VM execution.
-func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
+func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, rStack *vm.ReturnStack, rdata []byte, contract *vm.Contract, depth int, err error) error {
 	if jst.err == nil {
 		// Initialize the context if it wasn't done yet
 		if !jst.inited {
@@ -533,6 +563,7 @@ func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost 
 		*jst.gasValue = uint(gas)
 		*jst.costValue = uint(cost)
 		*jst.depthValue = uint(depth)
+		*jst.refundValue = uint(env.StateDB.GetRefund())
 
 		jst.errorValue = nil
 		if err != nil {
@@ -549,7 +580,7 @@ func (jst *Tracer) CaptureState(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost 
 
 // CaptureFault implements the Tracer interface to trace an execution fault
 // while running an opcode.
-func (jst *Tracer) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, contract *vm.Contract, depth int, err error) error {
+func (jst *Tracer) CaptureFault(env *vm.EVM, pc uint64, op vm.OpCode, gas, cost uint64, memory *vm.Memory, stack *vm.Stack, rStack *vm.ReturnStack, contract *vm.Contract, depth int, err error) error {
 	if jst.err == nil {
 		// Apart from the error, everything matches the previous invocation
 		jst.errorValue = new(string)
@@ -590,7 +621,7 @@ func (jst *Tracer) GetResult() (json.RawMessage, error) {
 
 		case []byte:
 			ptr := jst.vm.PushFixedBuffer(len(val))
-			copy(makeSlice(ptr, uint(len(val))), val[:])
+			copy(makeSlice(ptr, uint(len(val))), val)
 
 		case common.Address:
 			ptr := jst.vm.PushFixedBuffer(20)

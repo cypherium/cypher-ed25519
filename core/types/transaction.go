@@ -199,6 +199,12 @@ func (tx *Transaction) Data() []byte        { return common.CopyBytes(tx.data.Pa
 func (tx *Transaction) Gas() uint64         { return tx.data.GasLimit }
 func (tx *Transaction) GasPrice() *big.Int  { return new(big.Int).Set(tx.data.Price) }
 func (tx *Transaction) GasPriceU64() uint64 { return tx.data.Price.Uint64() }
+func (tx *Transaction) GasPriceCmp(other *Transaction) int {
+	return tx.data.Price.Cmp(other.data.Price)
+}
+func (tx *Transaction) GasPriceIntCmp(other *big.Int) int {
+	return tx.data.Price.Cmp(other)
+}
 func (tx *Transaction) Value() *big.Int     { return new(big.Int).Set(tx.data.Amount) }
 func (tx *Transaction) Nonce() uint64       { return tx.data.AccountNonce }
 func (tx *Transaction) Version() uint64     { return tx.data.Version }

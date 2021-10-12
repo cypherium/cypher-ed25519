@@ -74,7 +74,7 @@ func (b *BlockGen) AddTx(tx *types.Transaction) {
 // the block in chain will be returned.
 func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _, err := ApplyTransaction(false, nil, nil, b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{}) //?? (nil
+	receipt, err := ApplyTransaction(false, nil, nil, b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, &vm.Config{}) //?? (nil
 	if err != nil {
 		panic(err)
 	}
@@ -152,7 +152,9 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.E
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
 		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
-		blockchain, _ := NewBlockChain(db, nil, config, vm.Config{}, nil) //??
+		//blockchain, _ := NewBlockChain(db, nil, config, vm.Config{}, nil) //??
+		blockchain, _ := NewBlockChain(db, nil, config, vm.Config{}, nil, nil, nil)
+
 		defer blockchain.Stop()
 
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
@@ -166,11 +168,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.E
 		if b.engine != nil {
 			block, _ := blockchain.Processor.Finalize(false, b.header, statedb, b.txs, b.receipts, 0)
 			// Write state changes to db
-			root, err := statedb.Commit()
+			root, err := statedb.Commit(false)
 			if err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
-			if err := statedb.Database().TrieDB().Commit(root, false); err != nil {
+			if err := statedb.Database().TrieDB().Commit(root, false, nil); err != nil {
 				panic(fmt.Sprintf("trie write error: %v", err))
 			}
 			return block, b.receipts
@@ -178,7 +180,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine pow.E
 		return nil, nil
 	}
 	for i := 0; i < n; i++ {
-		statedb, err := state.New(parent.Root(), state.NewDatabase(db))
+		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
 		if err != nil {
 			panic(err)
 		}
@@ -199,9 +201,9 @@ func makeHeader(chain types.ChainReader, parent *types.Block, state *state.State
 	}
 
 	return &types.Header{
-		Root:       state.IntermediateRoot(),
+		Root:       state.IntermediateRoot(false),
 		ParentHash: parent.Hash(),
-		GasLimit:   CalcGasLimit(parent),
+		GasLimit:   CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
 	}

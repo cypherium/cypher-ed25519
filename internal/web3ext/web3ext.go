@@ -1,40 +1,42 @@
 // Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// package web3ext contains cypher specific web3.js extensions.
+// package web3ext contains geth specific web3.js extensions.
 package web3ext
 
 var Modules = map[string]string{
-	"admin":      Admin_JS,
-	"chequebook": Chequebook_JS,
-	"clique":     Clique_JS,
-	"debug":      Debug_JS,
-	"eth":       Eth_JS,
-	"miner":      Miner_JS,
-	"net":        Net_JS,
-	"personal":   Personal_JS,
-	"rpc":        RPC_JS,
-	"shh":        Shh_JS,
-	"swarmfs":    SWARMFS_JS,
-	"txpool":     TxPool_JS,
-	"reconfig":   Reconfig_JS,
+	"accounting": AccountingJs,
+	"admin":      AdminJs,
+	"chequebook": ChequebookJs,
+	"clique":     CliqueJs,
+	"ethash":     EthashJs,
+	"debug":      DebugJs,
+	"eth":        EthJs,
+	"miner":      MinerJs,
+	"net":        NetJs,
+	"personal":   PersonalJs,
+	"rpc":        RpcJs,
+	"shh":        ShhJs,
+	"swarmfs":    SwarmfsJs,
+	"txpool":     TxpoolJs,
+//	"les":        LESJs,
+//	"lespay":     LESPayJs,
 }
 
-const Chequebook_JS = `
+const ChequebookJs = `
 web3._extend({
 	property: 'chequebook',
 	methods: [
@@ -65,7 +67,7 @@ web3._extend({
 });
 `
 
-const Clique_JS = `
+const CliqueJs = `
 web3._extend({
 	property: 'clique',
 	methods: [
@@ -73,7 +75,7 @@ web3._extend({
 			name: 'getSnapshot',
 			call: 'clique_getSnapshot',
 			params: 1,
-			inputFormatter: [null]
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getSnapshotAtHash',
@@ -84,7 +86,7 @@ web3._extend({
 			name: 'getSigners',
 			call: 'clique_getSigners',
 			params: 1,
-			inputFormatter: [null]
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getSignersAtHash',
@@ -101,6 +103,11 @@ web3._extend({
 			call: 'clique_discard',
 			params: 1
 		}),
+		new web3._extend.Method({
+			name: 'status',
+			call: 'clique_status',
+			params: 0
+		}),
 	],
 	properties: [
 		new web3._extend.Property({
@@ -111,7 +118,35 @@ web3._extend({
 });
 `
 
-const Admin_JS = `
+const EthashJs = `
+web3._extend({
+	property: 'ethash',
+	methods: [
+		new web3._extend.Method({
+			name: 'getWork',
+			call: 'ethash_getWork',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'getHashrate',
+			call: 'ethash_getHashrate',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'submitWork',
+			call: 'ethash_submitWork',
+			params: 3,
+		}),
+		new web3._extend.Method({
+			name: 'submitHashRate',
+			call: 'ethash_submitHashRate',
+			params: 2,
+		}),
+	]
+});
+`
+
+const AdminJs = `
 web3._extend({
 	property: 'admin',
 	methods: [
@@ -179,7 +214,7 @@ web3._extend({
 });
 `
 
-const Debug_JS = `
+const DebugJs = `
 web3._extend({
 	property: 'debug',
 	methods: [
@@ -217,11 +252,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'chaindbCompact',
 			call: 'debug_chaindbCompact',
-		}),
-		new web3._extend.Method({
-			name: 'metrics',
-			call: 'debug_metrics',
-			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'verbosity',
@@ -392,7 +422,7 @@ web3._extend({
 });
 `
 
-const Eth_JS = `
+const EthJs = `
 web3._extend({
 	property: 'eth',
 	methods: [
@@ -439,6 +469,32 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'fillTransaction',
+			call: 'eth_fillTransaction',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getHeaderByNumber',
+			call: 'eth_getHeaderByNumber',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getHeaderByHash',
+			call: 'eth_getHeaderByHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getBlockByNumber',
+			call: 'eth_getBlockByNumber',
+			params: 2
+		}),
+		new web3._extend.Method({
+			name: 'getBlockByHash',
+			call: 'eth_getBlockByHash',
+			params: 2
+		}),
+		new web3._extend.Method({
 			name: 'getRawTransaction',
 			call: 'eth_getRawTransactionByHash',
 			params: 1
@@ -458,12 +514,6 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
 		}),
 		new web3._extend.Method({
-			name: 'announceBlock',
-			call: 'eth_announceBlock',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
-		}),
-		new web3._extend.Method({
 			name: 'announceTxBlock',
 			call: 'eth_announceTxBlock',
 			params: 1,
@@ -476,13 +526,6 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter],
 		}),
 
-		new web3._extend.Method({
-			name: 'getBlockByNumber',
-			call: 'eth_getBlockByNumber',
-			params: 3,
-			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, null, null],
-			outputFormatter: web3._extend.formatters.outputBlockFormatter,
-		}),
 
 	],
 	properties: [
@@ -506,7 +549,7 @@ web3._extend({
 });
 `
 
-const Miner_JS = `
+const MinerJs = `
 web3._extend({
 	property: 'miner',
 	methods: [
@@ -519,6 +562,12 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'stop',
 			call: 'miner_stop'
+		}),
+		new web3._extend.Method({
+			name: 'setEtherbase',
+			call: 'miner_setEtherbase',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'setExtra',
@@ -564,7 +613,7 @@ web3._extend({
 });
 `
 
-const Net_JS = `
+const NetJs = `
 web3._extend({
 	property: 'net',
 	methods: [],
@@ -577,7 +626,7 @@ web3._extend({
 });
 `
 
-const Personal_JS = `
+const PersonalJs = `
 web3._extend({
 	property: 'personal',
 	methods: [
@@ -623,7 +672,7 @@ web3._extend({
 })
 `
 
-const RPC_JS = `
+const RpcJs = `
 web3._extend({
 	property: 'rpc',
 	methods: [],
@@ -636,7 +685,7 @@ web3._extend({
 });
 `
 
-const Shh_JS = `
+const ShhJs = `
 web3._extend({
 	property: 'shh',
 	methods: [
@@ -656,7 +705,7 @@ web3._extend({
 });
 `
 
-const SWARMFS_JS = `
+const SwarmfsJs = `
 web3._extend({
 	property: 'swarmfs',
 	methods:
@@ -680,7 +729,7 @@ web3._extend({
 });
 `
 
-const TxPool_JS = `
+const TxpoolJs = `
 web3._extend({
 	property: 'txpool',
 	methods: [],
@@ -706,23 +755,47 @@ web3._extend({
 	]
 });
 `
-const Reconfig_JS = `
+
+const AccountingJs = `
 web3._extend({
-	property: 'reconfig',
+	property: 'accounting',
 	methods: [
-		new web3._extend.Method({
-			name: 'start',
-			call: 'reconfig_start',
-			params: 2,
-			inputFormatter: [web3._extend.utils.toDecimal, web3._extend.formatters.inputAddressFormatter]
+		new web3._extend.Property({
+			name: 'balance',
+			getter: 'account_balance'
 		}),
-		new web3._extend.Method({
-			name: 'viewChange',
-			call: 'reconfig_viewChange',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputPostFormatter]
+		new web3._extend.Property({
+			name: 'balanceCredit',
+			getter: 'account_balanceCredit'
 		}),
-	],
-	properties: []
+		new web3._extend.Property({
+			name: 'balanceDebit',
+			getter: 'account_balanceDebit'
+		}),
+		new web3._extend.Property({
+			name: 'bytesCredit',
+			getter: 'account_bytesCredit'
+		}),
+		new web3._extend.Property({
+			name: 'bytesDebit',
+			getter: 'account_bytesDebit'
+		}),
+		new web3._extend.Property({
+			name: 'msgCredit',
+			getter: 'account_msgCredit'
+		}),
+		new web3._extend.Property({
+			name: 'msgDebit',
+			getter: 'account_msgDebit'
+		}),
+		new web3._extend.Property({
+			name: 'peerDrops',
+			getter: 'account_peerDrops'
+		}),
+		new web3._extend.Property({
+			name: 'selfDrops',
+			getter: 'account_selfDrops'
+		}),
+	]
 });
 `

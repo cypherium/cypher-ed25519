@@ -45,16 +45,23 @@ var DefaultConfig = Config{
 	},
 	NetworkId:     1,
 	LightPeers:    100,
-	DatabaseCache: 768,
-	TrieCache:     256,
-	TrieTimeout:   60 * time.Minute,
+	DatabaseCache:           512,
+	TrieCleanCache:          154,
+	TrieCleanCacheJournal:   "triecache",
+	TrieCleanCacheRejournal: 60 * time.Minute,
+	TrieDirtyCache:          256,
+	TrieTimeout:             60 * time.Minute,
+	SnapshotCache:           102,
 	GasPrice:      big.NewInt(18 * params.Shannon),
 
 	TxPool: core.DefaultTxPoolConfig,
+	RPCGasCap:   25000000,
 	GPO: gasprice.Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+	RPCTxFeeCap: 1, // 1 ether
+
 }
 
 func init() {
@@ -82,8 +89,11 @@ type Config struct {
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode
-	NoPruning bool
 
+	NoPruning  bool // Whether to disable pruning and flush everything to disk
+	NoPrefetch bool // Whether to disable prefetching and only load state on demand
+
+	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 	// Light client options
 	LightServ  int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
 	LightPeers int `toml:",omitempty"` // Maximum number of LES client peers
@@ -92,8 +102,13 @@ type Config struct {
 	SkipBcVersionCheck bool `toml:"-"`
 	DatabaseHandles    int  `toml:"-"`
 	DatabaseCache      int
-	TrieCache          int
-	TrieTimeout        time.Duration
+
+	TrieCleanCache          int
+	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
+	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache
+	TrieDirtyCache          int
+	TrieTimeout             time.Duration
+	SnapshotCache           int
 
 	// Mining-related options
 	MinerThreads int    `toml:",omitempty"`
@@ -114,7 +129,16 @@ type Config struct {
 
 	// Miscellaneous options
 	DocRoot    string `toml:"-"`
+
+	// RPCGasCap is the global gas cap for eth-call variants.
+	RPCGasCap uint64 `toml:",omitempty"`
+
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ether.
+	RPCTxFeeCap float64 `toml:",omitempty"`
+
 	RnetPort   string
+	
 	ExternalIp string
 }
 

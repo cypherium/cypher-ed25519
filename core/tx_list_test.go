@@ -1,23 +1,23 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2016 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
 import (
+	"math/big"
 	"math/rand"
 	"testing"
 
@@ -48,5 +48,23 @@ func TestStrictTxListAdd(t *testing.T) {
 		if list.txs.items[tx.Nonce()] != tx {
 			t.Errorf("item %d: transaction mismatch: have %v, want %v", i, list.txs.items[tx.Nonce()], tx)
 		}
+	}
+}
+
+func BenchmarkTxListAdd(t *testing.B) {
+	// Generate a list of transactions to insert
+	key, _ := crypto.GenerateKey()
+
+	txs := make(types.Transactions, 100000)
+	for i := 0; i < len(txs); i++ {
+		txs[i] = transaction(uint64(i), 0, key)
+	}
+	// Insert the transactions in a random order
+	list := newTxList(true)
+	priceLimit := big.NewInt(int64(DefaultTxPoolConfig.PriceLimit))
+	t.ResetTimer()
+	for _, v := range rand.Perm(len(txs)) {
+		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
+		list.Filter(priceLimit, DefaultTxPoolConfig.PriceBump)
 	}
 }

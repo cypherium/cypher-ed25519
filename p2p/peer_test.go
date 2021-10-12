@@ -1,30 +1,36 @@
-// Copyright 2015 The go-ethereum Authors
-// Copyright 2017 The cypherBFT Authors
-// This file is part of the cypherBFT library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// The cypherBFT library is free software: you can redistribute it and/or modify
+// The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The cypherBFT library is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the cypherBFT library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package p2p
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/cypherium/cypherBFT/log"
+	"github.com/cypherium/cypherBFT/p2p/enode"
+	"github.com/cypherium/cypherBFT/p2p/enr"
 )
 
 var discard = Protocol{
@@ -44,16 +50,51 @@ var discard = Protocol{
 	},
 }
 
+// uintID encodes i into a node ID.
+func uintID(i uint16) enode.ID {
+	var id enode.ID
+	binary.BigEndian.PutUint16(id[:], i)
+	return id
+}
+
+// newNode creates a node record with the given address.
+func newNode(id enode.ID, addr string) *enode.Node {
+	var r enr.Record
+	if addr != "" {
+		// Set the port if present.
+		if strings.Contains(addr, ":") {
+			hs, ps, err := net.SplitHostPort(addr)
+			if err != nil {
+				panic(fmt.Errorf("invalid address %q", addr))
+			}
+			port, err := strconv.Atoi(ps)
+			if err != nil {
+				panic(fmt.Errorf("invalid port in %q", addr))
+			}
+			r.Set(enr.TCP(port))
+			r.Set(enr.UDP(port))
+			addr = hs
+		}
+		// Set the IP.
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			panic(fmt.Errorf("invalid IP %q", addr))
+		}
+		r.Set(enr.IP(ip))
+	}
+	return enode.SignNull(&r, id)
+}
+
 func testPeer(protos []Protocol) (func(), *conn, *Peer, <-chan error) {
 	fd1, fd2 := net.Pipe()
-	c1 := &conn{fd: fd1, transport: newTestTransport(randomID(), fd1)}
-	c2 := &conn{fd: fd2, transport: newTestTransport(randomID(), fd2)}
+	c1 := &conn{fd: fd1, node: newNode(randomID(), ""), transport: newTestTransport(&newkey().PublicKey, fd1)}
+	c2 := &conn{fd: fd2, node: newNode(randomID(), ""), transport: newTestTransport(&newkey().PublicKey, fd2)}
 	for _, p := range protos {
 		c1.caps = append(c1.caps, p.cap())
 		c2.caps = append(c2.caps, p.cap())
 	}
 
-	peer := newPeer(c1, protos)
+	peer := newPeer(log.Root(), c1, protos)
 	errc := make(chan error, 1)
 	go func() {
 		_, err := peer.run()
@@ -151,7 +192,7 @@ func TestPeerDisconnect(t *testing.T) {
 // This test is supposed to verify that Peer can reliably handle
 // multiple causes of disconnection occurring at the same time.
 func TestPeerDisconnectRace(t *testing.T) {
-	maybe := func() bool { return rand.Intn(1) == 1 }
+	maybe := func() bool { return rand.Intn(2) == 1 }
 
 	for i := 0; i < 1000; i++ {
 		protoclose := make(chan error)
