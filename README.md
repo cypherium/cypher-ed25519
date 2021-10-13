@@ -59,11 +59,51 @@ Tips:according to you system,please copy `./crypto/bls/lib/yoursystem/*` to `./c
  ```
 ./build/bin/cypher --datadir chandbname init ./genesis.json
  ```
-#### init database
+ #### run node
  ```
 ./build/bin/cypher --nat "none" --ws   -wsaddr="0.0.0.0" --wsorigins "*" --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3c,personal,miner --port 6000 --rpcport 8000 --verbosity 4 --datadir chandbname --networkid 16001 --gcmode archive --bootnodes cnode://098c1149a1476cf44ad9d480baa67d956715b8671a4915bed17d06a1cafd7b154bc1841d451d80d391427ebc48aaa3216d4e8a2b46544dffdc61b76be6475418@13.72.80.40:9090 console
 
  ```
+ #### start up parameters help
+    
+   The IPC interface is enabled by default and exposes all the APIs supported by `cypher`,
+    whereas the HTTP and WS interfaces need to manually be enabled and only expose a
+    subset of APIs due to security reasons. These can be turned on/off and configured as
+    you'd expect.
+    
+   HTTP based JSON-RPC API options:
+    
+   * `--addr` HTTP-RPC server listening interface (default: `localhost`)
+   * `--rpcport` HTTP-RPC server listening port (default: `8000`)
+   * `--port` P2P listening port (default: `6000`)
+   * `--api` API's offered over the HTTP-RPC interface (default: `cph,net,web3`)
+   * `--corsdomain` Comma separated list of domains from which to accept cross origin requests (browser enforced)
+   * `--ws` Enable the WS-RPC server
+   * `--wsaddr` WS-RPC server listening interface (default: `localhost`)
+   * `--wsport` WS-RPC server listening port (default: `8000`)
+   * `--wsorigins` Origins from which to accept websockets requests
+   * `--rpcapi` API's offered over the IPC-RPC interface (default: `admin,debug,cph,miner,net,personal,shh,txpool,web3`)
+   * `--ipcpath` Filename for IPC socket/pipe within the datadir (explicit paths escape it)
+   * `--nat value`  NAT port mapping mechanism (any|none|upnp|pmp|extip:<IP>) (default: "any")
+   * `--rnetport` Committee consensus port(default: `7100`)
+   * `--verbosity` Output log level,max value is 6(default: `4`)
+   * `--datadir` Data directory for the databases and keystore
+   * `--networkid` Network identifier (16162=mainNet)
+   * `--datadir` Blockchain garbage collection mode ("full", "archive") (default: "full")
+   * `--bootnodes`  The first time a node connects to the network it uses one of the predefined bootnodes. Through these bootnodes a node can join the network and find other nodes.
+   * `--mine`  Enable mining	
+   * `--console` Start an interactive JavaScript environment
+    
+   You'll need to use your own programming environments' capabilities (libraries, tools, etc) to
+   connect via HTTP, WS or IPC to a `cypher` node configured with the above flags. You
+   can reuse the same connection for multiple requests!
+    
+   **Note: Please understand the security implications of opening up an S based
+   transport before doing so! Hackers on the internet are actively trying to subvert
+   Cypherium nodes with exposed APIs! Further, all browser tabs can access locally
+   running web servers, so malicious web pages could try to subvert locally available
+   API
+    
 Congratulations! You have successfully started the Cypherium testnet!
 
 With the database up and running, try out these commands
