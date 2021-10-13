@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
+	incompleteNodeURL = regexp.MustCompile("(?i)^(?:cnode://)?([0-9a-f]+)$")
 	lookupIPFunc      = net.LookupIP
 )
 
@@ -116,7 +116,7 @@ func parseComplete(rawurl string) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.Scheme != "enode" {
+	if u.Scheme != "cnode" {
 		return nil, errors.New("invalid URL scheme, want \"enode\"")
 	}
 	// Parse the Node ID from the user portion.
@@ -180,7 +180,7 @@ func (n *Node) URLv4() string {
 	default:
 		nodeid = fmt.Sprintf("%s.%x", scheme, n.id[:])
 	}
-	u := url.URL{Scheme: "enode"}
+	u := url.URL{Scheme: "cnode"}
 	if n.Incomplete() {
 		u.Host = nodeid
 	} else {

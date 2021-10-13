@@ -63,7 +63,7 @@ func MustParse(rawurl string) *Node {
 
 // Parse decodes and verifies a base64-encoded node record.
 func Parse(validSchemes enr.IdentityScheme, input string) (*Node, error) {
-	if strings.HasPrefix(input, "enode://") {
+	if strings.HasPrefix(input, "cnode://") {
 		return ParseV4(input)
 	}
 	if !strings.HasPrefix(input, "enr:") {
@@ -202,7 +202,7 @@ func (n ID) String() string {
 
 // The Go syntax representation of a ID is a call to HexID.
 func (n ID) GoString() string {
-	return fmt.Sprintf("enode.HexID(\"%x\")", n[:])
+	return fmt.Sprintf("cnode.HexID(\"%x\")", n[:])
 }
 
 // TerminalString returns a shortened hex string for terminal logging.

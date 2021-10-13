@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	xxhash "github.com/cespare/xxhash/v2"
+	xxhash "github.com/cespare/xxhash"
 )
 
 const bucketsCount = 512

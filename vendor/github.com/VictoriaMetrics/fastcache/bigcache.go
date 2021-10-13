@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	xxhash "github.com/cespare/xxhash/v2"
+	xxhash "github.com/cespare/xxhash"
 )
 
 // maxSubvalueLen is the maximum size of subvalue chunk.
