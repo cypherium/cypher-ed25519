@@ -104,7 +104,7 @@ Tips:according to you system,please copy `./crypto/bls/lib/yoursystem/*` to `./c
    running web servers, so malicious web pages could try to subvert locally available
    API
     
-Congratulations! You have successfully started the Cypherium testnet!
+Congratulations! You have started cypherium node successfully!
 
 With the database up and running, try out these commands
 --
