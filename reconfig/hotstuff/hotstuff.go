@@ -1336,7 +1336,7 @@ func (hsm *HotstuffProtocolManager) handleCommitVoteMsg(m *HotstuffMessage) erro
 func (hsm *HotstuffProtocolManager) handleDecideMsg(m *HotstuffMessage) error {
 	v, exist := hsm.views[m.ViewId]
 	if !exist {
-		log.Trace("handleDecideMsg found no match view", "viewId", m.ViewId)
+		//log.Trace("handleDecideMsg found no match view", "viewId", m.ViewId)
 		return ErrUnhandledMsg
 	}
 

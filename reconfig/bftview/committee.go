@@ -27,9 +27,9 @@ import (
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/types"
-	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto/bls"
 	"github.com/cypherium/cypherBFT/crypto/sha3"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/rlp"
 )
@@ -51,7 +51,7 @@ type ServiceInterface interface {
 
 //type Committee []*common.Cnode
 type Committee struct {
-	List []*common.Cnode `rlp:"nil"`
+	List []*common.Cnode
 }
 
 type currentMemberInfo struct {
