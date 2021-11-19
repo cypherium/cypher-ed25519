@@ -91,11 +91,15 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumb
 
 		return nil, errors.New("No pending block for Cypherium")
 	}
+	var currentBlock *types.Block
 	// Otherwise resolve and return the block
 	if blockNr == rpc.LatestBlockNumber {
-		return b.eth.blockchain.CurrentBlock(), nil
+		currentBlock = b.eth.blockchain.CurrentBlock()
+	} else {
+		currentBlock = b.eth.blockchain.GetBlockByNumber(uint64(blockNr))
 	}
-	return b.eth.blockchain.GetBlockByNumber(uint64(blockNr)), nil
+	currentBlock.TrimTimeMs()
+	return currentBlock, nil
 }
 
 func (b *EthAPIBackend) KeyBlockByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.KeyBlock, error) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"math/big"
+	"strconv"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -147,6 +148,7 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 // header data is copied, changes to header and to the field values
 // will not affect the block.
 func NewBlockWithHeader(header *Header) *Block {
+	log.Info("NewBlockWithHeader", "Number", header.Number, "time len", len(header.Time.String()))
 	return &Block{header: CopyHeader(header)}
 }
 
@@ -255,7 +257,17 @@ func (b *Block) GasLimit() uint64     { return b.header.GasLimit }
 func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
 func (b *Block) Difficulty() *big.Int { return big.NewInt(1) }
 func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
-func (b *Block) SetToCurrentTime()    { b.header.Time = big.NewInt(time.Now().UnixNano()) }
+func (b *Block) SetToCurrentTime()    { b.header.Time = big.NewInt(time.Now().Unix() * 1e3) }
+func (b *Block) TrimTimeMs() {
+	timeStr := b.header.Time.String()
+	log.Info("getBlock", "timeStr", timeStr, "len", len(timeStr))
+	timeStrTrimMs := timeStr[0:13]
+	log.Info("getBlock", "timeStrTrimMs", timeStrTrimMs, "len", len(timeStrTrimMs))
+	timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
+	if err == nil {
+		b.header.Time = big.NewInt(timeIntValue)
+	}
+}
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) Root() common.Hash        { return b.header.Root }
