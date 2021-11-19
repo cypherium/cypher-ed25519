@@ -23,8 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
-
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/core/types"
@@ -32,6 +30,7 @@ import (
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/rlp"
 	"github.com/cypherium/cypherBFT/rpc"
+	"math/big"
 )
 
 // Client defines typed wrappers for the Cypherium RPC API.
@@ -91,6 +90,7 @@ type rpcTransactionNumber struct {
 
 func (ec *Client) getBlock(ctx context.Context, method string, args ...interface{}) (*types.Block, int, error) {
 	log.Info("getBlock...")
+	fmt.Println("getBlock")
 	var raw json.RawMessage
 	err := ec.c.CallContext(ctx, &raw, method, args...)
 	if err != nil {
@@ -135,6 +135,7 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
+
 	return types.NewBlockWithHeader(head).WithBody(txs), len(txs), nil
 }
 
@@ -523,6 +524,8 @@ func (ec *Client) EstimateGas(ctx context.Context, msg cypherI.CallMsg) (uint64,
 // If the transaction was a contract creation use the TransactionReceipt method to get the
 // contract address after the transaction has been mined.
 func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+	log.Info("Client SendTransaction")
+	fmt.Println("Client SendTransaction")
 	data, err := rlp.EncodeToBytes(tx)
 	if err != nil {
 		return err
@@ -606,4 +609,3 @@ func (ec *Client) KeyBlocksByNumbers(ctx context.Context, numbers []int64) ([]*t
 
 	return blocks, nil
 }
-

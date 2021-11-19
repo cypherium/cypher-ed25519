@@ -28,8 +28,6 @@ import (
 	"time"
 
 	"encoding/hex"
-	"net"
-
 	"github.com/cypherium/cypherBFT/accounts"
 	"github.com/cypherium/cypherBFT/accounts/keystore"
 	"github.com/cypherium/cypherBFT/common"
@@ -49,6 +47,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"net"
 )
 
 const (
@@ -411,6 +410,8 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 // tries to sign it with the key associated with args.To. If the given passwd isn't
 // able to decrypt the key it fails.
 func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs, passwd string) (common.Hash, error) {
+	log.Info(" PrivateAccountAPI SendTransaction")
+	fmt.Println("PrivateAccountAPI SendTransaction")
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
@@ -565,6 +566,7 @@ func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, blockNr rpc.
 	}
 	return nil, err
 }
+
 // GetBlockByHash returns the requested block. When fullTx is true all transactions in the block are returned in full
 // detail, otherwise only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash common.Hash, fullTx bool) (map[string]interface{}, error) {
@@ -574,7 +576,6 @@ func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, blockHash comm
 	}
 	return nil, err
 }
-
 
 func (s *PublicBlockChainAPI) GetBlockHeadersByNumbers(ctx context.Context, blockNrs []int64) ([]interface{}, error) {
 	response := make([]interface{}, 0, len(blockNrs))
@@ -605,7 +606,6 @@ func (s *PublicBlockChainAPI) GetKeyBlockByNumber(ctx context.Context, blockNr r
 	}
 	return nil, err
 }
-
 
 func (s *PublicBlockChainAPI) GetKeyBlockByHash(ctx context.Context, blockHash common.Hash) (map[string]interface{}, error) {
 	block, err := s.b.KeyBlockByHash(ctx, blockHash)
@@ -677,7 +677,6 @@ func (api *PublicBlockChainAPI) RosterConfig(data ...interface{}) error {
 	return api.b.GetKeyBlockChain().PostRosterConfigEvent(data)
 
 }
-
 
 // GetCode returns the code stored at the given address in the state for the given block number.
 func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (hexutil.Bytes, error) {
@@ -1347,6 +1346,7 @@ func (args *SendTxArgs) toTransactionWithNonce(nonce uint64) *types.Transaction 
 
 // submitTransaction is a helper function that submits tx to txPool and logs a message.
 func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
+	log.Info("submitTransaction")
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
@@ -1367,7 +1367,8 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 // SendTransaction creates a transaction for the given argument, sign it and submit it to the
 // transaction pool.
 func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args SendTxArgs) (common.Hash, error) {
-
+	log.Info("PublicTransactionPoolAPI SendTransaction")
+	fmt.Println("PublicTransactionPoolAPI SendTransaction")
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
 

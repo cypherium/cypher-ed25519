@@ -24,11 +24,12 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/core/types"
+	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/p2p"
 	"github.com/cypherium/cypherBFT/rlp"
+	mapset "github.com/deckarep/golang-set"
 )
 
 var (
@@ -100,10 +101,10 @@ type peer struct {
 	txBlockHeight *big.Int
 	lock          sync.RWMutex
 
-	knownTxs         mapset.Set                  // Set of transaction hashes known to be known by this peer
-	knownBlocks      mapset.Set                  // Set of block hashes known to be known by this peer
-	knownKeyBlocks   mapset.Set                  // Set of key block hashes known to be known by this peer
-	knownCandidates  mapset.Set                  // Set of candidates hashs known to be known by this peer
+	knownTxs         mapset.Set                // Set of transaction hashes known to be known by this peer
+	knownBlocks      mapset.Set                // Set of block hashes known to be known by this peer
+	knownKeyBlocks   mapset.Set                // Set of key block hashes known to be known by this peer
+	knownCandidates  mapset.Set                // Set of candidates hashs known to be known by this peer
 	queuedTxs        chan []*types.Transaction // Queue of transactions to broadcast to the peer
 	queuedProps      chan *propEvent           // Queue of blocks to broadcast to the peer
 	queuedAnns       chan *types.Block         // Queue of blocks to announce to the peer
@@ -281,6 +282,8 @@ func (p *peer) MarkBadCandidate() bool {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactions(txs types.Transactions) error {
+	log.Info("peer Client SendTransaction")
+	fmt.Println("peer Client SendTransaction")
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
 	}
