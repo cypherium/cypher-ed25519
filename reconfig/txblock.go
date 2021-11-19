@@ -206,7 +206,7 @@ func packageHeader(keyHash common.Hash, parent *types.Block, state *state.StateD
 	//d, _ := time.ParseDuration("-24h")
 	//now = now.Add(2 * d)
 
-	tstamp := now.Unix() //now.Unix() //now.UnixNano() //int64(1604127144173089000) //
+	tstamp := now.UnixNano() / 1e6 //now.Unix() //now.UnixNano() //int64(1604127144173089000) //
 	if parent.Time().Cmp(new(big.Int).SetInt64(tstamp)) >= 0 {
 		tstamp = parent.Time().Int64() + 1
 	}
