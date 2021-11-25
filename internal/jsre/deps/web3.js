@@ -5430,7 +5430,11 @@ var methods = function () {
         call: 'eth_getWork',
         params: 0
     });
-
+    var chainId = new Method({
+      name: 'chainId',
+      call: 'net_version',
+      params: 0
+    });
     return [
         getBalance,
         getStorageAt,
@@ -5454,7 +5458,8 @@ var methods = function () {
         compileLLL,
         compileSerpent,
         submitWork,
-        getWork
+        getWork,
+        chainId
     ];
 };
 

@@ -23,7 +23,7 @@ var Modules = map[string]string{
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
 	"debug":      Debug_JS,
-	"eth":       Eth_JS,
+	"eth":        Eth_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -501,6 +501,10 @@ web3._extend({
 	   new web3._extend.Property({
 			name: 'keyBlockNumber',
 			getter: 'eth_keyBlockNumber'
+		}),
+       new web3._extend.Property({
+			name: 'chainId',
+			getter: 'net_version'
 		}),
 	]
 });

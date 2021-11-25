@@ -607,6 +607,7 @@ func (s *PublicBlockChainAPI) GetKeyBlockByNumber(ctx context.Context, blockNr r
 	return nil, err
 }
 
+
 func (s *PublicBlockChainAPI) GetKeyBlockByHash(ctx context.Context, blockHash common.Hash) (map[string]interface{}, error) {
 	block, err := s.b.KeyBlockByHash(ctx, blockHash)
 	if block != nil {
@@ -655,6 +656,10 @@ func (s *PublicBlockChainAPI) RollbackKeyChainFrom(blockHash common.Hash) error 
 
 func (s *PublicBlockChainAPI) MockKeyBlock(ctx context.Context, blockCount rpc.BlockNumber) {
 	s.b.MockKeyBlock(int64(blockCount))
+}
+
+func (s *PublicBlockChainAPI) ChainId() string {
+	 return s.b.ChainConfig().ChainID.String()
 }
 
 func (s *PublicBlockChainAPI) AnnounceBlock(ctx context.Context, blockNr rpc.BlockNumber) {
@@ -1368,7 +1373,6 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 // transaction pool.
 func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args SendTxArgs) (common.Hash, error) {
 	log.Info("PublicTransactionPoolAPI SendTransaction")
-	fmt.Println("PublicTransactionPoolAPI SendTransaction")
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
 
