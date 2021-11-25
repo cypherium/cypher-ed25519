@@ -31,19 +31,19 @@ import (
 
 	"github.com/cypherium/cypherBFT/common"
 	"github.com/cypherium/cypherBFT/common/mclock"
+	"github.com/cypherium/cypherBFT/common/prque"
 	"github.com/cypherium/cypherBFT/core/rawdb"
 	"github.com/cypherium/cypherBFT/core/state"
 	"github.com/cypherium/cypherBFT/core/types"
 	"github.com/cypherium/cypherBFT/core/vm"
-	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/crypto"
+	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/event"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/params"
 	"github.com/cypherium/cypherBFT/rlp"
 	"github.com/cypherium/cypherBFT/trie"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/cypherium/cypherBFT/common/prque"
 )
 
 var (
@@ -1041,7 +1041,7 @@ blockchainl_reloop:
 		return 0, nil
 	}
 
-	log.Info("InsertChain", "chain len", num, "chain number", chain[0].NumberU64())
+	//log.Info("InsertChain", "chain len", num, "chain number", chain[0].NumberU64())
 	k, events, logs, retErr := bc.insertChain(chain, false)
 	bc.PostChainEvents(events, logs)
 	if retErr != nil {

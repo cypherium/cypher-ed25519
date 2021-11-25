@@ -607,7 +607,6 @@ func (s *PublicBlockChainAPI) GetKeyBlockByNumber(ctx context.Context, blockNr r
 	return nil, err
 }
 
-
 func (s *PublicBlockChainAPI) GetKeyBlockByHash(ctx context.Context, blockHash common.Hash) (map[string]interface{}, error) {
 	block, err := s.b.KeyBlockByHash(ctx, blockHash)
 	if block != nil {
@@ -659,7 +658,7 @@ func (s *PublicBlockChainAPI) MockKeyBlock(ctx context.Context, blockCount rpc.B
 }
 
 func (s *PublicBlockChainAPI) ChainId() string {
-	 return s.b.ChainConfig().ChainID.String()
+	return s.b.ChainConfig().ChainID.String()
 }
 
 func (s *PublicBlockChainAPI) AnnounceBlock(ctx context.Context, blockNr rpc.BlockNumber) {
@@ -1380,25 +1379,26 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	if err != nil {
 		return common.Hash{}, err
 	}
-
+	log.Info("1")
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
 		s.nonceLock.LockAddr(args.From)
 		defer s.nonceLock.UnlockAddr(args.From)
 	}
-
+	log.Info("2")
 	// Set some sanity defaults and terminate on failure
 	if err := args.setDefaults(ctx, s.b); err != nil {
 		return common.Hash{}, err
 	}
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
-
+	log.Info("3")
 	signed, err := wallet.SignTx(account, tx, nil)
 	if err != nil {
 		return common.Hash{}, err
 	}
+	log.Info("4")
 	return submitTransaction(ctx, s.b, signed)
 }
 

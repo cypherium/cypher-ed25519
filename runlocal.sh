@@ -8,7 +8,7 @@ NODE_DIR="localChaindb"
 NODES_MAX=100
 NODES_NUM=0
 ACCOUNTSLIST="$NODE_DIR/accounts.txt"
-LOGLEVEL=6
+LOGLEVEL=4
 # Commands
 CLEANDB="cleandb"
 INIT="init"
@@ -23,7 +23,7 @@ NEWACCOUNT="newAccount"
 LISTACCOUNT="listAccount"
 IPENCDISVALUE=1
 PRMV=1
-EnableFlags="" #"--jvm --evm"
+EnableFlags="--evm"   #"--jvm --evm"
 
 #LOCALIP="192.168.0.146"
 
@@ -116,13 +116,13 @@ append_node()
     log "Append $NODES_NUM nodes...."
     for m in $( seq $NODES_NUM ); do
         n=$(($1 + m))
-        #log "Node $n -onetport@$((7100 + 2 * $n))   -port@$((16000 + 2 * $n)) - rpcport@$((18000 + 2 * $n)) - rpc path: $NODE_DIR/$n/cypher.ipc"
+        #log "Node $n -rnetport@$((7100 + 2 * $n))   -port@$((16000 + 2 * $n)) - rpcport@$((18000 + 2 * $n)) - rpc path: $NODE_DIR/$n/cypher.ipc"
         log "./build/bin/cypher attach $NODE_DIR/$n/cypher.ipc"
         # --ws  -wsaddr="0.0.0.0" --wsorigins "*"
         if [[ "$n" -eq 1 ]]; then
-	$CYPHER  --onetport $((7100 + 2 * $n)) --heartbeatport $((1100 + 2 * $n))   --nat=extip:$LOCALIP  --ws $EnableFlags  --powrangemode $PRMV --localtest $LOCALIP  -wsaddr="0.0.0.0" --wsorigins "*" --tps --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
+	$CYPHER  --rnetport $((7100 + 2 * $n))  --nat=extip:$LOCALIP  --ws $EnableFlags  --localtest $LOCALIP  -wsaddr="0.0.0.0" --wsorigins "*" --tps --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi eth,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
         else
-            $CYPHER  --onetport $((7100 + 2 * $n)) --heartbeatport $((1100 + 2 * $n)) --tps $EnableFlags  --nat=extip:$LOCALIP --powrangemode $PRMV --localtest $LOCALIP  --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
+            $CYPHER  --rnetport $((7100 + 2 * $n)) --tps $EnableFlags  --nat=extip:$LOCALIP --localtest $LOCALIP  --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi eth,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$n" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" 2>"$NODE_DIR/$n/$n.log" &
         fi
     done
 
@@ -139,7 +139,7 @@ console_node()
 
     log "console $NODES_NUM node...."
         n=$(($1 + $NODES_NUM))
-        $CYPHER   --onetport $((7100 + 2 * $n)) --nat "none" --tps $EnableFlags --powrangemode $PRMV --localtest $LOCALIP --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$NODES_NUM" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" console
+        $CYPHER   --rnetport $((7100 + 2 * $n)) --nat "none" --tps $EnableFlags  --localtest $LOCALIP --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi eth,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$NODES_NUM" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE" console
 
 
 }
@@ -156,8 +156,8 @@ attach_node()
 
        log "attach $NODES_NUM node...."
         n=$(($1 + $NODES_NUM))
-        log "Node $n -onetport@$((7100 + 2 * $n)) - port@$((16000 + 2 * $n)) - rpcport@$((18000 + 2 * $n)) - rpc path: $NODE_DIR/$NODES_NUM/cypher.ipc"
-       $CYPHER  --nogas  --onetport $((7100 + 2 * $n)) --nat "none" --tps $EnableFlags --powrangemode $PRMV --localtest $LOCALIP --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$NODES_NUM" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE"  2>"$NODE_DIR/$NODES_NUM/$NODES_NUM.log" &
+        log "Node $n -rnetport@$((7100 + 2 * $n)) - port@$((16000 + 2 * $n)) - rpcport@$((18000 + 2 * $n)) - rpc path: $NODE_DIR/$NODES_NUM/cypher.ipc"
+       $CYPHER   --rnetport $((7100 + 2 * $n)) --nat "none" --tps $EnableFlags  --localtest $LOCALIP --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi eth,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$NODES_NUM" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE"  2>"$NODE_DIR/$NODES_NUM/$NODES_NUM.log" &
 
        $CYPHER attach $NODE_DIR/$NODES_NUM/cypher.ipc
 
@@ -166,7 +166,7 @@ csrestart_node()
 {
     log "console restart $NODES_NUM node...."
         n=$(($1 + $NODES_NUM))
-        $CYPHER   --onetport $((7100 + 2 * $n)) --nat "none" --tps $EnableFlags  --powrangemode $PRMV  --ipencdis $IPENCDISVALUE --powrangemode $PRMV --localtest $LOCALIP --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$NODES_NUM" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE"  console
+        $CYPHER   --rnetport $((7100 + 2 * $n)) --nat "none" --tps $EnableFlags  --ipencdis $IPENCDISVALUE  --localtest $LOCALIP --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi eth,web3,personal,miner,txpool --port $((16000 + 2 * $n)) --rpcport $((18000 + 2 * $n)) --verbosity "$LOGLEVEL" --datadir "$NODE_DIR/$NODES_NUM" --networkid $NetWorkId --gcmode archive --bootnodes "$BOOTNODE"  console
 
 
 
@@ -295,7 +295,7 @@ fi
 # if already running, do nothing
 RUNNING_NODES_NUM=`ps -a | grep "[r]pcaddr" | awk 'END{ print NR }'`
 #log "$RUNNING_NODES_NUM"
-if [[ "$RUNNING_NODES_NUM" -gt 0 ]]; then
+if [[ "$RUNNING_NODES_NUM" -gt 1 ]]; then
     if [[ "$1" == "$STOP" ]];then
         PID=`ps -a | grep "[r]pcaddr" | awk -v line="$NODES_NUM" 'FNR == line { print $1 }'`
 
@@ -310,11 +310,11 @@ if [[ "$RUNNING_NODES_NUM" -gt 0 ]]; then
     if [[ "$1" == "$APPEND" ]];then
         append_node $RUNNING_NODES_NUM $NODES_NUM
         exit 0
-    else
-      if [[ "$1" != "$CONSOLE" ]];then
-        log "$RUNNING_NODES_NUM nodes are running, kill them before starting new nodes."
-        exit 0
-      fi
+   # else
+      #if [[ "$1" != "$CONSOLE" ]];then
+        #log "$RUNNING_NODES_NUM nodes are running, kill them before starting new nodes."
+       # exit 0
+      #fi
     fi
 fi
 

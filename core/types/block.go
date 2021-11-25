@@ -148,7 +148,6 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 // header data is copied, changes to header and to the field values
 // will not affect the block.
 func NewBlockWithHeader(header *Header) *Block {
-	log.Info("NewBlockWithHeader", "Number", header.Number, "time len", len(header.Time.String()))
 	return &Block{header: CopyHeader(header)}
 }
 
