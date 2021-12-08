@@ -315,6 +315,16 @@ func (pool *TxPool) loop() {
 			// Handle inactive account transaction eviction
 		case <-evict.C:
 			pool.mu.Lock()
+			for addr, _ := range pool.beats {
+				if time.Since(pool.beats[addr]) > pool.config.Lifetime {
+					for _, tx := range pool.pending[addr].Flatten() {
+						pool.removeTx(tx.Hash(), true)
+					}
+				}
+			}
+			pool.mu.Unlock()
+
+			pool.mu.Lock()
 			for addr := range pool.queue {
 				// Skip local transactions from the eviction mechanism
 				if pool.locals.contains(addr) {
@@ -648,7 +658,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrIntrinsicGas
 	}
 	if !tx.ValidateV() {
-	//	return ErrInvalidTxDataV
+		//	return ErrInvalidTxDataV
 	}
 	return nil
 }
@@ -679,8 +689,8 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	//pool.LogTxMsg("txpool.add", "hash", tx.Hash())
 	// If the transaction is replacing an already pending one, do directly
 	from, err := types.Sender(pool.signer, tx)
-	if err!=nil{
-		return false,err
+	if err != nil {
+		return false, err
 	}
 	if list := pool.pending[from]; list != nil && list.Overlaps(tx) {
 		// Nonce already pending, check if required price bump is met
