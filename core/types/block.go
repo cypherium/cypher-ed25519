@@ -259,12 +259,12 @@ func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 func (b *Block) SetToCurrentTime()    { b.header.Time = big.NewInt(time.Now().Unix() * 1e3) }
 func (b *Block) TrimTimeMs() {
 	timeStr := b.header.Time.String()
-	log.Info("getBlock", "timeStr", timeStr, "len", len(timeStr))
-	timeStrTrimMs := timeStr[0:13]
-	log.Info("getBlock", "timeStrTrimMs", timeStrTrimMs, "len", len(timeStrTrimMs))
-	timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
-	if err == nil {
-		b.header.Time = big.NewInt(timeIntValue)
+	if timeStr != "" {
+		timeStrTrimMs := timeStr[0:13]
+		timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
+		if err == nil {
+			b.header.Time = big.NewInt(timeIntValue)
+		}
 	}
 }
 
