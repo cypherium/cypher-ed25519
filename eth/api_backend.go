@@ -99,7 +99,9 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, blockNr rpc.BlockNumb
 	} else {
 		currentBlock = b.eth.blockchain.GetBlockByNumber(uint64(blockNr))
 	}
-	currentBlock.TrimTimeMs()
+	if currentBlock != nil {
+		currentBlock.TrimTimeMs()
+	}
 	return currentBlock, nil
 }
 

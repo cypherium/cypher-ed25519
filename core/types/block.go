@@ -13,6 +13,7 @@ import (
 	"github.com/cypherium/cypherBFT/common/hexutil"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/rlp"
+	"reflect"
 )
 
 var (
@@ -258,8 +259,8 @@ func (b *Block) Difficulty() *big.Int { return big.NewInt(1) }
 func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 func (b *Block) SetToCurrentTime()    { b.header.Time = big.NewInt(time.Now().Unix() * 1e3) }
 func (b *Block) TrimTimeMs() {
-	timeStr := b.header.Time.String()
-	if timeStr != "" {
+	if !reflect.ValueOf(b.header.Time).IsNil() {
+		timeStr := b.header.Time.String()
 		timeStrTrimMs := timeStr[0:13]
 		timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
 		if err == nil {
