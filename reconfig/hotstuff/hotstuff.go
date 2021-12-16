@@ -751,7 +751,7 @@ func (hsm *HotstuffProtocolManager) TryPropose() error {
 
 	err, kProposal, tProposal, extra := hsm.app.Propose()
 	if err != nil {
-		log.Warn("hotstuff application failed to propose")
+		log.Debug("hotstuff application failed to propose")
 		return err
 	}
 
