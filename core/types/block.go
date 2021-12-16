@@ -261,10 +261,12 @@ func (b *Block) SetToCurrentTime()    { b.header.Time = big.NewInt(time.Now().Un
 func (b *Block) TrimTimeMs() {
 	if !reflect.ValueOf(b.header.Time).IsNil() {
 		timeStr := b.header.Time.String()
-		timeStrTrimMs := timeStr[0:13]
-		timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
-		if err == nil {
-			b.header.Time = big.NewInt(timeIntValue)
+		if timeStr != "" && len(timeStr) > 13 {
+			timeStrTrimMs := timeStr[0:13]
+			timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
+			if err == nil {
+				b.header.Time = big.NewInt(timeIntValue)
+			}
 		}
 	}
 }
