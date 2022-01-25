@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	KeyblockPerTxBlocks  = 360
+	KeyblockPerTxBlocks  = 5
 	MaxTxCountPerBlock   = 1024
 	AckTimeout           = 30 * time.Second
 	HeatBeatTimeout      = 10 * time.Second
