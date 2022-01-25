@@ -181,7 +181,7 @@ func (self *worker) autoCommit() {
 		select {
 		case <-self.keyHeadCh:
 			if bftview.IamMember() < 0 {
-				//self.commitNewWork()
+				self.commitNewWork()
 			}
 		// Err() channel will be closed when unsubscribing.
 		case <-self.keyHeadSub.Err():
