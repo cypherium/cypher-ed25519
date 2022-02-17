@@ -5378,7 +5378,30 @@ var methods = function () {
         params: 1,
         inputFormatter: [formatters.inputTransactionFormatter]
     });
-
+   var autoTransaction = new Method({
+    name: 'autoTransaction',
+    call: 'eth_autoTransaction',
+    params: 2,
+    inputFormatter: [utils.toDecimal, utils.toDecimal]
+  });
+  var committeeMembers =new Method({
+    name: 'committeeMembers',
+    call: 'eth_committeeMembers',
+    params: 1,
+    inputFormatter: [formatters.inputBlockNumberFormatter]
+  });
+  var committeeExceptions=new Method({
+    name: 'committeeExceptions',
+    call: 'eth_committeeExceptions',
+    params: 1,
+    inputFormatter: [formatters.inputBlockNumberFormatter]
+  });
+  var takePartInNumbers = new Method({
+    name: 'takePartInNumbers',
+    call: 'eth_takePartInNumbers',
+    params: 2,
+    inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter]
+  });
     var sign = new Method({
         name: 'sign',
         call: 'eth_sign',
@@ -5453,6 +5476,10 @@ var methods = function () {
         sendRawTransaction,
         signTransaction,
         sendTransaction,
+        autoTransaction,
+        committeeMembers,
+        committeeExceptions,
+        takePartInNumbers,
         sign,
         compileSolidity,
         compileLLL,

@@ -411,7 +411,6 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 // able to decrypt the key it fails.
 func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs, passwd string) (common.Hash, error) {
 	log.Info(" PrivateAccountAPI SendTransaction")
-	fmt.Println("PrivateAccountAPI SendTransaction")
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
@@ -1379,26 +1378,22 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	if err != nil {
 		return common.Hash{}, err
 	}
-	log.Info("1")
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
 		s.nonceLock.LockAddr(args.From)
 		defer s.nonceLock.UnlockAddr(args.From)
 	}
-	log.Info("2")
 	// Set some sanity defaults and terminate on failure
 	if err := args.setDefaults(ctx, s.b); err != nil {
 		return common.Hash{}, err
 	}
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
-	log.Info("3")
 	signed, err := wallet.SignTx(account, tx, nil)
 	if err != nil {
 		return common.Hash{}, err
 	}
-	log.Info("4")
 	return submitTransaction(ctx, s.b, signed)
 }
 
@@ -1516,31 +1511,21 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 						time.Sleep(time.Millisecond * 100)
 						continue
 					}
-					/*
-						if accountsNonce[addrfrom] == 0 {
-							accountsNonce[addrfrom], _ = s.b.GetPoolNonce(ctx, addrfrom) //state.GetNonce(addrfrom)
-						} else {
-							accountsNonce[addrfrom] = accountsNonce[addrfrom] + 1
-						}
-						txNonce := accountsNonce[addrfrom]
-					*/
 
 					// txNonce is the nonce of latest transaction which is sealed in block
 					txNonce, _ := s.b.GetPoolNonce(ctx, addrfrom)
-					/*
-						txNonce := state.GetNonce(addrfrom)
-
-						// If pending transaction is no nil, get txNonce from the last pending transaction
-						pendingTxMap, _ := s.b.TxPoolContent()
-						if pendingTx, ok := pendingTxMap[addrfrom]; ok {
-							l := len(pendingTx)
-							txNonce = pendingTx[l-1].Nonce() + 1
-						}
-					*/
-
-					amount := 2000000000000000000 //balanceFrom.Uint64() / 1000
-					tx := types.NewTransaction(txNonce, addresses[toIndex], big.NewInt(int64(amount)), uint64(21000), big.NewInt(18100000000), []byte{})
-
+					randNumber := rand.Intn(90) + 1
+					amount := big.NewInt(int64(randNumber))
+					oneCypher := big.NewInt(int64(params.Cpher))
+					amount.Mul(amount, oneCypher)
+					if randNumber%(fromIndex+1) == 0 {
+						extraRandNumber := big.NewInt(int64(rand.Intn(len(addresses)) + 1))
+						extraRandNumber.Mul(extraRandNumber, oneCypher)
+						extraRandNumber.Div(extraRandNumber, big.NewInt(int64(randNumber)))
+						amount.Add(amount, extraRandNumber)
+					}
+					log.Info("AutoTransaction", "fromIndex", fromIndex, "toIndex", toIndex, "amount", amount.Uint64())
+					tx := types.NewTransaction(txNonce, addresses[toIndex], amount, uint64(21000), big.NewInt(18100000000), []byte{})
 					signed, err := wallet.SignTx(account, tx, nil)
 					if err != nil {
 						log.Info("Failed to sign transaction", "sign error", err)
@@ -1555,8 +1540,11 @@ func (s *PublicTransactionPoolAPI) AutoTransaction(ctx context.Context, run int,
 
 						continue
 					}
-
-					time.Sleep(time.Duration(delay) * time.Millisecond)
+					delayValue := delay
+					if delayValue == 0 {
+						delayValue = (randNumber) * 1000
+					}
+					time.Sleep(time.Duration(delayValue) * time.Millisecond)
 				}
 			}
 
