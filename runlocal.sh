@@ -30,7 +30,7 @@ EnableFlags="--evm"   #"--jvm --evm"
 localip=`ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"​`
 LOCALIP=`echo $localip|awk '{print $1}'`
 BOOTNODEIP="192.168.1.211"
-BOOTNODE="cnode://6941c498a447e0f5ddbbb4b045cff0583bff20789ed6716de016a3eeefe385db7e9a0b61eeedeb40b371f6f1daec7eb0d0024d3e3d3aeabf6186f971ae8f5156@$BOOTNODEIP:30301"
+BOOTNODE="enode://6941c498a447e0f5ddbbb4b045cff0583bff20789ed6716de016a3eeefe385db7e9a0b61eeedeb40b371f6f1daec7eb0d0024d3e3d3aeabf6186f971ae8f5156@$BOOTNODEIP:30301"
 NetWorkId=`less ${GENESIS} | awk -F "[:]" '/chainId/{print $2}'`
 NetWorkId=`echo ${NetWorkId} | cut -d \, -f 1`
 

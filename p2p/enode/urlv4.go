@@ -31,7 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enr"
 )
 
-var incompleteNodeURL = regexp.MustCompile("(?i)^(?:cnode://)?([0-9a-f]+)$")
+var incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
 
 // MustParseV4 parses a node URL. It panics if the URL is not valid.
 func MustParseV4(rawurl string) *Node {

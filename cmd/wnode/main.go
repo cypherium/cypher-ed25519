@@ -101,7 +101,7 @@ var (
 	argPub     = flag.String("pub", "", "public key for asymmetric encryption")
 	argDBPath  = flag.String("dbpath", "", "path to the server's DB directory")
 	argIDFile  = flag.String("idfile", "", "file name with node id (private key)")
-	argEnode   = flag.String("boot", "", "bootstrap node you want to connect to (e.g. cnode://e454......08d50@52.176.211.200:16428)")
+	argEnode   = flag.String("boot", "", "bootstrap node you want to connect to (e.g. enode://e454......08d50@52.176.211.200:16428)")
 	argTopic   = flag.String("topic", "", "topic in hexadecimal format (e.g. 70a4beef)")
 	argSaveDir = flag.String("savedir", "", "directory where all incoming messages will be saved as files")
 )
@@ -124,7 +124,7 @@ func processArgs() {
 		}
 	}
 
-	const enodePrefix = "cnode://"
+	const enodePrefix = "enode://"
 	if len(*argEnode) > 0 {
 		if (*argEnode)[:len(enodePrefix)] != enodePrefix {
 			*argEnode = enodePrefix + *argEnode

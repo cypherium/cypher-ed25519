@@ -39,7 +39,7 @@ type Enode struct {
 //
 // For incomplete nodes, the designator must look like one of these
 //
-//    cnode://<hex node id>
+//    enode://<hex node id>
 //    <hex node id>
 //
 // For complete nodes, the node ID is encoded in the username portion
@@ -53,7 +53,7 @@ type Enode struct {
 // a node with IP address 10.3.58.6, TCP listening port 30303
 // and UDP discovery port 30301.
 //
-//    cnode://<hex node id>@10.3.58.6:30303?discport=30301
+//    enode://<hex node id>@10.3.58.6:30303?discport=30301
 func NewEnode(rawurl string) (cnode *Enode, _ error) {
 	node, err := discv5.ParseNode(rawurl)
 	if err != nil {
