@@ -75,6 +75,7 @@ func (api *PrivateAdminAPI) RemovePeer(url string) (bool, error) {
 	server.RemovePeer(node)
 	return true, nil
 }
+
 /*
 // AddTrustedPeer allows a remote node to always connect, even if slots are full
 func (api *PrivateAdminAPI) AddTrustedPeer(url string) (bool, error) {
@@ -85,7 +86,7 @@ func (api *PrivateAdminAPI) AddTrustedPeer(url string) (bool, error) {
 	}
 	node, err := enode.ParseV4(url)
 	if err != nil {
-		return false, fmt.Errorf("invalid enode: %v", err)
+		return false, fmt.Errorf("invalid cnode: %v", err)
 	}
 	server.AddTrustedPeer(node)
 	return true, nil
@@ -101,7 +102,7 @@ func (api *PrivateAdminAPI) RemoveTrustedPeer(url string) (bool, error) {
 	}
 	node, err := enode.ParseV4(url)
 	if err != nil {
-		return false, fmt.Errorf("invalid enode: %v", err)
+		return false, fmt.Errorf("invalid cnode: %v", err)
 	}
 	server.RemoveTrustedPeer(node)
 	return true, nil

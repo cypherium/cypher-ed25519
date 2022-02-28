@@ -61,7 +61,7 @@ Tips:according to you system,please copy `./crypto/bls/lib/yoursystem/*` to `./c
  ```
 #### init database
  ```
-./build/bin/cypher --nat "none" --ws   -wsaddr="0.0.0.0" --wsorigins "*" --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner --port 6000 --rpcport 8000 --verbosity 4 --datadir chandbname --networkid 16001 --gcmode archive --bootnodes enode://098c1149a1476cf44ad9d480baa67d956715b8671a4915bed17d06a1cafd7b154bc1841d451d80d391427ebc48aaa3216d4e8a2b46544dffdc61b76be6475418@13.72.80.40:9090 console
+./build/bin/cypher --nat "none" --ws   -wsaddr="0.0.0.0" --wsorigins "*" --rpc --rpccorsdomain "*" --rpcaddr 0.0.0.0 --rpcapi cph,web3,personal,miner --port 6000 --rpcport 8000 --verbosity 4 --datadir chandbname --networkid 16001 --gcmode archive --bootnodes cnode://098c1149a1476cf44ad9d480baa67d956715b8671a4915bed17d06a1cafd7b154bc1841d451d80d391427ebc48aaa3216d4e8a2b46544dffdc61b76be6475418@13.72.80.40:9090 console
 
  ```
 Congratulations! You have successfully started the Cypherium testnet!

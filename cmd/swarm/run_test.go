@@ -269,7 +269,7 @@ func existingTestNode(t *testing.T, dir string, bzzaccount string) *testNode {
 	if err := node.Client.Call(&nodeInfo, "admin_nodeInfo"); err != nil {
 		t.Fatal(err)
 	}
-	node.Enode = fmt.Sprintf("enode://%s@127.0.0.1:%s", nodeInfo.ID, p2pPort)
+	node.Enode = fmt.Sprintf("cnode://%s@127.0.0.1:%s", nodeInfo.ID, p2pPort)
 
 	return node
 }
@@ -331,7 +331,7 @@ func newTestNode(t *testing.T, dir string) *testNode {
 	if err := node.Client.Call(&nodeInfo, "admin_nodeInfo"); err != nil {
 		t.Fatal(err)
 	}
-	node.Enode = fmt.Sprintf("enode://%s@127.0.0.1:%s", nodeInfo.ID, p2pPort)
+	node.Enode = fmt.Sprintf("cnode://%s@127.0.0.1:%s", nodeInfo.ID, p2pPort)
 	node.IpcPath = conf.IPCPath
 
 	return node

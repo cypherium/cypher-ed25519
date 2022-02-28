@@ -34,16 +34,16 @@ const (
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 var (
 	MainnetBootnodes = []string{
-		"enode://377333498fe00b675b710beee2cdf2c5d8235b056cd7a98fcd65763a01d8e5a5d796c7bc43c67486ce96b27aed2f31431e015ef9ecb46bccbe03ae28376ea41d@54.244.144.111:7100", // IE
+		"cnode://377333498fe00b675b710beee2cdf2c5d8235b056cd7a98fcd65763a01d8e5a5d796c7bc43c67486ce96b27aed2f31431e015ef9ecb46bccbe03ae28376ea41d@54.244.144.111:7100", // IE
 	}
 	TestnetBootnodes = []string{
-		"enode://30b7ab30a01c124a6cceca36863ece12c4f5fa68e3ba9b0b51407ccc002eeed3b3102d20a88f1c1d3c3154e2449317b8ef95090e77b312d5cc39354f86d5d606@52.176.7.10:30303", // US-Azure cypher
+		"cnode://30b7ab30a01c124a6cceca36863ece12c4f5fa68e3ba9b0b51407ccc002eeed3b3102d20a88f1c1d3c3154e2449317b8ef95090e77b312d5cc39354f86d5d606@52.176.7.10:30303", // US-Azure cypher
 	}
 	RinkebyBootnodes = []string{
-		"enode://a24ac7c5484ef4ed0c5eb2d36620ba4e4aa13b8c84684e1b4aab0cebea2ae45cb4d375b77eab56516d34bfbd3c1a833fc51296ff084b770b94fb9028c4d25ccf@52.169.42.101:30303", // IE
+		"cnode://a24ac7c5484ef4ed0c5eb2d36620ba4e4aa13b8c84684e1b4aab0cebea2ae45cb4d375b77eab56516d34bfbd3c1a833fc51296ff084b770b94fb9028c4d25ccf@52.169.42.101:30303", // IE
 	}
 	DiscoveryV5Bootnodes = []string{
-		"enode://06051a5573c81934c9554ef2898eb13b33a34b94cf36b202b69fde139ca17a85051979867720d4bdae4323d4943ddf9aeeb6643633aa656e0be843659795007a@35.177.226.168:30303",
+		"cnode://06051a5573c81934c9554ef2898eb13b33a34b94cf36b202b69fde139ca17a85051979867720d4bdae4323d4943ddf9aeeb6643633aa656e0be843659795007a@35.177.226.168:30303",
 	}
 )
 
