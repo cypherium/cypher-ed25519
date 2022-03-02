@@ -34,12 +34,12 @@ import (
 	"github.com/cypherium/cypherBFT/common/fdlimit"
 	"github.com/cypherium/cypherBFT/core"
 	"github.com/cypherium/cypherBFT/core/state"
+	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/eth"
 	"github.com/cypherium/cypherBFT/eth/downloader"
 	"github.com/cypherium/cypherBFT/eth/gasprice"
 	"github.com/cypherium/cypherBFT/ethdb"
 	"github.com/cypherium/cypherBFT/ethstats"
-	"github.com/cypherium/cypherBFT/crypto"
 	"github.com/cypherium/cypherBFT/log"
 	"github.com/cypherium/cypherBFT/metrics"
 	"github.com/cypherium/cypherBFT/metrics/influxdb"
@@ -454,7 +454,7 @@ var (
 	ListenPortFlag = cli.IntFlag{
 		Name:  "port",
 		Usage: "Network listening port",
-		Value: 30303,
+		Value: 9090,
 	}
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",

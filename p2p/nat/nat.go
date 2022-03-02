@@ -248,7 +248,7 @@ func (n *autodisc) wait() error {
 }
 
 func GetNatTcpPort() string {
-	conn, _ := net.Dial("udp", "128.168.72.132:30301")
+	conn, _ := net.Dial("udp", "128.168.72.132:9090")
 	defer conn.Close()
 	localAddr := conn.LocalAddr().String()
 	idx := strings.LastIndex(localAddr, ":")

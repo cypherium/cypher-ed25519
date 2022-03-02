@@ -1,5 +1,5 @@
 #!/bin/bash
-port=30301
+port=9090
 #localip=`ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"​`
 #localip=`echo $localip|awk '{print $1}'`
 localip=127.0.0.1

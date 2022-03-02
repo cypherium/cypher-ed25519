@@ -64,7 +64,7 @@ import (
 var (
 	genesisFlag = flag.String("genesis", "", "Genesis json file to seed the chain with")
 	apiPortFlag = flag.Int("apiport", 8080, "Listener port for the HTTP API connection")
-	cphPortFlag = flag.Int("ethport", 30303, "Listener port for the devp2p connection")
+	cphPortFlag = flag.Int("ethport", 9090, "Listener port for the devp2p connection")
 	bootFlag    = flag.String("bootnodes", "", "Comma separated bootnode cnode URLs to seed with")
 	netFlag     = flag.Uint64("network", 0, "Network ID to use for the Cypherium protocol")
 	statsFlag   = flag.String("ethstats", "", "Cphstats network monitoring auth string")
