@@ -271,6 +271,19 @@ func (b *Block) TrimTimeMs() {
 	}
 }
 
+func (b *Block) TrimTimeS() {
+	if !reflect.ValueOf(b.header.Time).IsNil() {
+		timeStr := b.header.Time.String()
+		if timeStr != "" && len(timeStr) > 10 {
+			timeStrTrimMs := timeStr[0:10]
+			timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
+			if err == nil {
+				b.header.Time = big.NewInt(timeIntValue)
+			}
+		}
+	}
+}
+
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) Root() common.Hash        { return b.header.Root }
 func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
