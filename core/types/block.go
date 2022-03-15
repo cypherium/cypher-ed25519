@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"math/big"
+	"reflect"
+	"strconv"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -256,6 +258,31 @@ func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
 func (b *Block) Difficulty() *big.Int { return big.NewInt(1) }
 func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 func (b *Block) SetToCurrentTime()    { b.header.Time = big.NewInt(time.Now().UnixNano()) }
+func (b *Block) TrimTimeMs() {
+	if !reflect.ValueOf(b.header.Time).IsNil() {
+		timeStr := b.header.Time.String()
+		if timeStr != "" && len(timeStr) > 13 {
+			timeStrTrimMs := timeStr[0:13]
+			timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
+			if err == nil {
+				b.header.Time = big.NewInt(timeIntValue)
+			}
+		}
+	}
+}
+
+func (b *Block) TrimTimeS() {
+	if !reflect.ValueOf(b.header.Time).IsNil() {
+		timeStr := b.header.Time.String()
+		if timeStr != "" && len(timeStr) > 10 {
+			timeStrTrimMs := timeStr[0:10]
+			timeIntValue, err := strconv.ParseInt(timeStrTrimMs, 10, 64)
+			if err == nil {
+				b.header.Time = big.NewInt(timeIntValue)
+			}
+		}
+	}
+}
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) Root() common.Hash        { return b.header.Root }
